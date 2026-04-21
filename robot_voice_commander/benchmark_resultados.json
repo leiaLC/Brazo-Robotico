@@ -1,0 +1,146 @@
+[
+  {
+    "comando_esperado": "move_home",
+    "texto_transcrito": "¡Bee ahum!",
+    "accion_detectada": "move_home",
+    "correcto": true,
+    "latencias": {
+      "audio_s": 4.442,
+      "whisper_s": 4.779,
+      "llm_s": 10.419,
+      "parser_s": 0.0004,
+      "total_s": 19.64
+    },
+    "recursos": {
+      "cpu_promedio_pct": 20.8,
+      "ram_mb": 562.4,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "move_joint",
+    "texto_transcrito": "mueve el jointe 1 a 45°",
+    "accion_detectada": "move_joint",
+    "correcto": true,
+    "latencias": {
+      "audio_s": 5.548,
+      "whisper_s": 1.189,
+      "llm_s": 12.714,
+      "parser_s": 0.0001,
+      "total_s": 19.451
+    },
+    "recursos": {
+      "cpu_promedio_pct": 21.2,
+      "ram_mb": 615.6,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "move_joint",
+    "texto_transcrito": "mueve el joint 3 a 90 grados",
+    "accion_detectada": "move_joint",
+    "correcto": true,
+    "latencias": {
+      "audio_s": 6.32,
+      "whisper_s": 1.233,
+      "llm_s": 12.819,
+      "parser_s": 0.0001,
+      "total_s": 20.373
+    },
+    "recursos": {
+      "cpu_promedio_pct": 19.8,
+      "ram_mb": 619.1,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "open_gripper",
+    "texto_transcrito": "¡Avore el gripe!",
+    "accion_detectada": "open_gripper",
+    "correcto": true,
+    "latencias": {
+      "audio_s": 4.186,
+      "whisper_s": 1.167,
+      "llm_s": 8.831,
+      "parser_s": 0.0001,
+      "total_s": 14.184
+    },
+    "recursos": {
+      "cpu_promedio_pct": 19.4,
+      "ram_mb": 622.5,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "close_gripper",
+    "texto_transcrito": "y cerrar el gripe.",
+    "accion_detectada": "close_gripper",
+    "correcto": true,
+    "latencias": {
+      "audio_s": 4.013,
+      "whisper_s": 1.193,
+      "llm_s": 9.326,
+      "parser_s": 0.0001,
+      "total_s": 14.532
+    },
+    "recursos": {
+      "cpu_promedio_pct": 20.0,
+      "ram_mb": 626.8,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "stop",
+    "texto_transcrito": "¡TOP!",
+    "accion_detectada": "move_home",
+    "correcto": false,
+    "latencias": {
+      "audio_s": 2.738,
+      "whisper_s": 2.938,
+      "llm_s": 10.064,
+      "parser_s": 0.0001,
+      "total_s": 15.74
+    },
+    "recursos": {
+      "cpu_promedio_pct": 22.8,
+      "ram_mb": 631.4,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "move_cartesian",
+    "texto_transcrito": "móvete de 10 cm en X.",
+    "accion_detectada": "move_cartesian",
+    "correcto": true,
+    "latencias": {
+      "audio_s": 5.715,
+      "whisper_s": 1.146,
+      "llm_s": 17.01,
+      "parser_s": 0.0001,
+      "total_s": 23.871
+    },
+    "recursos": {
+      "cpu_promedio_pct": 21.1,
+      "ram_mb": 627.8,
+      "gpu_memoria_mb": 0.0
+    }
+  },
+  {
+    "comando_esperado": "rotate_joint",
+    "texto_transcrito": "rota el joint, dos, treinta grados.",
+    "accion_detectada": "move_joint",
+    "correcto": false,
+    "latencias": {
+      "audio_s": 5.38,
+      "whisper_s": 1.217,
+      "llm_s": 13.431,
+      "parser_s": 0.0002,
+      "total_s": 20.029
+    },
+    "recursos": {
+      "cpu_promedio_pct": 21.1,
+      "ram_mb": 633.1,
+      "gpu_memoria_mb": 0.0
+    }
+  }
+]
