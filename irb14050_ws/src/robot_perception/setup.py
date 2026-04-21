@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'camera_node = robot_perception.camera_node:main',
+            'yolo_node = robot_perception.yolo_node:main',
         ],
     },
 )
