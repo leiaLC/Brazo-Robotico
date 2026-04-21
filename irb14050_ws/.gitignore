@@ -1,0 +1,85 @@
+
+
+# ROS 2 / Colcon
+
+build/
+install/
+log/
+
+
+# Python
+
+
+**pycache**/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.egg-info/
+.venv/
+venv/
+
+
+# C++
+
+*.o
+*.so
+*.a
+*.out
+*.exe
+
+
+# VS Code / IDEs
+
+
+.vscode/
+.idea/
+
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+
+# ROS bag files
+
+
+
+*.db3
+*.bag
+
+
+# Logs
+
+
+*.log
+
+
+# Docker
+
+
+*.tar
+*.img
+
+
+# Env files 
+
+
+.env
+
+
+# Models / AI (depende)
+
+
+*.pt
+*.onnx
+*.engine
+*.h5
+
+
+
+# Colcon metadata
+
+.colcon/
