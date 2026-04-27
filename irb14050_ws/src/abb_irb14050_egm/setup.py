@@ -22,8 +22,13 @@ setup(
     entry_points={
         'console_scripts': [
             'egm_bridge = abb_irb14050_egm.egm_bridge_node:main',
+            'joint_commander = '
+                'abb_irb14050_egm.joint_commander_node:main',
             'joint_listener = '
                 'abb_irb14050_egm.joint_state_listener_node:main',
+            'teach = abb_irb14050_egm.teach_node:main',
+            'waypoint_player = '
+                'abb_irb14050_egm.waypoint_player_node:main',
         ],
     },
 )
