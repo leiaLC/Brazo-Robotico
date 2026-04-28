@@ -1,0 +1,17 @@
+# ── Audio ──────────────────────────────────────────────
+pyaudio>=0.2.14
+faster-whisper>=1.0.0
+silero-vad>=5.1
+
+# ── Vision ─────────────────────────────────────────────
+opencv-python>=4.10.0
+ultralytics>=8.3.0            # YOLO v11
+
+# ── LLM ────────────────────────────────────────────────
+ollama>=0.3.0
+
+# ── Utilities ──────────────────────────────────────────
+pydantic>=2.7.0               # schema validation
+pyyaml>=6.0.2
+rich>=13.8.0                  # pretty terminal output
+numpy>=1.26.0

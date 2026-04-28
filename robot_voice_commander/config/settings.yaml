@@ -1,0 +1,47 @@
+audio:
+  sample_rate: 16000
+  channels: 1
+  chunk_size: 1024
+  silence_threshold: 0.01
+  silence_duration: 1.5        # seconds of silence to stop recording
+  max_recording_duration: 15.0 # seconds
+  device_index: null           # null = default device
+
+whisper:
+  model_size: "base"           # tiny | base | small | medium | large-v3
+  device: "cpu"               # cuda | cpu
+  compute_type: "int8"      # float16 (GPU) | int8 (CPU)
+  language: "es"               # es | en | null (auto-detect)
+  beam_size: 5
+
+ollama:
+  base_url: "http://localhost:11434"
+  model: "llama3.2"            # llama3.2 | mistral | phi3 | gemma2
+  temperature: 0.1             # low = more deterministic for commands
+  max_tokens: 512
+  timeout: 30
+
+robot:
+  # Available actions — used both for prompting and validation
+  actions:
+    - move_joint
+    - move_cartesian
+    - open_gripper
+    - close_gripper
+    - move_home
+    - stop
+    - pick
+    - place
+    - rotate_joint
+  joints: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
+  cartesian_axes: ["x", "y", "z", "roll", "pitch", "yaw"]
+  units:
+    angles: "degrees"
+    distances: "meters"
+    speed: "percentage"        # 0-100
+
+logging:
+  level: "INFO"                # DEBUG | INFO | WARNING | ERROR
+  log_to_file: true
+  log_file: "logs/robot_voice.log"
+  show_timestamps: true
