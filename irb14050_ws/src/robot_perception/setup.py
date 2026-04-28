@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'camera_node = robot_perception.camera_node:main',
             'yolo_node = robot_perception.yolo_node:main',
+            'depth_node = robot_perception.depth_estimator:main',
         ],
     },
 )

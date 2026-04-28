@@ -1,0 +1,23 @@
+[0.801s] Invoking command in '/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_perception': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/zuriel_tov/Brazo-Robotico/build/robot_perception/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/robot_perception build --build-base /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build install --record /home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log --single-version-externally-managed install_data
+[0.971s] running egg_info
+[0.983s] writing ../../../build/robot_perception/robot_perception.egg-info/PKG-INFO
+[0.983s] writing dependency_links to ../../../build/robot_perception/robot_perception.egg-info/dependency_links.txt
+[0.983s] writing entry points to ../../../build/robot_perception/robot_perception.egg-info/entry_points.txt
+[0.983s] writing requirements to ../../../build/robot_perception/robot_perception.egg-info/requires.txt
+[0.983s] writing top-level names to ../../../build/robot_perception/robot_perception.egg-info/top_level.txt
+[1.008s] reading manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+[1.008s] writing manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+[1.009s] running build
+[1.009s] running build_py
+[1.009s] running install
+[1.013s] running install_lib
+[1.026s] running install_data
+[1.026s] running install_egg_info
+[1.038s] removing '/home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception-0.0.0-py3.12.egg-info' (and everything under it)
+[1.038s] Copying ../../../build/robot_perception/robot_perception.egg-info to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception-0.0.0-py3.12.egg-info
+[1.039s] running install_scripts
+[1.118s] Installing camera_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+[1.118s] Installing depth_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+[1.118s] Installing yolo_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+[1.119s] writing list of installed files to '/home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log'
+[1.135s] Invoked command in '/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_perception' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/zuriel_tov/Brazo-Robotico/build/robot_perception/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/robot_perception build --build-base /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build install --record /home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log --single-version-externally-managed install_data

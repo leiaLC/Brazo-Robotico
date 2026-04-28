@@ -1,0 +1,30 @@
+running egg_info
+creating ../../../build/robot_task_manager/robot_task_manager.egg-info
+writing ../../../build/robot_task_manager/robot_task_manager.egg-info/PKG-INFO
+writing dependency_links to ../../../build/robot_task_manager/robot_task_manager.egg-info/dependency_links.txt
+writing requirements to ../../../build/robot_task_manager/robot_task_manager.egg-info/requires.txt
+writing top-level names to ../../../build/robot_task_manager/robot_task_manager.egg-info/top_level.txt
+writing manifest file '../../../build/robot_task_manager/robot_task_manager.egg-info/SOURCES.txt'
+reading manifest file '../../../build/robot_task_manager/robot_task_manager.egg-info/SOURCES.txt'
+writing manifest file '../../../build/robot_task_manager/robot_task_manager.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/zuriel_tov/Brazo-Robotico/build/robot_task_manager/build
+creating /home/zuriel_tov/Brazo-Robotico/build/robot_task_manager/build/lib
+creating /home/zuriel_tov/Brazo-Robotico/build/robot_task_manager/build/lib/robot_task_manager
+copying robot_task_manager/__init__.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_task_manager/build/lib/robot_task_manager
+running install
+running install_lib
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/lib/python3.12/site-packages/robot_task_manager
+copying /home/zuriel_tov/Brazo-Robotico/build/robot_task_manager/build/lib/robot_task_manager/__init__.py -> /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/lib/python3.12/site-packages/robot_task_manager
+byte-compiling /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/lib/python3.12/site-packages/robot_task_manager/__init__.py to __init__.cpython-312.pyc
+running install_data
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/share/ament_index
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/share/ament_index/resource_index
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/share/ament_index/resource_index/packages
+copying resource/robot_task_manager -> /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/share/ament_index/resource_index/packages
+copying package.xml -> /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/share/robot_task_manager
+running install_egg_info
+Copying ../../../build/robot_task_manager/robot_task_manager.egg-info to /home/zuriel_tov/Brazo-Robotico/install/robot_task_manager/lib/python3.12/site-packages/robot_task_manager-0.0.0-py3.12.egg-info
+running install_scripts
+writing list of installed files to '/home/zuriel_tov/Brazo-Robotico/build/robot_task_manager/install.log'

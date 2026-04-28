@@ -1,0 +1,12 @@
+{
+  "package_name": "robot_interfaces",
+  "output_dir": "/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces/rosidl_generator_type_description/robot_interfaces",
+  "idl_tuples": [
+    "/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces/rosidl_adapter/robot_interfaces:msg/DetectedObject.idl",
+    "/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces/rosidl_adapter/robot_interfaces:msg/DetectedObjectArray.idl"
+  ],
+  "include_paths": [
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces"
+  ]
+}

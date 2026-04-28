@@ -1,0 +1,29 @@
+[0.924s] Invoking command in '/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_perception': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(yolo_env) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ PYTHONPATH=/home/zuriel_tov/Brazo-Robotico/build/robot_perception/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages:${PYTHONPATH} VIRTUAL_ENV_PROMPT=(yolo_env) /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/robot_perception build --build-base /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build install --record /home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log --single-version-externally-managed install_data
+[1.130s] running egg_info
+[1.144s] writing ../../../build/robot_perception/robot_perception.egg-info/PKG-INFO
+[1.145s] writing dependency_links to ../../../build/robot_perception/robot_perception.egg-info/dependency_links.txt
+[1.145s] writing entry points to ../../../build/robot_perception/robot_perception.egg-info/entry_points.txt
+[1.145s] writing requirements to ../../../build/robot_perception/robot_perception.egg-info/requires.txt
+[1.145s] writing top-level names to ../../../build/robot_perception/robot_perception.egg-info/top_level.txt
+[1.176s] reading manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+[1.177s] writing manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+[1.177s] running build
+[1.177s] running build_py
+[1.177s] copying robot_perception/camera_node.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+[1.177s] copying robot_perception/__init__.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+[1.177s] copying robot_perception/depth_estimator.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+[1.177s] copying robot_perception/yolo_node.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+[1.177s] running install
+[1.181s] running install_lib
+[1.196s] running install_data
+[1.197s] copying resource/robot_perception -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/ament_index/resource_index/packages
+[1.197s] copying package.xml -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/robot_perception
+[1.197s] running install_egg_info
+[1.212s] removing '/home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception-0.0.0-py3.12.egg-info' (and everything under it)
+[1.212s] Copying ../../../build/robot_perception/robot_perception.egg-info to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception-0.0.0-py3.12.egg-info
+[1.212s] running install_scripts
+[1.303s] Installing camera_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+[1.303s] Installing depth_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+[1.303s] Installing yolo_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+[1.303s] writing list of installed files to '/home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log'
+[1.328s] Invoked command in '/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_perception' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(yolo_env) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ PYTHONPATH=/home/zuriel_tov/Brazo-Robotico/build/robot_perception/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages:${PYTHONPATH} VIRTUAL_ENV_PROMPT=(yolo_env) /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/robot_perception build --build-base /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build install --record /home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log --single-version-externally-managed install_data

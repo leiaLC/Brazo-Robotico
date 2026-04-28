@@ -1,43 +1,53 @@
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-import cv2
-from cv_bridge import CvBridge
-import os
 
-class CaptureNode(Node):
+class CameraNode(Node):
     def __init__(self):
-        super().__init__('capture_node')
+        super().__init__('camera_node')
 
-        self.bridge = CvBridge()
-        self.count = 0
+        # Último depth recibido
+        self.last_depth = None
 
-        os.makedirs("calib_images", exist_ok=True)
-
-        self.sub = self.create_subscription(
+        # Subscribers normales (sin message_filters)
+        self.rgb_sub = self.create_subscription(
             Image,
             '/camera/image_raw',
-            self.callback,
+            self.rgb_callback,
             10
         )
 
-    def callback(self, msg):
-        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        self.depth_sub = self.create_subscription(
+            Image,
+            '/camera/depth/image_raw',
+            self.depth_callback,
+            10
+        )
 
-        cv2.imshow("frame", frame)
+        # Publishers
+        self.rgb_pub = self.create_publisher(Image, '/perception/rgb', 10)
+        self.depth_pub = self.create_publisher(Image, '/perception/depth', 10)
 
-        key = cv2.waitKey(1)
+        self.get_logger().info('Camera node ready')
 
-        if key == ord('s'):
-            filename = f"calib_images/img_{self.count}.png"
-            cv2.imwrite(filename, frame)
-            print(f"Saved {filename}")
-            self.count += 1
+    def depth_callback(self, msg):
+        # Guardas el último depth siempre
+        self.last_depth = msg
 
-def main():
-    rclpy.init()
-    node = CaptureNode()
+    def rgb_callback(self, msg):
+        # Publicas RGB siempre
+        self.rgb_pub.publish(msg)
+
+        # Solo publicas depth si ya tienes uno
+        if self.last_depth is not None:
+            self.depth_pub.publish(self.last_depth)
+            
+def main(args=None):
+    rclpy.init(args=args)
+    node = CameraNode()
     rclpy.spin(node)
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

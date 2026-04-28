@@ -1,0 +1,44 @@
+[0.010s] Invoking command in '/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(yolo_env) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(yolo_env) /usr/bin/cmake /home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_interfaces -DCMAKE_INSTALL_PREFIX=/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces
+[0.231s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[0.231s] -- Found rosidl_default_generators: 1.6.0 (/opt/ros/jazzy/share/rosidl_default_generators/cmake)
+[0.231s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.231s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.231s] -- Found rosidl_adapter: 4.6.7 (/opt/ros/jazzy/share/rosidl_adapter/cmake)
+[0.231s] -- Found std_msgs: 5.3.6 (/opt/ros/jazzy/share/std_msgs/cmake)
+[0.231s] -- Found ament_lint_auto: 0.17.4 (/opt/ros/jazzy/share/ament_lint_auto/cmake)
+[0.351s] [31mCMake Error at /opt/ros/jazzy/share/rosidl_adapter/cmake/rosidl_adapt_interfaces.cmake:57 (message):
+[0.351s]   execute_process(/home/zuriel_tov/yolo_env/bin/python3 -m rosidl_adapter
+[0.351s]   --package-name robot_interfaces --arguments-file
+[0.351s]   /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces/rosidl_adapter__arguments__robot_interfaces.json
+[0.351s]   --output-dir
+[0.351s]   /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces/rosidl_adapter/robot_interfaces
+[0.351s]   --output-file
+[0.351s]   /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces/rosidl_adapter/robot_interfaces.idls)
+[0.351s]   returned error code 1:
+[0.351s] 
+[0.351s]   Traceback (most recent call last):
+[0.351s] 
+[0.351s]     File "<frozen runpy>", line 198, in _run_module_as_main
+[0.351s]     File "<frozen runpy>", line 88, in _run_code
+[0.351s]     File "/opt/ros/jazzy/lib/python3.12/site-packages/rosidl_adapter/__main__.py", line 19, in <module>
+[0.351s]       sys.exit(main())
+[0.351s]                ^^^^^^
+[0.351s]     File "/opt/ros/jazzy/lib/python3.12/site-packages/rosidl_adapter/main.py", line 53, in main
+[0.351s]       abs_idl_file = convert_to_idl(
+[0.351s]                      ^^^^^^^^^^^^^^^
+[0.351s]     File "/opt/ros/jazzy/lib/python3.12/site-packages/rosidl_adapter/__init__.py", line 18, in convert_to_idl
+[0.351s]       from rosidl_adapter.msg import convert_msg_to_idl
+[0.351s]     File "/opt/ros/jazzy/lib/python3.12/site-packages/rosidl_adapter/msg/__init__.py", line 16, in <module>
+[0.351s]       from rosidl_adapter.resource import expand_template
+[0.351s]     File "/opt/ros/jazzy/lib/python3.12/site-packages/rosidl_adapter/resource/__init__.py", line 19, in <module>
+[0.351s]       import em
+[0.351s] 
+[0.351s]   ModuleNotFoundError: No module named 'em'
+[0.351s] 
+[0.351s] Call Stack (most recent call first):
+[0.351s]   /opt/ros/jazzy/share/rosidl_cmake/cmake/rosidl_generate_interfaces.cmake:132 (rosidl_adapt_interfaces)
+[0.351s]   CMakeLists.txt:30 (rosidl_generate_interfaces)
+[0.351s] 
+[0.352s] [0m
+[0.352s] -- Configuring incomplete, errors occurred!
+[0.355s] Invoked command in '/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces' returned '1': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(yolo_env) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(yolo_env) /usr/bin/cmake /home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_interfaces -DCMAKE_INSTALL_PREFIX=/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces

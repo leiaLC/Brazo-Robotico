@@ -1,0 +1,43 @@
+running egg_info
+creating ../../../build/robot_perception/robot_perception.egg-info
+writing ../../../build/robot_perception/robot_perception.egg-info/PKG-INFO
+writing dependency_links to ../../../build/robot_perception/robot_perception.egg-info/dependency_links.txt
+writing entry points to ../../../build/robot_perception/robot_perception.egg-info/entry_points.txt
+writing requirements to ../../../build/robot_perception/robot_perception.egg-info/requires.txt
+writing top-level names to ../../../build/robot_perception/robot_perception.egg-info/top_level.txt
+writing manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+reading manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+writing manifest file '../../../build/robot_perception/robot_perception.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build
+creating /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib
+creating /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+copying robot_perception/camera_node.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+copying robot_perception/__init__.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+copying robot_perception/depth_estimator.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+copying robot_perception/yolo_node.py -> /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception
+running install
+running install_lib
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception
+copying /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception/camera_node.py -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception
+copying /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception/__init__.py -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception
+copying /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception/depth_estimator.py -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception
+copying /home/zuriel_tov/Brazo-Robotico/build/robot_perception/build/lib/robot_perception/yolo_node.py -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception
+byte-compiling /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception/camera_node.py to camera_node.cpython-312.pyc
+byte-compiling /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception/__init__.py to __init__.cpython-312.pyc
+byte-compiling /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception/depth_estimator.py to depth_estimator.cpython-312.pyc
+byte-compiling /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception/yolo_node.py to yolo_node.cpython-312.pyc
+running install_data
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/ament_index
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/ament_index/resource_index
+creating /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/ament_index/resource_index/packages
+copying resource/robot_perception -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/ament_index/resource_index/packages
+copying package.xml -> /home/zuriel_tov/Brazo-Robotico/install/robot_perception/share/robot_perception
+running install_egg_info
+Copying ../../../build/robot_perception/robot_perception.egg-info to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/python3.12/site-packages/robot_perception-0.0.0-py3.12.egg-info
+running install_scripts
+Installing camera_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+Installing depth_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+Installing yolo_node script to /home/zuriel_tov/Brazo-Robotico/install/robot_perception/lib/robot_perception
+writing list of installed files to '/home/zuriel_tov/Brazo-Robotico/build/robot_perception/install.log'
