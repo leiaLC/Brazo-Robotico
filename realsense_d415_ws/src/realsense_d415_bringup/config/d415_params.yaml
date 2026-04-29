@@ -1,0 +1,38 @@
+/camera/camera:
+  ros__parameters:
+    camera_name: camera
+    camera_namespace: camera
+
+    enable_color: true
+    enable_depth: true
+    enable_infra1: false
+    enable_infra2: false
+
+    rgb_camera:
+      color_profile: 640x480x30
+      color_format: RGB8
+
+    depth_module:
+      depth_profile: 640x480x30
+      depth_format: Z16
+      emitter_enabled: 1
+
+    align_depth:
+      enable: true
+
+    enable_rgbd: true
+    enable_sync: true
+
+    pointcloud:
+      enable: true
+      ordered_pc: false
+      allow_no_texture_points: false
+      stream_filter: 2
+      stream_index_filter: 0
+
+    publish_tf: true
+    tf_publish_rate: 0.0
+
+    initial_reset: false
+    reconnect_timeout: 6.0
+    wait_for_device_timeout: -1.0
