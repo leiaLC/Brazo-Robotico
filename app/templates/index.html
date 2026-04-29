@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>ABB Robot Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <div>
+            <h1>ABB Robotic Arm Supervision Dashboard</h1>
+            <p>ROS2-ready web interface for ABB IRB 14050 + Intel RealSense monitoring</p>
+        </div>
+
+        <div class="header-status">
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                <span>LIVE</span>
+            </div>
+            <div class="small-status" id="header-controller">Controller: --</div>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="panel video-panel">
+        <div class="section-title">
+            <h2>Camera View</h2>
+            <span>Intel RealSense Demo Stream</span>
+        </div>
+
+        <img src="/video" id="video-feed" alt="Simulated RealSense Feed">
+
+        <div class="info-box">
+            <p><strong>Current source:</strong> Demo stream prepared for future RealSense integration</p>
+            <p><strong>Target ROS2 topic:</strong> /camera/color/image_raw</p>
+            <p><strong>Depth topic prepared:</strong> /camera/depth/image_rect_raw</p>
+        </div>
+    </section>
+
+    <section class="panel telemetry-panel">
+        <div class="section-title">
+            <h2>System State</h2>
+            <span id="last-update">Last update: --</span>
+        </div>
+
+        <div class="cards four-cols">
+            <div class="card">
+                <h3>Robot</h3>
+                <p id="robot-name">--</p>
+            </div>
+
+            <div class="card" id="controller-card">
+                <h3>Controller</h3>
+                <p id="controller-state">--</p>
+            </div>
+
+            <div class="card">
+                <h3>ROS2 Bridge</h3>
+                <p id="ros2-bridge">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Camera</h3>
+                <p id="camera-status">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Motion</h3>
+                <p id="motion-state">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Robot Mode</h3>
+                <p id="robot-mode">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Program</h3>
+                <p id="program-name">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Gripper</h3>
+                <p id="gripper-status">--</p>
+            </div>
+        </div>
+
+        <h2>Joint States</h2>
+        <div class="cards joint-grid">
+            <div class="card"><h3>J1</h3><p id="joint-1">--°</p></div>
+            <div class="card"><h3>J2</h3><p id="joint-2">--°</p></div>
+            <div class="card"><h3>J3</h3><p id="joint-3">--°</p></div>
+            <div class="card"><h3>J4</h3><p id="joint-4">--°</p></div>
+            <div class="card"><h3>J5</h3><p id="joint-5">--°</p></div>
+            <div class="card"><h3>J6</h3><p id="joint-6">--°</p></div>
+            <div class="card"><h3>J7</h3><p id="joint-7">--°</p></div>
+        </div>
+
+        <h2>End Effector Pose</h2>
+        <div class="pose-grid">
+            <div class="pose-card"><h3>X</h3><p id="pose-x">-- m</p></div>
+            <div class="pose-card"><h3>Y</h3><p id="pose-y">-- m</p></div>
+            <div class="pose-card"><h3>Z</h3><p id="pose-z">-- m</p></div>
+            <div class="pose-card"><h3>Roll</h3><p id="roll">-- °</p></div>
+            <div class="pose-card"><h3>Pitch</h3><p id="pitch">-- °</p></div>
+            <div class="pose-card"><h3>Yaw</h3><p id="yaw">-- °</p></div>
+        </div>
+
+        <h2>Diagnostics</h2>
+        <div class="cards diagnostic-grid">
+            <div class="card">
+                <h3>CPU Temp</h3>
+                <p id="cpu-temperature">-- °C</p>
+            </div>
+
+            <div class="card">
+                <h3>Latency</h3>
+                <p id="latency-ms">-- ms</p>
+            </div>
+
+            <div class="card">
+                <h3>Update Rate</h3>
+                <p id="update-rate">-- Hz</p>
+            </div>
+
+            <div class="card">
+                <h3>Cycle Time</h3>
+                <p id="cycle-time">-- ms</p>
+            </div>
+
+            <div class="card">
+                <h3>Messages</h3>
+                <p id="message-counter">--</p>
+            </div>
+        </div>
+
+        <div class="alert-box normal" id="alert-box">
+            System normal
+        </div>
+
+        <button id="emergency-button" onclick="toggleEmergencyStop()">
+            Activate Emergency Stop
+        </button>
+    </section>
+
+    <section class="panel charts-panel">
+        <div class="section-title">
+            <h2>Real-Time Trends</h2>
+            <span>Historical telemetry buffer</span>
+        </div>
+
+        <div class="chart-container">
+            <h3>Joint Position Trend</h3>
+            <canvas id="jointChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>Temperature and Latency</h3>
+            <canvas id="diagnosticChart"></canvas>
+        </div>
+    </section>
+</main>
+
+<script>
+    const jointCtx = document.getElementById("jointChart").getContext("2d");
+    const diagnosticCtx = document.getElementById("diagnosticChart").getContext("2d");
+
+    const jointChart = new Chart(jointCtx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                { label: "J1", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "J2", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "J3", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "J4", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "J5", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "J6", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "J7", data: [], borderWidth: 2, tension: 0.3 }
+            ]
+        },
+        options: {
+            animation: false,
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: "#d7e0ea"
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: "#aeb9c7" },
+                    grid: { color: "rgba(255,255,255,0.08)" }
+                },
+                y: {
+                    ticks: { color: "#aeb9c7" },
+                    grid: { color: "rgba(255,255,255,0.08)" }
+                }
+            }
+        }
+    });
+
+    const diagnosticChart = new Chart(diagnosticCtx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                { label: "Temperature °C", data: [], borderWidth: 2, tension: 0.3 },
+                { label: "Latency ms", data: [], borderWidth: 2, tension: 0.3 }
+            ]
+        },
+        options: {
+            animation: false,
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: "#d7e0ea"
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: "#aeb9c7" },
+                    grid: { color: "rgba(255,255,255,0.08)" }
+                },
+                y: {
+                    ticks: { color: "#aeb9c7" },
+                    grid: { color: "rgba(255,255,255,0.08)" }
+                }
+            }
+        }
+    });
+
+    async function updateTelemetry() {
+        const response = await fetch("/telemetry");
+        const data = await response.json();
+
+        document.getElementById("robot-name").innerText = data.robot_name;
+        document.getElementById("controller-state").innerText = data.controller_state;
+        document.getElementById("ros2-bridge").innerText = data.ros2_bridge;
+        document.getElementById("camera-status").innerText = data.camera_status;
+        document.getElementById("motion-state").innerText = data.motion_state;
+        document.getElementById("robot-mode").innerText = data.robot_mode;
+        document.getElementById("program-name").innerText = data.program_name;
+        document.getElementById("gripper-status").innerText = data.gripper_status;
+
+        document.getElementById("joint-1").innerText = data.joint_1 + "°";
+        document.getElementById("joint-2").innerText = data.joint_2 + "°";
+        document.getElementById("joint-3").innerText = data.joint_3 + "°";
+        document.getElementById("joint-4").innerText = data.joint_4 + "°";
+        document.getElementById("joint-5").innerText = data.joint_5 + "°";
+        document.getElementById("joint-6").innerText = data.joint_6 + "°";
+        document.getElementById("joint-7").innerText = data.joint_7 + "°";
+
+        document.getElementById("pose-x").innerText = data.end_effector_x + " m";
+        document.getElementById("pose-y").innerText = data.end_effector_y + " m";
+        document.getElementById("pose-z").innerText = data.end_effector_z + " m";
+        document.getElementById("roll").innerText = data.roll + " °";
+        document.getElementById("pitch").innerText = data.pitch + " °";
+        document.getElementById("yaw").innerText = data.yaw + " °";
+
+        document.getElementById("cpu-temperature").innerText = data.cpu_temperature + " °C";
+        document.getElementById("latency-ms").innerText = data.latency_ms + " ms";
+        document.getElementById("update-rate").innerText = data.update_rate_hz + " Hz";
+        document.getElementById("cycle-time").innerText = data.cycle_time_ms + " ms";
+        document.getElementById("message-counter").innerText = data.message_counter;
+
+        document.getElementById("last-update").innerText = "Last update: " + data.timestamp;
+        document.getElementById("header-controller").innerText = "Controller: " + data.controller_state;
+
+        const controllerCard = document.getElementById("controller-card");
+        const alertBox = document.getElementById("alert-box");
+        const emergencyButton = document.getElementById("emergency-button");
+
+        if (data.controller_state === "EMERGENCY_STOP") {
+            controllerCard.className = "card danger-card";
+            emergencyButton.innerText = "Release Emergency Stop";
+        } else {
+            controllerCard.className = "card success-card";
+            emergencyButton.innerText = "Activate Emergency Stop";
+        }
+
+        if (data.system_alert === "HIGH_TEMPERATURE") {
+            alertBox.innerText = "Warning: high temperature";
+            alertBox.className = "alert-box warning";
+        } else if (data.system_alert === "HIGH_LATENCY") {
+            alertBox.innerText = "Warning: high communication latency";
+            alertBox.className = "alert-box warning";
+        } else if (data.system_alert === "EMERGENCY_ACTIVE") {
+            alertBox.innerText = "Emergency stop is active";
+            alertBox.className = "alert-box danger";
+        } else {
+            alertBox.innerText = "System normal";
+            alertBox.className = "alert-box normal";
+        }
+    }
+
+    async function updateCharts() {
+        const response = await fetch("/history");
+        const history = await response.json();
+
+        const labels = history.map(item => item.timestamp);
+
+        jointChart.data.labels = labels;
+        diagnosticChart.data.labels = labels;
+
+        for (let i = 1; i <= 7; i++) {
+            jointChart.data.datasets[i - 1].data = history.map(item => item["joint_" + i]);
+        }
+
+        diagnosticChart.data.datasets[0].data = history.map(item => item.temperature);
+        diagnosticChart.data.datasets[1].data = history.map(item => item.latency);
+
+        jointChart.update();
+        diagnosticChart.update();
+    }
+
+    async function toggleEmergencyStop() {
+        await fetch("/emergency-stop", { method: "POST" });
+        updateTelemetry();
+    }
+
+    setInterval(updateTelemetry, 250);
+    setInterval(updateCharts, 1000);
+
+    updateTelemetry();
+    updateCharts();
+</script>
+
+</body>
+</html>

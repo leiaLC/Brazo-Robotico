@@ -1,0 +1,11 @@
+venv/
+venv_dash/
+__pycache::/
+*.pyc
+.env
+
+.vscode/
+
+build/
+install/
+log/
