@@ -30,6 +30,8 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObject.msg"
   "msg/DetectedObjectArray.msg"
+  "msg/DetectedObjectCloud.msg"
+  "msg/DetectedObjectCloudArray.msg"
   DEPENDENCIES std_msgs
 )
 

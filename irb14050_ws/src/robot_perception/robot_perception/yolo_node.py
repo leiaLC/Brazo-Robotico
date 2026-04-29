@@ -79,7 +79,7 @@ class YoloNode(Node):
         self.bridge = CvBridge()
 
         # ── Subscriber directo — sin sincronizador ───────────────────────
-        self.create_subscription(Image, '/camera/image_raw', self.callback, 10)
+        self.create_subscription(Image, '/perception/rgb', self.callback, 10)
 
         # ── Publishers ───────────────────────────────────────────────────
         self.det_pub   = self.create_publisher(DetectedObjectArray, '/perception/detections',       10)

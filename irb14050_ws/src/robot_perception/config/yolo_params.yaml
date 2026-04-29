@@ -14,3 +14,10 @@ depth_estimator_node:
 
     # Distorsión [k1, k2, p1, p2, k3]
     distortion: [0.36707075, -0.10014484, -0.01481674, 0.03724342, 10.61119071]
+
+pointcloud_node:
+  ros__parameters:
+    depth_scale: 0.001
+    voxel_size: 0.005      # 5mm
+    min_points: 10
+    frame_id: "camera_color_optical_frame"
