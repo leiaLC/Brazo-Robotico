@@ -13,14 +13,14 @@ class CameraNode(Node):
         # Subscribers normales (sin message_filters)
         self.rgb_sub = self.create_subscription(
             Image,
-            '/camera/image_raw',
+            '/camera/camera/color/image_raw',
             self.rgb_callback,
             10
         )
 
         self.depth_sub = self.create_subscription(
             Image,
-            '/camera/depth/image_raw',
+            '/camera/camera/aligned_depth_to_color/image_raw',
             self.depth_callback,
             10
         )

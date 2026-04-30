@@ -23,4 +23,11 @@ def generate_launch_description():
             output='screen',
             parameters=[config],
         ),
+        Node(
+            package='robot_perception',
+            executable='pointcloud_node',
+            name='pointcloud_node',
+            output='screen',
+            parameters=[config],
+        ),
     ])

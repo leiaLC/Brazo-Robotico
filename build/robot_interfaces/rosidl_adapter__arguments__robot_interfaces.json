@@ -1,7 +1,0 @@
-{
-  "package_name": "robot_interfaces",
-  "non_idl_tuples": [
-    "/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_interfaces:msg/DetectedObject.msg",
-    "/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/robot_interfaces:msg/DetectedObjectArray.msg"
-  ]
-}

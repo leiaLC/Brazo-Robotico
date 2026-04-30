@@ -1,0 +1,36 @@
+[1.134s] Invoking command in '/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/realsense_d415_bringup': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/realsense_d415_bringup build --build-base /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build install --record /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/install.log --single-version-externally-managed install_data
+[1.338s] running egg_info
+[1.338s] creating ../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info
+[1.354s] writing ../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/PKG-INFO
+[1.354s] writing dependency_links to ../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/dependency_links.txt
+[1.354s] writing requirements to ../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/requires.txt
+[1.354s] writing top-level names to ../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/top_level.txt
+[1.354s] writing manifest file '../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/SOURCES.txt'
+[1.386s] reading manifest file '../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/SOURCES.txt'
+[1.386s] writing manifest file '../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info/SOURCES.txt'
+[1.387s] running build
+[1.387s] running build_py
+[1.387s] creating /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build
+[1.387s] creating /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build/lib
+[1.387s] creating /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build/lib/realsense_d415_bringup
+[1.387s] copying realsense_d415_bringup/__init__.py -> /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build/lib/realsense_d415_bringup
+[1.387s] running install
+[1.392s] running install_lib
+[1.409s] creating /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/lib/python3.12/site-packages/realsense_d415_bringup
+[1.409s] copying /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build/lib/realsense_d415_bringup/__init__.py -> /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/lib/python3.12/site-packages/realsense_d415_bringup
+[1.409s] byte-compiling /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/lib/python3.12/site-packages/realsense_d415_bringup/__init__.py to __init__.cpython-312.pyc
+[1.409s] running install_data
+[1.410s] creating /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/ament_index
+[1.410s] creating /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/ament_index/resource_index
+[1.410s] creating /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/ament_index/resource_index/packages
+[1.410s] copying resource/realsense_d415_bringup -> /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/ament_index/resource_index/packages
+[1.410s] copying package.xml -> /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/realsense_d415_bringup
+[1.410s] creating /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/realsense_d415_bringup/launch
+[1.410s] copying launch/d415_rgbd_pointcloud.launch.py -> /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/realsense_d415_bringup/launch
+[1.410s] creating /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/realsense_d415_bringup/config
+[1.410s] copying config/d415_params.yaml -> /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/share/realsense_d415_bringup/config
+[1.410s] running install_egg_info
+[1.428s] Copying ../../../build/realsense_d415_bringup/realsense_d415_bringup.egg-info to /home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/lib/python3.12/site-packages/realsense_d415_bringup-0.0.0-py3.12.egg-info
+[1.428s] running install_scripts
+[1.544s] writing list of installed files to '/home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/install.log'
+[1.567s] Invoked command in '/home/zuriel_tov/Brazo-Robotico/irb14050_ws/src/realsense_d415_bringup' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/zuriel_tov/Brazo-Robotico/install/realsense_d415_bringup/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/realsense_d415_bringup build --build-base /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/build install --record /home/zuriel_tov/Brazo-Robotico/build/realsense_d415_bringup/install.log --single-version-externally-managed install_data

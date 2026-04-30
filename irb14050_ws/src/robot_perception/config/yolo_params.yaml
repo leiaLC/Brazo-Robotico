@@ -17,7 +17,8 @@ depth_estimator_node:
 
 pointcloud_node:
   ros__parameters:
-    depth_scale: 0.001
-    voxel_size: 0.005      # 5mm
     min_points: 10
-    frame_id: "camera_color_optical_frame"
+    mask_erosion: 7   # baja a 3 si los objetos son pequeños
+
+
+

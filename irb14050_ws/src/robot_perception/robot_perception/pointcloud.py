@@ -61,7 +61,7 @@ class PointCloudNode(Node):
         # ── Subscriber CameraInfo — una sola vez ─────────────────────────
         self.info_sub = self.create_subscription(
             CameraInfo,
-            '/camera/color/camera_info',
+            '/camera/camera/color/camera_info',
             self._camera_info_callback,
             1
         )
@@ -69,7 +69,7 @@ class PointCloudNode(Node):
         # ── Subscribers principales ───────────────────────────────────────
         self.create_subscription(
             PointCloud2,
-            '/camera/depth/color/points',
+            '/camera/camera/depth/color/points',
             self._cloud_callback,
             5
         )
