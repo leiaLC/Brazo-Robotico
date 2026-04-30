@@ -40,7 +40,7 @@ class YoloNode(Node):
         # ── Parámetros ───────────────────────────────────────────────────
         self.declare_parameter('model_path', 'yolov8n-seg.pt')
         self.declare_parameter('confidence', 0.5)
-        self.declare_parameter('device',     'cpu')
+        self.declare_parameter('device',     'cuda:0')
 
         model_path = self.get_parameter('model_path').value
         self.conf  = self.get_parameter('confidence').value
@@ -86,7 +86,7 @@ class YoloNode(Node):
         frame = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='bgr8')
 
         # ── Inferencia ───────────────────────────────────────────────────
-        results = self.model(frame, conf=self.conf, verbose=False)
+        results = self.model(frame, conf=self.conf, imgsz=640,verbose=False)
         result  = results[0]
 
         # ── Construye DetectedObjectArray ────────────────────────────────
