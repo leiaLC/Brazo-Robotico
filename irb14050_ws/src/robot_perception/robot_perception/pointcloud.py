@@ -184,7 +184,7 @@ class PointCloudNode(Node):
             obj_points = xyz_v[idx_obj]   # (M, 3)
 
             # ── Centroide ─────────────────────────────────────────────────
-            centroid = obj_points.mean(axis=0)
+            centroid = np.median(obj_points, axis=0)
 
             # ── Dimensiones del bounding box 3D ──────────────────────────
             # min/max en cada eje → tamaño del objeto
