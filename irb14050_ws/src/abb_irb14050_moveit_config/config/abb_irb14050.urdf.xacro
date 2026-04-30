@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="abb_irb14050">
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+
+    <!-- Import abb_irb14050 urdf file -->
+    <xacro:include filename="$(find abb_irb14050_description)/urdf/abb_irb14050.urdf" />
+
+    <!-- Import control_xacro -->
+    <xacro:include filename="abb_irb14050.ros2_control.xacro" />
+
+
+    <xacro:abb_irb14050_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+
+</robot>
