@@ -18,3 +18,8 @@ moveit_simple_controller_manager:
       - joint_5
       - joint_6
       - joint_7
+      
+trajectory_execution:
+  allowed_execution_duration_scaling: 5.0    
+  allowed_goal_duration_margin: 5.0         
+  allowed_start_tolerance: 0.05              
