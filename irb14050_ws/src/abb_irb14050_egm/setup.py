@@ -27,6 +27,7 @@ setup(
             'joint_listener = '
                 'abb_irb14050_egm.joint_state_listener_node:main',
             'teach = abb_irb14050_egm.teach_node:main',
+            'egm_moveit_executor = abb_irb14050_egm.egm_moveit_executor:main',
             'waypoint_player = '
                 'abb_irb14050_egm.waypoint_player_node:main',
         ],
