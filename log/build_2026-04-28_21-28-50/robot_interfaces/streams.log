@@ -1,0 +1,315 @@
+[0.149s] Invoking command in '/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces -- -j32 -l32
+[0.409s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[0.410s] -- Found Python3: /home/zuriel_tov/yolo_env/bin/python3 (found version "3.12.3") found components: Interpreter 
+[0.410s] -- Found rosidl_default_generators: 1.6.0 (/opt/ros/jazzy/share/rosidl_default_generators/cmake)
+[0.410s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.410s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.410s] -- Found rosidl_adapter: 4.6.7 (/opt/ros/jazzy/share/rosidl_adapter/cmake)
+[0.410s] -- Found std_msgs: 5.3.6 (/opt/ros/jazzy/share/std_msgs/cmake)
+[0.410s] -- Found ament_lint_auto: 0.17.4 (/opt/ros/jazzy/share/ament_lint_auto/cmake)
+[0.506s] -- Found ament_cmake_ros: 0.12.0 (/opt/ros/jazzy/share/ament_cmake_ros/cmake)
+[0.590s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.721s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.722s] -- Found python_cmake_module: 0.11.1 (/opt/ros/jazzy/share/python_cmake_module/cmake)
+[1.112s] -- Found Python3: /home/zuriel_tov/yolo_env/bin/python3 (found version "3.12.3") found components: Interpreter Development NumPy Development.Module Development.Embed 
+[1.133s] -- Added test 'lint_cmake' to check CMake code style
+[1.134s] -- Added test 'xmllint' to check XML markup files
+[1.139s] -- Configuring done (1.0s)
+[1.179s] -- Generating done (0.0s)
+[1.188s] -- Build files have been written to: /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces
+[1.228s] [  1%] [34m[1mGenerating type hashes for ROS interfaces[0m
+[1.241s] [  1%] Built target ament_cmake_python_copy_robot_interfaces
+[1.450s] running egg_info
+[1.463s] writing robot_interfaces.egg-info/PKG-INFO
+[1.463s] writing dependency_links to robot_interfaces.egg-info/dependency_links.txt
+[1.463s] writing top-level names to robot_interfaces.egg-info/top_level.txt
+[1.502s] reading manifest file 'robot_interfaces.egg-info/SOURCES.txt'
+[1.503s] writing manifest file 'robot_interfaces.egg-info/SOURCES.txt'
+[1.520s] [  1%] Built target robot_interfaces__rosidl_generator_type_description
+[1.531s] [  3%] [34m[1mGenerating C code for ROS interfaces[0m
+[1.532s] [  3%] Built target ament_cmake_python_build_robot_interfaces_egg
+[1.546s] [  4%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[1.951s] [  4%] Built target robot_interfaces__cpp
+[2.023s] [  9%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_cloud__type_support.c.o[0m
+[2.023s] [  9%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_cloud__functions.c.o[0m
+[2.023s] [  9%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_cloud_array__description.c.o[0m
+[2.023s] [ 10%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_cloud_array__functions.c.o[0m
+[2.023s] [ 12%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.c.o[0m
+[2.024s] [ 14%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object__description.c.o[0m
+[2.024s] [ 15%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object__functions.c.o[0m
+[2.024s] [ 17%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object__type_support.c.o[0m
+[2.024s] [ 18%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_array__description.c.o[0m
+[2.025s] [ 20%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_array__functions.c.o[0m
+[2.025s] [ 21%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_array__type_support.c.o[0m
+[2.025s] [ 23%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_c.dir/rosidl_generator_c/robot_interfaces/msg/detail/detected_object_cloud__description.c.o[0m
+[2.078s] [ 25%] [32m[1mLinking C shared library librobot_interfaces__rosidl_generator_c.so[0m
+[2.114s] [ 25%] Built target robot_interfaces__rosidl_generator_c
+[2.126s] [ 34%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[2.126s] [ 34%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[2.126s] [ 34%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[2.126s] [ 34%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[2.126s] [ 34%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[2.126s] [ 34%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[2.512s] [ 35%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/robot_interfaces/msg/detected_object_cloud__type_support.cpp.o[0m
+[2.515s] [ 37%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/robot_interfaces/msg/detected_object_array__type_support.cpp.o[0m
+[2.516s] [ 39%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/robot_interfaces/msg/detected_object__type_support.cpp.o[0m
+[2.516s] [ 40%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/robot_interfaces/msg/detected_object_cloud_array__type_support.cpp.o[0m
+[2.537s] [ 43%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/robot_interfaces/msg/detected_object_array__type_support.cpp.o[0m
+[2.537s] [ 43%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/robot_interfaces/msg/detected_object__type_support.cpp.o[0m
+[2.538s] [ 45%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/robot_interfaces/msg/detected_object_cloud_array__type_support.cpp.o[0m
+[2.539s] [ 46%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/robot_interfaces/msg/detected_object_cloud__type_support.cpp.o[0m
+[2.560s] [ 48%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/robot_interfaces/msg/detail/detected_object_cloud__type_support.c.o[0m
+[2.560s] [ 50%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.c.o[0m
+[2.563s] [ 51%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/robot_interfaces/msg/detail/detected_object__type_support.c.o[0m
+[2.564s] [ 53%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/robot_interfaces/msg/detail/detected_object_array__type_support.c.o[0m
+[2.582s] [ 54%] [32m[1mLinking CXX shared library librobot_interfaces__rosidl_typesupport_c.so[0m
+[2.620s] [ 56%] [32m[1mLinking C shared library librobot_interfaces__rosidl_typesupport_introspection_c.so[0m
+[2.646s] [ 56%] Built target robot_interfaces__rosidl_typesupport_c
+[2.660s] [ 56%] Built target robot_interfaces__rosidl_typesupport_introspection_c
+[2.716s] [ 59%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/robot_interfaces/msg/detail/dds_fastrtps/detected_object__type_support.cpp.o[0m
+[2.716s] [ 59%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/robot_interfaces/msg/detail/dds_fastrtps/detected_object_array__type_support.cpp.o[0m
+[2.716s] [ 60%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/robot_interfaces/msg/detail/dds_fastrtps/detected_object_cloud__type_support.cpp.o[0m
+[2.716s] [ 62%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/robot_interfaces/msg/detail/dds_fastrtps/detected_object_cloud_array__type_support.cpp.o[0m
+[2.734s] [ 64%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/robot_interfaces/msg/detail/detected_object_cloud__type_support.cpp.o[0m
+[2.734s] [ 67%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/robot_interfaces/msg/detail/detected_object_array__type_support.cpp.o[0m
+[2.734s] [ 67%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/robot_interfaces/msg/detail/detected_object__type_support.cpp.o[0m
+[2.735s] [ 68%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.cpp.o[0m
+[2.845s] [ 70%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/robot_interfaces/msg/detail/detected_object_cloud_array__type_support_c.cpp.o[0m
+[2.847s] [ 75%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/robot_interfaces/msg/detail/detected_object__type_support_c.cpp.o[0m
+[2.847s] [ 75%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/robot_interfaces/msg/detail/detected_object_array__type_support_c.cpp.o[0m
+[2.847s] [ 75%] [32mBuilding CXX object CMakeFiles/robot_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/robot_interfaces/msg/detail/detected_object_cloud__type_support_c.cpp.o[0m
+[3.002s] [ 76%] [32m[1mLinking CXX shared library librobot_interfaces__rosidl_typesupport_cpp.so[0m
+[3.056s] [ 76%] Built target robot_interfaces__rosidl_typesupport_cpp
+[3.093s] [ 78%] [32m[1mLinking CXX shared library librobot_interfaces__rosidl_typesupport_introspection_cpp.so[0m
+[3.178s] [ 78%] Built target robot_interfaces__rosidl_typesupport_introspection_cpp
+[3.452s] [ 79%] [32m[1mLinking CXX shared library librobot_interfaces__rosidl_typesupport_fastrtps_c.so[0m
+[3.479s] [ 81%] [32m[1mLinking CXX shared library librobot_interfaces__rosidl_typesupport_fastrtps_cpp.so[0m
+[3.521s] [ 81%] Built target robot_interfaces__rosidl_typesupport_fastrtps_c
+[3.540s] [ 81%] Built target robot_interfaces__rosidl_typesupport_fastrtps_cpp
+[3.560s] [ 81%] Built target robot_interfaces
+[3.577s] [ 82%] [34m[1mGenerating Python code for ROS interfaces[0m
+[4.175s] [ 82%] Built target robot_interfaces__py
+[4.204s] [ 84%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_py.dir/rosidl_generator_py/robot_interfaces/msg/_detected_object_array_s.c.o[0m
+[4.204s] [ 85%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_py.dir/rosidl_generator_py/robot_interfaces/msg/_detected_object_cloud_array_s.c.o[0m
+[4.205s] [ 87%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_py.dir/rosidl_generator_py/robot_interfaces/msg/_detected_object_s.c.o[0m
+[4.205s] [ 89%] [32mBuilding C object CMakeFiles/robot_interfaces__rosidl_generator_py.dir/rosidl_generator_py/robot_interfaces/msg/_detected_object_cloud_s.c.o[0m
+[4.307s] [ 90%] [32m[1mLinking C shared library librobot_interfaces__rosidl_generator_py.so[0m
+[4.349s] [ 90%] Built target robot_interfaces__rosidl_generator_py
+[4.375s] [ 92%] [32mBuilding C object CMakeFiles/robot_interfaces_s__rosidl_typesupport_fastrtps_c.dir/rosidl_generator_py/robot_interfaces/_robot_interfaces_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[4.377s] [ 93%] [32mBuilding C object CMakeFiles/robot_interfaces_s__rosidl_typesupport_c.dir/rosidl_generator_py/robot_interfaces/_robot_interfaces_s.ep.rosidl_typesupport_c.c.o[0m
+[4.377s] [ 95%] [32mBuilding C object CMakeFiles/robot_interfaces_s__rosidl_typesupport_introspection_c.dir/rosidl_generator_py/robot_interfaces/_robot_interfaces_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[4.442s] [ 96%] [32m[1mLinking C shared module rosidl_generator_py/robot_interfaces/robot_interfaces_s__rosidl_typesupport_c.so[0m
+[4.445s] [ 98%] [32m[1mLinking C shared module rosidl_generator_py/robot_interfaces/robot_interfaces_s__rosidl_typesupport_introspection_c.so[0m
+[4.455s] [100%] [32m[1mLinking C shared module rosidl_generator_py/robot_interfaces/robot_interfaces_s__rosidl_typesupport_fastrtps_c.so[0m
+[4.468s] [100%] Built target robot_interfaces_s__rosidl_typesupport_c
+[4.472s] [100%] Built target robot_interfaces_s__rosidl_typesupport_introspection_c
+[4.480s] [100%] Built target robot_interfaces_s__rosidl_typesupport_fastrtps_c
+[4.492s] Invoked command in '/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces -- -j32 -l32
+[4.505s] Invoking command in '/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --install /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces
+[4.518s] -- Install configuration: ""
+[4.518s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/ament_index/resource_index/rosidl_interfaces/robot_interfaces
+[4.518s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObject.json
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectArray.json
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectCloud.json
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectCloudArray.json
+[4.519s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces
+[4.519s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg
+[4.519s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__struct.h
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__type_support.h
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__description.c
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__functions.c
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__functions.h
+[4.519s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.h
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__functions.c
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__functions.h
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__functions.c
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__type_support.c
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__description.c
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__struct.h
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__functions.h
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__functions.h
+[4.520s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__description.c
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.c
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__type_support.c
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__type_support.h
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__type_support.c
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__functions.c
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__struct.h
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__struct.h
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__description.c
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__type_support.h
+[4.521s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object_array.h
+[4.522s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object_cloud.h
+[4.522s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/rosidl_generator_c__visibility_control.h
+[4.522s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object.h
+[4.522s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object_cloud_array.h
+[4.522s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/library_path.sh
+[4.522s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/library_path.dsv
+[4.524s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_generator_c.so
+[4.524s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_generator_c.so" to ""
+[4.524s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces
+[4.524s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg
+[4.524s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail
+[4.524s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__rosidl_typesupport_fastrtps_c.h
+[4.524s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__rosidl_typesupport_fastrtps_c.h
+[4.524s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__rosidl_typesupport_fastrtps_c.h
+[4.524s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__rosidl_typesupport_fastrtps_c.h
+[4.524s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[4.525s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_fastrtps_c.so
+[4.525s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_fastrtps_c.so" to ""
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail
+[4.525s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__rosidl_typesupport_introspection_c.h
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__type_support.c
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.c
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__type_support.c
+[4.525s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__rosidl_typesupport_introspection_c.h
+[4.525s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__rosidl_typesupport_introspection_c.h
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__type_support.c
+[4.525s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__rosidl_typesupport_introspection_c.h
+[4.525s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[4.525s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_introspection_c.so
+[4.525s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_introspection_c.so" to ""
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_c.so
+[4.526s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_c.so" to ""
+[4.526s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces
+[4.526s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg
+[4.526s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__traits.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__struct.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__builder.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__traits.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__type_support.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__traits.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__builder.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__struct.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__type_support.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__struct.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__type_support.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__traits.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__builder.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__struct.hpp
+[4.526s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__builder.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/rosidl_generator_cpp__visibility_control.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object_cloud_array.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object_cloud.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detected_object_array.hpp
+[4.527s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces
+[4.527s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg
+[4.527s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail
+[4.527s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/dds_fastrtps
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__rosidl_typesupport_fastrtps_cpp.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__rosidl_typesupport_fastrtps_cpp.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__rosidl_typesupport_fastrtps_cpp.hpp
+[4.527s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__rosidl_typesupport_fastrtps_cpp.hpp
+[4.527s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_fastrtps_cpp.so
+[4.528s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_fastrtps_cpp.so" to ""
+[4.528s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces
+[4.528s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg
+[4.528s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__rosidl_typesupport_introspection_cpp.hpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__type_support.cpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__rosidl_typesupport_introspection_cpp.hpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_array__type_support.cpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud__type_support.cpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__type_support.cpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object__rosidl_typesupport_introspection_cpp.hpp
+[4.528s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/include/robot_interfaces/robot_interfaces/msg/detail/detected_object_cloud_array__rosidl_typesupport_introspection_cpp.hpp
+[4.529s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_introspection_cpp.so
+[4.529s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_introspection_cpp.so" to ""
+[4.529s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_cpp.so
+[4.529s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_typesupport_cpp.so" to ""
+[4.529s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/pythonpath.sh
+[4.529s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/pythonpath.dsv
+[4.529s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces-0.0.0-py3.12.egg-info
+[4.529s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces-0.0.0-py3.12.egg-info/dependency_links.txt
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces-0.0.0-py3.12.egg-info/PKG-INFO
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces-0.0.0-py3.12.egg-info/top_level.txt
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces-0.0.0-py3.12.egg-info/SOURCES.txt
+[4.530s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/_robot_interfaces_s.ep.rosidl_typesupport_introspection_c.c
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_c.so
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/__init__.py
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_fastrtps_c.so
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_introspection_c.so
+[4.530s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_s.c
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_array.py
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_cloud_s.c
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/__init__.py
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_cloud.py
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_array_s.c
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_cloud_array.py
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_cloud_array_s.c
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object.py
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/_robot_interfaces_s.ep.rosidl_typesupport_c.c
+[4.530s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/_robot_interfaces_s.ep.rosidl_typesupport_fastrtps_c.c
+[4.573s] Listing '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces'...
+[4.573s] Compiling '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/__init__.py'...
+[4.573s] Listing '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg'...
+[4.573s] Compiling '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/__init__.py'...
+[4.573s] Compiling '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object.py'...
+[4.573s] Compiling '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_array.py'...
+[4.573s] Compiling '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_cloud.py'...
+[4.573s] Compiling '/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/msg/_detected_object_cloud_array.py'...
+[4.578s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_fastrtps_c.so
+[4.578s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_fastrtps_c.so" to ""
+[4.578s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_introspection_c.so
+[4.578s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_introspection_c.so" to ""
+[4.578s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_c.so
+[4.579s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/python3.12/site-packages/robot_interfaces/robot_interfaces_s__rosidl_typesupport_c.so" to ""
+[4.579s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_generator_py.so
+[4.580s] -- Set non-toolchain portion of runtime path of "/home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/lib/librobot_interfaces__rosidl_generator_py.so" to ""
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObject.idl
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectArray.idl
+[4.580s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectCloud.idl
+[4.580s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectCloudArray.idl
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObject.msg
+[4.580s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectArray.msg
+[4.580s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectCloud.msg
+[4.580s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/msg/DetectedObjectCloudArray.msg
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/ament_index/resource_index/package_run_dependencies/robot_interfaces
+[4.580s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/ament_index/resource_index/parent_prefix_path/robot_interfaces
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/ament_prefix_path.sh
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/ament_prefix_path.dsv
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/path.sh
+[4.580s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/environment/path.dsv
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/local_setup.bash
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/local_setup.sh
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/local_setup.zsh
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/local_setup.dsv
+[4.581s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/package.dsv
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/ament_index/resource_index/packages/robot_interfaces
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_generator_cExport.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_generator_cExport-noconfig.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_typesupport_fastrtps_cExport.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_introspection_cExport.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_cExport.cmake
+[4.581s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_cExport-noconfig.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_generator_cppExport.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_typesupport_fastrtps_cppExport.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_introspection_cppExport.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_cppExport.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfaces__rosidl_typesupport_cppExport-noconfig.cmake
+[4.582s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_generator_pyExport.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/export_robot_interfaces__rosidl_generator_pyExport-noconfig.cmake
+[4.583s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/rosidl_cmake-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/ament_cmake_export_dependencies-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/ament_cmake_export_include_directories-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/ament_cmake_export_libraries-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/ament_cmake_export_targets-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfacesConfig.cmake
+[4.583s] -- Up-to-date: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/cmake/robot_interfacesConfig-version.cmake
+[4.583s] -- Installing: /home/zuriel_tov/Brazo-Robotico/install/robot_interfaces/share/robot_interfaces/package.xml
+[4.585s] Invoked command in '/home/zuriel_tov/Brazo-Robotico/build/robot_interfaces' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --install /home/zuriel_tov/Brazo-Robotico/build/robot_interfaces

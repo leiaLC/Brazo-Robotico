@@ -10,6 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', ['launch/perception.launch.py']),
+        ('share/' + package_name + '/config', ['config/yolo_params.yaml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +26,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'camera_node = robot_perception.camera_node:main',
+            'yolo_node = robot_perception.yolo_node:main',
+            'depth_node = robot_perception.depth_estimator:main',
+            'pointcloud_node = robot_perception.pointcloud:main',
         ],
     },
 )
