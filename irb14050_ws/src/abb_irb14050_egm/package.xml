@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>abb_irb14050_egm</name>
+  <version>0.1.0</version>
+  <description>
+    ROS2 bridge between an ABB IRB 14050 (7-DOF) and ROS2 via the EGM
+    protocol. Wraps the UDP dialog (EgmRobot feedback / EgmSensor
+    correction) as a joint_states publisher and a joint_command
+    subscriber. Also ships a teach/replay pair: teach reads
+    positions via RWS while you jog with the FlexPendant, and
+    waypoint_player replays them via EGM.
+  </description>
+  <maintainer email="ariadna@example.com">Ives</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>python3-numpy</depend>
+  <depend>python3-protobuf</depend>
+  <depend>python3-requests</depend>
+  <depend>python3-yaml</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,6 +1,11 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="abb_irb14050">
 
+
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+    <xacro:arg name="sim_mode" default="mock" />
+
+
     <!--
         Top-level xacro. Declares the public arguments and wires the
         ros2_control macro with the chosen simulation mode.
@@ -10,6 +15,7 @@
           - gazebo → gz_ros2_control/GazeboSimSystem + <gazebo><plugin> block
           - real   → placeholder for EGM hardware_interface (currently mock)
     -->
+
 
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml"/>
     <xacro:arg name="sim_mode" default="mock"/>
@@ -25,5 +31,20 @@
         name="IRB14050System"
         initial_positions_file="$(arg initial_positions_file)"
         sim_mode="$(arg sim_mode)"/>
+
+    <xacro:abb_irb14050_ros2_control
+        name="ABB_IRB14050_System"
+        initial_positions_file="$(arg initial_positions_file)"
+        sim_mode="$(arg sim_mode)"/>
+
+    <!-- Gazebo plugin: only injected when sim_mode == 'gazebo'. -->
+    <xacro:if value="${'$(arg sim_mode)' == 'gazebo'}">
+        <gazebo>
+            <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+                <parameters>$(find abb_irb14050_gazebo)/config/controllers_gazebo.yaml</parameters>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
 
 </robot>
