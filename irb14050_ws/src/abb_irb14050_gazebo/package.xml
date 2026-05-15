@@ -4,7 +4,7 @@
   <name>abb_irb14050_gazebo</name>
   <version>0.0.1</version>
   <description>Gazebo Harmonic simulation for ABB IRB14050 (single-arm YuMi)</description>
-  <maintainer email="ariadna.lau.100@gmail.com">leialc</maintainer>
+  <maintainer email="leialc@todo.todo">leialc</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

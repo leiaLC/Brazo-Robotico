@@ -9,7 +9,8 @@ What it does, in order:
     4. Bridges /clock from Gazebo to ROS (so use_sim_time works).
     5. Processes the xacro with sim_mode:=gazebo and publishes /robot_description.
     6. Spawns the robot entity in Gazebo from that topic.
-    7. Once spawned, loads joint_state_broadcaster, then irb14050_arm_controller.
+    7. Sequenced spawn of controllers:
+          spawn_robot → joint_state_broadcaster → arm controller → gripper controller
 
 Use this launch to verify Gazebo + controllers without MoveIt in the loop.
 """
@@ -39,12 +40,6 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # --- NVIDIA Optimus offload (hybrid Intel+NVIDIA laptops) -----------
-    # These three env vars are the canonical fix for hybrid GPU laptops on
-    # Linux running Gazebo Harmonic. Without them ogre2 falls back to Intel
-    # and the 3D viewport renders blank/gray on most setups.
-    #
-    # If you're running this on a non-hybrid system (e.g. desktop with only
-    # NVIDIA, or only integrated graphics), these env vars are harmless.
     nvidia_offload = SetEnvironmentVariable(
         name="__NV_PRIME_RENDER_OFFLOAD", value="1"
     )
@@ -57,9 +52,6 @@ def generate_launch_description():
     )
 
     # --- Gazebo's resource search path ----------------------------------
-    # Required so that model:// URIs (which ros_gz_sim creates from
-    # package:// URIs in the URDF) can be resolved to the description
-    # package's share directory.
     description_share = get_package_share_directory("abb_irb14050_description")
     description_share_parent = os.path.dirname(description_share)
 
@@ -111,7 +103,6 @@ def generate_launch_description():
 
     # --- Nodes -----------------------------------------------------------
 
-    # robot_state_publisher publishes /robot_description and TF
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
@@ -119,7 +110,6 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
-    # Gazebo Harmonic itself, loading the empty world
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [pkg_ros_gz_sim, "/launch/gz_sim.launch.py"]
@@ -127,7 +117,6 @@ def generate_launch_description():
         launch_arguments={"gz_args": ["-r -v 3 ", world_file]}.items(),
     )
 
-    # Spawn robot from /robot_description topic into Gazebo
     spawn_robot = Node(
         package="ros_gz_sim",
         executable="create",
@@ -140,7 +129,6 @@ def generate_launch_description():
         output="screen",
     )
 
-    # /clock bridge: Gazebo -> ROS (one-way, marked with `[`)
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
@@ -169,11 +157,25 @@ def generate_launch_description():
         output="screen",
     )
 
+    load_gripper = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "gripper_controller",
+            "--controller-manager", "/controller_manager",
+        ],
+        output="screen",
+    )
+
+    # Chain: spawn → jsb → arm → gripper
     after_spawn = RegisterEventHandler(
         OnProcessExit(target_action=spawn_robot, on_exit=[load_jsb])
     )
     after_jsb = RegisterEventHandler(
         OnProcessExit(target_action=load_jsb, on_exit=[load_arm])
+    )
+    after_arm = RegisterEventHandler(
+        OnProcessExit(target_action=load_arm, on_exit=[load_gripper])
     )
 
     return LaunchDescription(
@@ -183,7 +185,6 @@ def generate_launch_description():
                 default_value="true",
                 description="Use Gazebo simulation clock",
             ),
-            # Env vars must be set BEFORE Gazebo launches
             nvidia_offload,
             nvidia_glx,
             nvidia_egl,
@@ -194,5 +195,6 @@ def generate_launch_description():
             spawn_robot,
             after_spawn,
             after_jsb,
+            after_arm,
         ]
     )

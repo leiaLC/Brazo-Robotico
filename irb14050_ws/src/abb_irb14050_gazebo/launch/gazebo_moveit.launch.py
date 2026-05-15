@@ -7,8 +7,19 @@ Reuses spawn_robot.launch.py for the Gazebo half, then adds:
 
 Both move_group and RViz get use_sim_time=True so they stay in sync with
 Gazebo's clock.
-"""
 
+NOTE on start_state_max_bounds_error:
+    Gazebo's physics engine leaves joints with sub-micron numerical noise
+    (e.g. gripper_joint_l = -9.9e-15 m when it should be exactly 0). By default
+    MoveIt's CheckStartStateBounds planning request adapter rejects any plan
+    whose start state is even microscopically outside the joint limits, so
+    every plan from a fresh sim aborts with START_STATE_INVALID.
+
+    Setting `start_state_max_bounds_error` to a small but non-zero value (here
+    0.1 rad ≈ 5.7° for revolute, or 0.1 m for prismatic — overkill for both)
+    tells MoveIt to silently clamp the start state instead of refusing.
+    Without this, planning ever works from Gazebo.
+"""
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
@@ -22,9 +33,6 @@ import os
 
 def generate_launch_description():
     # --- MoveIt config (xacro processed with sim_mode:=gazebo) -----------
-    # The mappings dict is forwarded as xacro args, so the resulting
-    # robot_description carries the <gazebo> plugin block AND the
-    # gz_ros2_control hardware plugin.
     moveit_config = (
         MoveItConfigsBuilder("abb_irb14050", package_name="abb_irb14050_moveit_config")
         .robot_description(
@@ -46,6 +54,8 @@ def generate_launch_description():
     )
 
     # --- MoveIt move_group ----------------------------------------------
+    # The extra parameters below relax start-state validation to absorb the
+    # numerical noise that Gazebo introduces in joint values.
     move_group_node = Node(
         package="moveit_ros_move_group",
         executable="move_group",
@@ -53,6 +63,10 @@ def generate_launch_description():
         parameters=[
             moveit_config.to_dict(),
             {"use_sim_time": True},
+            # Tolerance for start-state validation (CheckStartStateBounds adapter)
+            {"start_state_max_bounds_error": 0.1},
+            # Companion tolerance for path constraints validation
+            {"start_state_max_path_constraints_error": 0.1},
         ],
     )
 
@@ -62,7 +76,6 @@ def generate_launch_description():
         "config",
         "moveit.rviz",
     )
-
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
