@@ -1,0 +1,64 @@
+# Configuration for gz_ros2_control / controller_manager.
+#
+# Controller names MUST match what abb_irb14050_moveit_config/config/moveit_controllers.yaml
+# expects, otherwise MoveIt's trajectories never reach Gazebo:
+#   - "irb14050_arm_controller"  (joint_trajectory_controller, 7 joints)
+#   - "joint_state_broadcaster"  (publishes /joint_states)
+#
+# This file is loaded by the <gazebo> plugin block in abb_irb14050.urdf.xacro
+# when sim_mode == "gazebo".
+
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz — controller_manager loop rate
+    use_sim_time: true
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    irb14050_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+# -----------------------------------------------------------------------------
+# joint_state_broadcaster — publishes /joint_states from the hardware state
+# interfaces. No parameters needed beyond defaults.
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# irb14050_arm_controller — follows JointTrajectory actions sent by MoveIt.
+# Command interface: position only (matches ros2_control.xacro).
+# State interfaces:  position + velocity (matches ros2_control.xacro).
+# -----------------------------------------------------------------------------
+irb14050_arm_controller:
+  ros__parameters:
+    joints:
+      - joint_1
+      - joint_2
+      - joint_3
+      - joint_4
+      - joint_5
+      - joint_6
+      - joint_7
+
+    command_interfaces:
+      - position
+
+    state_interfaces:
+      - position
+      - velocity
+
+    state_publish_rate: 100.0
+    action_monitor_rate: 20.0
+
+    allow_partial_joints_goal: false
+
+    constraints:
+      stopped_velocity_tolerance: 0.05
+      goal_time: 0.6
+      joint_1: { trajectory: 0.1, goal: 0.05 }
+      joint_2: { trajectory: 0.1, goal: 0.05 }
+      joint_3: { trajectory: 0.1, goal: 0.05 }
+      joint_4: { trajectory: 0.1, goal: 0.05 }
+      joint_5: { trajectory: 0.1, goal: 0.05 }
+      joint_6: { trajectory: 0.1, goal: 0.05 }
+      joint_7: { trajectory: 0.1, goal: 0.05 }
