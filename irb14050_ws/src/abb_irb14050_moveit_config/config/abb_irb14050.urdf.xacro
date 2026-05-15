@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="abb_irb14050">
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+    <xacro:arg name="sim_mode" default="mock" />
 
     <!-- Import abb_irb14050 urdf file -->
     <xacro:include filename="$(find abb_irb14050_description)/urdf/abb_irb14050.urdf" />
@@ -8,7 +9,18 @@
     <!-- Import control_xacro -->
     <xacro:include filename="abb_irb14050.ros2_control.xacro" />
 
+    <xacro:abb_irb14050_ros2_control
+        name="ABB_IRB14050_System"
+        initial_positions_file="$(arg initial_positions_file)"
+        sim_mode="$(arg sim_mode)"/>
 
-    <xacro:abb_irb14050_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+    <!-- Gazebo plugin: only injected when sim_mode == 'gazebo'. -->
+    <xacro:if value="${'$(arg sim_mode)' == 'gazebo'}">
+        <gazebo>
+            <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+                <parameters>$(find abb_irb14050_gazebo)/config/controllers_gazebo.yaml</parameters>
+            </plugin>
+        </gazebo>
+    </xacro:if>
 
 </robot>

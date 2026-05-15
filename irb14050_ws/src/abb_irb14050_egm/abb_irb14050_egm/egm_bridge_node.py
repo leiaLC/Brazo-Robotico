@@ -215,8 +215,28 @@ class EGMBridgeNode(Node):
                 f"got {len(msg.position)}")
             return
 
-        # ROS -> internal: rad -> deg
-        q_goal_deg = [math.degrees(p) for p in msg.position]
+        # ROS -> internal: rad -> deg, y orden físico -> orden ABB
+        # /joint_command llega en orden físico (joint_1..joint_7 según
+        # el URDF). El bridge trabaja internamente en orden ABB
+        # [axis_1, axis_2, axis_3, axis_4, axis_5, axis_6, axis_7] donde
+        # axis_7 (codo) está en la posición 6 del array. La permutación
+        # inversa de q_full = [q[0], q[1], e[0], q[2], q[3], q[4], q[5]]
+        # es: ABB[i] = phys[PHYS_TO_ABB[i]]
+        q_phys_deg = [math.degrees(p) for p in msg.position]
+        # físico:  [j1,  j2,  j3,  j4,  j5,  j6,  j7 ]
+        #           |    |    |    |    |    |    |
+        # ABB:     [a1,  a2,  a3,  a4,  a5,  a6,  a7 ]
+        #                          |    |    |    |
+        #         a3..a6 vienen de j4..j7;  a7 viene de j3
+        q_goal_deg = [
+            q_phys_deg[0],  # ABB axis 1 = físico joint_1
+            q_phys_deg[1],  # ABB axis 2 = físico joint_2
+            q_phys_deg[3],  # ABB axis 3 = físico joint_4
+            q_phys_deg[4],  # ABB axis 4 = físico joint_5
+            q_phys_deg[5],  # ABB axis 5 = físico joint_6
+            q_phys_deg[6],  # ABB axis 6 = físico joint_7
+            q_phys_deg[2],  # ABB axis 7 = físico joint_3 (codo)
+        ]
 
         try:
             self._check_limits(q_goal_deg)
@@ -275,7 +295,7 @@ class EGMBridgeNode(Node):
             q = list(msg.feedBack.joints.joints)
             e = list(msg.feedBack.externalJoints.joints)
             if len(q) == 6 and len(e) >= 1:
-                q_full = q + [e[0]]
+                q_full = [q[0], q[1], e[0], q[2], q[3], q[4], q[5]]
                 with self._lock:
                     self.q_current = q_full
                     self.last_seqno = msg.header.seqno
