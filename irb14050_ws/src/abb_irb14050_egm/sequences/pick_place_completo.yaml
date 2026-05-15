@@ -1,0 +1,24 @@
+name: pick_demo
+steps:
+- {type: gripper, action: open}
+- type: pose
+  joints_deg: [-11.92, -56.01, -11.26, -20.13, 49.00, -84.22, -168.39]
+- {type: gripper, action: close}
+- type: pose
+  joints_deg: [-14.60, -47.10, -9.78, -19.53, 55.62, -84.27, -164.99]
+- type: pose
+  joints_deg: [-54.23, -53.70, 26.07, -35.04, 18.09, -104.34, -163.97]
+- {type: gripper, action: open}
+- type: pose
+  joints_deg: [-17.81, -56.74, -20.68, -11.80, 63.76, -93.18, -163.99]
+- type: pose
+  joints_deg: [-13.96, -60.55, -14.81, -14.18, 48.58, -87.19, -167.99]
+- {type: gripper, action: close}
+- type: pose
+  joints_deg: [-15.42, -52.72, -13.29, -13.97, 55.14, -87.24, -165.82]
+- type: pose
+  joints_deg: [19.43, -51.30, 26.77, -20.30, 22.89, -46.55, -166.71]
+- {type: gripper, action: open}
+- type: pose
+  joints_deg: [-5.75, 6.51, 3.06, 0.7, 19.41, -14.13, -168.4]
+- {type: gripper, action: close}
