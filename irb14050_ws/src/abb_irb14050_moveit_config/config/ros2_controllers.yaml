@@ -7,6 +7,10 @@ controller_manager:
       type: joint_trajectory_controller/JointTrajectoryController
 
 
+    gripper_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
@@ -20,6 +24,17 @@ irb14050_arm_controller:
       - joint_5
       - joint_6
       - joint_7
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_nonzero_velocity_at_trajectory_end: true
+gripper_controller:
+  ros__parameters:
+    joints:
+      - gripper_joint_l
+      - gripper_joint_r
     command_interfaces:
       - position
     state_interfaces:

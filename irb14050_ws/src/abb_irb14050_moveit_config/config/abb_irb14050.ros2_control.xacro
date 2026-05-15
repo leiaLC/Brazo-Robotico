@@ -1,28 +1,45 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
     <!--
-        sim_mode: selects the hardware interface plugin loaded by ros2_control.
-            - "mock"   : mock_components/GenericSystem  (no physics, RViz testing)
-            - "gazebo" : gz_ros2_control/GazeboSimSystem (Gazebo Harmonic)
-            - "real"   : (placeholder — wire EGM hardware interface here in the future)
+        ros2_control macro for the ABB IRB 14050.
+
+        Selects hardware plugin based on `sim_mode`:
+          - gazebo → gz_ros2_control/GazeboSimSystem + gz_ros2_control system plugin
+          - anything else (mock, real, etc.) → mock_components/GenericSystem
+
+        For the real robot, eventually replace the <xacro:unless> branch with a
+        third condition pointing to the custom EGM hardware_interface plugin.
+        Kept binary (gazebo vs everything-else) for now to avoid xacro evaluation
+        quirks observed with three-way string comparisons.
+
+        CRITICAL plugin name detail:
+          - The HARDWARE plugin inside <ros2_control><hardware> is named
+            `gz_ros2_control/GazeboSimSystem`
+          - The SYSTEM plugin inside <gazebo><plugin> is named
+            `gz_ros2_control::GazeboSimROS2ControlPlugin`  (NOT ...System)
+          - The library file is `gz_ros2_control-system`
+          The two are different plugins from the same .so file. Mixing them up
+          gives a "library does not contain requested plugin" error from gz_sim.
     -->
-    <xacro:macro name="abb_irb14050_ros2_control" params="name initial_positions_file sim_mode:=mock">
-        <xacro:property name="initial_positions" value="${xacro.load_yaml(initial_positions_file)['initial_positions']}"/>
+
+    <xacro:macro name="abb_irb14050_ros2_control"
+                 params="name initial_positions_file sim_mode">
+
+        <xacro:property name="initial_positions"
+                        value="${xacro.load_yaml(initial_positions_file)['initial_positions']}"/>
 
         <ros2_control name="${name}" type="system">
             <hardware>
-                <xacro:if value="${sim_mode == 'mock'}">
-                    <plugin>mock_components/GenericSystem</plugin>
-                </xacro:if>
                 <xacro:if value="${sim_mode == 'gazebo'}">
                     <plugin>gz_ros2_control/GazeboSimSystem</plugin>
                 </xacro:if>
-                <!-- Future: real robot via EGM
-                <xacro:if value="${sim_mode == 'real'}">
-                    <plugin>abb_irb14050_egm/EGMHardwareInterface</plugin>
-                </xacro:if>
-                -->
+                <xacro:unless value="${sim_mode == 'gazebo'}">
+                    <plugin>mock_components/GenericSystem</plugin>
+                </xacro:unless>
             </hardware>
+
+            <!-- Arm joints (joint_1 .. joint_7) -->
             <joint name="joint_1">
                 <command_interface name="position"/>
                 <state_interface name="position">
@@ -73,6 +90,35 @@
                 <state_interface name="velocity"/>
             </joint>
 
+            <!-- Gripper joints (prismatic, l/r) -->
+            <joint name="gripper_joint_l">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['gripper_joint_l']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_joint_r">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['gripper_joint_r']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
         </ros2_control>
+
+        <!--
+            Gazebo system plugin block — only emitted when sim_mode == 'gazebo'.
+            The `name` attribute MUST be GazeboSimROS2ControlPlugin (not System).
+        -->
+        <xacro:if value="${sim_mode == 'gazebo'}">
+            <gazebo>
+                <plugin filename="gz_ros2_control-system"
+                        name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+                    <parameters>$(find abb_irb14050_gazebo)/config/controllers_gazebo.yaml</parameters>
+                </plugin>
+            </gazebo>
+        </xacro:if>
+
     </xacro:macro>
 </robot>
