@@ -96,7 +96,7 @@ class EGMBridgeNode(Node):
         self.declare_parameter('egm_tx_ip', '192.168.125.1')
         self.declare_parameter('egm_tx_port', 6510)
         self.declare_parameter('send_rate_hz', 250.0)
-        self.declare_parameter('max_speed_deg_s', 5.0)
+        self.declare_parameter('max_speed_deg_s', 15.0)
         self.declare_parameter(
             'joint_names',
             ['joint_1', 'joint_2', 'joint_3', 'joint_4',

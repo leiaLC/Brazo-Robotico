@@ -10,8 +10,8 @@ NO publica la nube del objeto — OctoMap se encarga de las colisiones.
 Solo publica centroide + tamaño para que task_manager pueda planear el grasp.
 
 Topics suscritos:
-    /camera/depth/color/points   (sensor_msgs/PointCloud2)
-    /camera/color/camera_info    (sensor_msgs/CameraInfo)
+    /camera/camera/depth/color/points   (sensor_msgs/PointCloud2)
+    /camera/camera/color/camera_info    (sensor_msgs/CameraInfo)
     /perception/detections       (robot_interfaces/DetectedObjectArray)
 
 Topics publicados:
@@ -184,7 +184,7 @@ class PointCloudNode(Node):
             obj_points = xyz_v[idx_obj]   # (M, 3)
 
             # ── Centroide ─────────────────────────────────────────────────
-            centroid = np.median(obj_points, axis=0)
+            centroid = np.median(obj_points, axis=0)   # (centroid_x, centroid_y, centroid_z)
 
             # ── Dimensiones del bounding box 3D ──────────────────────────
             # min/max en cada eje → tamaño del objeto
@@ -249,7 +249,7 @@ class PointCloudNode(Node):
                     (self.mask_erosion, self.mask_erosion)
                 )
                 binary = cv2.erode(binary, kernel)
-        else:
+                return binary
             # Fallback al bbox
             binary = np.zeros((self.img_h, self.img_w), dtype=np.uint8)
             x1 = max(0, int(det.bbox_x1))

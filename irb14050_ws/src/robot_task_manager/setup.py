@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            "pick_and_place_node = robot_task_manager.task_manager_node:main",
+            "task2_node = robot_task_manager.task2:main",
         ],
     },
 )

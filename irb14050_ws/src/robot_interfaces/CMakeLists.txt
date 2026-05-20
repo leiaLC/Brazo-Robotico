@@ -32,6 +32,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObjectArray.msg"
   "msg/DetectedObjectCloud.msg"
   "msg/DetectedObjectCloudArray.msg"
+  "srv/SetTarget.srv"
   DEPENDENCIES std_msgs
 )
 

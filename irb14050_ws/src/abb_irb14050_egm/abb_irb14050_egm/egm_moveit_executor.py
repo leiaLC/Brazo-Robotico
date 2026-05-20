@@ -67,7 +67,7 @@ POSITION_TOLERANCE_RAD = math.radians(3.0)
 
 # Timeout para que el robot termine de converger al último
 # waypoint después de haber publicado el último setpoint.
-SETTLE_TIMEOUT_S = 8.0
+SETTLE_TIMEOUT_S = 15.0
 
 # Tasa de cadencia interna. Cada tick comprueba si toca publicar
 # el siguiente waypoint y si toca enviar feedback al cliente.

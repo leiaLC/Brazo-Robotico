@@ -94,6 +94,17 @@ def generate_launch_description():
         ],
     )
 
+
+    #Gripper Node 
+
+    gripper_node = Node(
+        package = "abb_irb14050_egm",
+        executable = "gripper_node",
+        name = "gripper_node",
+        output = "screen",
+    )
+
+
     # --- RViz preconfigurado para MoveIt ---
     rviz_config = os.path.join(
         get_package_share_directory('abb_irb14050_moveit_config'),
@@ -136,4 +147,5 @@ def generate_launch_description():
         rviz,
         egm_bridge,
         egm_executor,
+        gripper_node
     ])

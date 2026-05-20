@@ -1,0 +1,6 @@
+# Cambia el label del objeto que busca el task_manager en runtime
+# Ejemplo: label = "bottle", "cup", "person", ""  (vacío = cualquier objeto)
+string label
+---
+bool success
+string message
