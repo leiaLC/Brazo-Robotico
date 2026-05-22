@@ -1,0 +1,6 @@
+object_cloud_bridge:
+  ros__parameters:
+    input_topic: "/perception/object_clouds"
+    output_topic: "/perception/detections_3d"
+    base_frame: "base_link"
+    input_is_base_frame: false

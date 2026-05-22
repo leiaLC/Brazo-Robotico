@@ -1,0 +1,13 @@
+xbox_command_bridge:
+  ros__parameters:
+    deadman_button: 4
+    axis_linear_x: 1
+    axis_linear_y: 0
+    axis_linear_z: 4
+    axis_angular_z: 3
+    scale_linear_x: 0.20
+    scale_linear_y: 0.20
+    scale_linear_z: 0.12
+    scale_angular_z: 0.60
+    deadzone: 0.08
+    publish_zero_on_release: true

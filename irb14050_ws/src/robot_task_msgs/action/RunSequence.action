@@ -1,0 +1,7 @@
+string sequence_id
+---
+bool success
+string message
+---
+float32 progress
+string current_step

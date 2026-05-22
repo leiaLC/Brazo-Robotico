@@ -1,0 +1,31 @@
+home:
+  description: "Move robot to home position"
+  steps:
+    - type: move_joints
+      joint_values_deg: [0, 0, 0, 0, 0, 0, 0]
+
+perception:
+  description: "Move to perception pose"
+  steps:
+    - type: move_joints
+      joint_values_deg: [0, -30, 30, 0, 45, 0, 0]
+
+open_gripper:
+  description: "Open gripper"
+  steps:
+    - type: gripper
+      command: open
+
+close_gripper:
+  description: "Close gripper"
+  steps:
+    - type: gripper
+      command: close
+
+demo_pick_blue_cube:
+  description: "Pick blue cube demo"
+  steps:
+    - type: pick_object
+      object_class: cube
+      object_color: blue
+      place_target: box

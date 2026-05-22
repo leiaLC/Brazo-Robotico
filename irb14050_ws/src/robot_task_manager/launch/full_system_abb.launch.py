@@ -1,0 +1,257 @@
+"""Launch the behavior-tree supervisor with the ABB MoveIt/EGM backend."""
+
+import os
+from pathlib import Path
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from moveit_configs_utils import MoveItConfigsBuilder
+
+
+def generate_launch_description():
+    with_viewer = LaunchConfiguration("with_viewer")
+    launch_abb_stack = LaunchConfiguration("launch_abb_stack")
+    launch_object_cloud_bridge = LaunchConfiguration("launch_object_cloud_bridge")
+    launch_gripper_node = LaunchConfiguration("launch_gripper_node")
+    launch_gripper_joint_states = LaunchConfiguration("launch_gripper_joint_states")
+    launch_rviz = LaunchConfiguration("launch_rviz")
+    controller_ip = LaunchConfiguration("controller_ip")
+    egm_rx_port = LaunchConfiguration("egm_rx_port")
+    egm_tx_port = LaunchConfiguration("egm_tx_port")
+    egm_max_speed_deg_s = LaunchConfiguration("egm_max_speed_deg_s")
+
+    task_share = Path(get_package_share_directory("robot_task_manager"))
+    tree_params = task_share / "config" / "tree_params.yaml"
+    abb_params = task_share / "config" / "abb_real_params.yaml"
+    bridge_params = task_share / "config" / "object_cloud_bridge.yaml"
+    joint_limits = task_share / "config" / "joint_limits.yaml"
+    sequences = task_share / "config" / "sequences.yaml"
+
+    moveit_config = (
+        MoveItConfigsBuilder(
+            "abb_irb14050",
+            package_name="abb_irb14050_moveit_config",
+        )
+        .robot_description(
+            file_path=os.path.join(
+                get_package_share_directory("abb_irb14050_description"),
+                "urdf",
+                "abb_irb14050.urdf",
+            )
+        )
+        .to_moveit_configs()
+    )
+    rviz_config = os.path.join(
+        get_package_share_directory("abb_irb14050_moveit_config"),
+        "config",
+        "moveit.rviz",
+    )
+
+    robot_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="robot_state_publisher",
+        output="screen",
+        parameters=[
+            moveit_config.robot_description,
+            {
+                "qos_overrides": {
+                    "/joint_states": {
+                        "subscription": {
+                            "reliability": "reliable",
+                            "durability": "volatile",
+                            "history": "keep_last",
+                            "depth": 10,
+                        }
+                    }
+                }
+            },
+        ],
+        condition=IfCondition(launch_abb_stack),
+    )
+
+    move_group = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        name="move_group",
+        output="screen",
+        parameters=[
+            moveit_config.to_dict(),
+            {"use_sim_time": False},
+        ],
+        condition=IfCondition(launch_abb_stack),
+    )
+
+    rviz = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen",
+        arguments=["-d", rviz_config],
+        parameters=[
+            moveit_config.robot_description,
+            moveit_config.robot_description_semantic,
+            moveit_config.robot_description_kinematics,
+            moveit_config.planning_pipelines,
+            moveit_config.joint_limits,
+        ],
+        condition=IfCondition(launch_rviz),
+    )
+
+    egm_bridge = Node(
+        package="abb_irb14050_egm",
+        executable="egm_bridge",
+        name="egm_bridge",
+        output="screen",
+        parameters=[
+            {
+                "egm_rx_port": egm_rx_port,
+                "egm_tx_ip": controller_ip,
+                "egm_tx_port": egm_tx_port,
+                "max_speed_deg_s": egm_max_speed_deg_s,
+            }
+        ],
+        condition=IfCondition(launch_abb_stack),
+    )
+
+    egm_moveit_executor = Node(
+        package="abb_irb14050_egm",
+        executable="egm_moveit_executor",
+        name="egm_moveit_executor",
+        output="screen",
+        condition=IfCondition(launch_abb_stack),
+    )
+
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                "with_viewer",
+                default_value="true",
+                description="Launch the graphical py_trees_ros_viewer.",
+            ),
+            DeclareLaunchArgument(
+                "launch_abb_stack",
+                default_value="true",
+                description="Launch MoveIt, robot_state_publisher, egm_bridge and egm_moveit_executor.",
+            ),
+            DeclareLaunchArgument(
+                "launch_object_cloud_bridge",
+                default_value="true",
+                description="Bridge robot_interfaces/DetectedObjectCloudArray to Detection3D.",
+            ),
+            DeclareLaunchArgument(
+                "launch_gripper_node",
+                default_value="true",
+                description="Launch abb_irb14050_egm/gripper_node for /gripper/command.",
+            ),
+            DeclareLaunchArgument(
+                "launch_gripper_joint_states",
+                default_value="true",
+                description="Publish gripper_joint_l/r on /joint_states for MoveIt current state.",
+            ),
+            DeclareLaunchArgument(
+                "launch_rviz",
+                default_value="true",
+                description="Launch RViz with the ABB MoveIt configuration.",
+            ),
+            DeclareLaunchArgument(
+                "controller_ip",
+                default_value="192.168.125.1",
+                description="ABB controller IP used by EGM TX and the RWS gripper client.",
+            ),
+            DeclareLaunchArgument(
+                "egm_rx_port",
+                default_value="6511",
+                description="UDP port on this computer/Jetson that receives ABB EGM feedback.",
+            ),
+            DeclareLaunchArgument(
+                "egm_tx_port",
+                default_value="6510",
+                description="UDP port on the ABB controller that receives EGM commands.",
+            ),
+            DeclareLaunchArgument(
+                "egm_max_speed_deg_s",
+                default_value="5.0",
+                description="Safety speed cap used by abb_irb14050_egm/egm_bridge.",
+            ),
+            robot_state_publisher,
+            move_group,
+            rviz,
+            egm_bridge,
+            egm_moveit_executor,
+            Node(
+                package="abb_irb14050_egm",
+                executable="gripper_node",
+                name="gripper_node",
+                output="screen",
+                parameters=[{"host": controller_ip}],
+                condition=IfCondition(launch_gripper_node),
+            ),
+            Node(
+                package="robot_task_manager",
+                executable="gripper_joint_state_publisher",
+                name="gripper_joint_state_publisher",
+                output="screen",
+                parameters=[
+                    {
+                        "joint_states_topic": "/joint_states",
+                        "gripper_command_topic": "/gripper/command",
+                        "gripper_state_topic": "/gripper/state",
+                        "open_position_m": 0.025,
+                        "closed_position_m": 0.0,
+                        "default_position_m": 0.0,
+                    }
+                ],
+                condition=IfCondition(launch_gripper_joint_states),
+            ),
+            Node(
+                package="robot_task_manager",
+                executable="robot_task_tree",
+                name="robot_task_tree",
+                output="screen",
+                parameters=[
+                    str(tree_params),
+                    str(abb_params),
+                    {
+                        "joint_limits_file": str(joint_limits),
+                        "sequences_file": str(sequences),
+                    },
+                ],
+            ),
+            Node(
+                package="robot_task_manager",
+                executable="object_cloud_bridge",
+                name="object_cloud_bridge",
+                output="screen",
+                parameters=[str(bridge_params)],
+                condition=IfCondition(launch_object_cloud_bridge),
+            ),
+            Node(
+                package="robot_voice_interface",
+                executable="voice_command_parser",
+                name="voice_command_parser",
+                output="screen",
+            ),
+            Node(
+                package="robot_web_interface",
+                executable="web_command_bridge",
+                name="web_command_bridge",
+                output="screen",
+            ),
+            Node(
+                package="robot_xbox_teleop",
+                executable="xbox_command_bridge",
+                name="xbox_command_bridge",
+                output="screen",
+            ),
+            ExecuteProcess(
+                condition=IfCondition(with_viewer),
+                cmd=["py-trees-tree-viewer"],
+                output="screen",
+            ),
+        ]
+    )

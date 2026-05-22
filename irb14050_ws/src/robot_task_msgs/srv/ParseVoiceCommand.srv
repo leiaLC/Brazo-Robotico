@@ -1,0 +1,5 @@
+string text
+---
+bool success
+string message
+robot_task_msgs/RobotCommand command

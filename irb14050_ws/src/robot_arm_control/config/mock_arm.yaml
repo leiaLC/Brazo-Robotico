@@ -1,0 +1,16 @@
+mock_arm_action_server:
+  ros__parameters:
+    simulation_mode: true
+    action_name: "/arm/move_joint"
+    execution_duration_s: 2.0
+
+mock_gripper_node:
+  ros__parameters:
+    simulation_mode: true
+    command_topic: "/gripper/command"
+
+mock_servo_node:
+  ros__parameters:
+    simulation_mode: true
+    twist_topic: "/servo/twist_cmd"
+    command_timeout_s: 0.4

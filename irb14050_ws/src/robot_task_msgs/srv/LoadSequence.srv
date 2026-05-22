@@ -1,0 +1,5 @@
+string sequence_id
+---
+bool success
+string message
+robot_task_msgs/RobotCommand[] commands

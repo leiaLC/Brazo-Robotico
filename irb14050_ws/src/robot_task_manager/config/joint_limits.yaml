@@ -1,0 +1,22 @@
+joints:
+  joint_1:
+    min_deg: -168.5
+    max_deg: 168.5
+  joint_2:
+    min_deg: -143.5
+    max_deg: 43.5
+  joint_3:
+    min_deg: -168.5
+    max_deg: 168.5
+  joint_4:
+    min_deg: -123.5
+    max_deg: 80.0
+  joint_5:
+    min_deg: -290.0
+    max_deg: 290.0
+  joint_6:
+    min_deg: -88.0
+    max_deg: 138.0
+  joint_7:
+    min_deg: -229.0
+    max_deg: 229.0

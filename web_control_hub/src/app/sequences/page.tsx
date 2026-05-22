@@ -1,0 +1,156 @@
+"use client";
+
+import { Pause, Play, Square, Wifi, WifiOff } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Card, IndustrialButton, PageTitle, ProgressBar, StatusPill } from "@/components/ui";
+import { sequences } from "@/lib/mock-data";
+
+type RequestState = "idle" | "running" | "ok" | "error";
+
+function getDefaultBackendUrl() {
+  if (typeof window === "undefined") {
+    return "http://localhost:8000";
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:8000`;
+}
+
+export default function SequencesPage() {
+  const [backendUrl, setBackendUrl] = useState(
+    () => process.env.NEXT_PUBLIC_BACKEND_URL ?? getDefaultBackendUrl(),
+  );
+  const [requestState, setRequestState] = useState<RequestState>("idle");
+  const [activeSequenceId, setActiveSequenceId] = useState<string | null>(null);
+  const [message, setMessage] = useState("Ready");
+  const active = useMemo(
+    () => sequences.find((sequence) => sequence.id === activeSequenceId),
+    [activeSequenceId],
+  );
+  const ActiveIcon = active?.icon;
+  const connected = requestState !== "error";
+
+  async function runSequence(sequenceId: string) {
+    setRequestState("running");
+    setActiveSequenceId(sequenceId);
+    setMessage(`Sending ${sequenceId}`);
+
+    const response = await fetch(`${backendUrl}/sequence/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sequence_id: sequenceId }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      setRequestState("error");
+      setMessage(detail || "Sequence request failed");
+      return;
+    }
+
+    setRequestState("ok");
+    setMessage(`Running ${sequenceId}`);
+  }
+
+  async function cancelTask() {
+    setRequestState("running");
+    const response = await fetch(`${backendUrl}/task/cancel`, { method: "POST" });
+    setActiveSequenceId(null);
+    setRequestState(response.ok ? "ok" : "error");
+    setMessage(response.ok ? "Cancel sent" : "Cancel failed");
+  }
+
+  return (
+    <div className="pb-28">
+      <div className="mx-auto mb-16 max-w-6xl">
+        <PageTitle
+          action={
+            <StatusPill icon={connected ? Wifi : WifiOff} tone={connected ? "green" : "red"}>
+              {message}
+            </StatusPill>
+          }
+          centered
+          subtitle="Select a sequence to initiate automated operations."
+          title="Secuencias"
+        />
+        <label className="mx-auto mt-6 grid max-w-xl gap-2">
+          <span className="text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
+            Backend gateway URL
+          </span>
+          <input
+            className="min-h-12 rounded border border-[#BFC7D2] bg-white px-4 font-mono text-sm outline-none focus:border-[#003C69] focus:ring-2 focus:ring-[#CFE1F6]"
+            onChange={(event) => setBackendUrl(event.target.value)}
+            value={backendUrl}
+          />
+        </label>
+      </div>
+
+      <section className="mx-auto grid max-w-[1360px] gap-6 lg:grid-cols-2">
+        {sequences.map((sequence) => {
+          const Icon = sequence.icon;
+          const running = sequence.id === activeSequenceId && requestState !== "error";
+
+          return (
+            <Card
+              className={`min-h-72 p-8 ${running ? "outline outline-2 outline-offset-4 outline-[#003C69]" : ""}`}
+              key={sequence.id}
+            >
+              <div className="mb-8 flex items-start justify-between gap-4">
+                <span className={`grid h-16 w-16 place-items-center rounded-xl ${running ? "bg-[#00548F] text-white" : "bg-[#E6E6E6] text-black"}`}>
+                  <Icon className="h-8 w-8" />
+                </span>
+                <span className="rounded-lg bg-[#E8EAED] px-5 py-3 font-mono text-base uppercase tracking-[0.12em] text-[#29303A]">
+                  {running ? "Running" : "Idle"}
+                </span>
+              </div>
+              <h2 className="text-3xl font-black tracking-normal text-black">{sequence.title}</h2>
+              <p className="mt-4 min-h-16 max-w-xl text-xl leading-8 text-[#303843]">
+                {sequence.description}
+              </p>
+              <div className="mt-7 flex items-center justify-between border-t border-[#CAD1DA] pt-6">
+                <p className="font-mono text-xl">Est: {sequence.estimate}</p>
+                <button
+                  className={`grid h-16 w-16 place-items-center rounded-full text-white shadow-lg ${running ? "bg-[#C7181D]" : "bg-[#00751A]"}`}
+                  onClick={() => void (running ? cancelTask() : runSequence(sequence.id))}
+                  type="button"
+                >
+                  {running ? <Square className="h-6 w-6" /> : <Play className="h-6 w-6 fill-current" />}
+                </button>
+              </div>
+            </Card>
+          );
+        })}
+      </section>
+
+      <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-[#C4CBD5] bg-white px-5 py-5 shadow-[0_-4px_16px_rgba(20,30,45,0.06)] md:px-9">
+        <div className="mx-auto grid max-w-[1920px] gap-5 lg:grid-cols-[320px_1fr_420px] lg:items-center">
+          <div className="flex items-center gap-5">
+            <span className="grid h-16 w-16 place-items-center rounded-full bg-[#00548F] text-white">
+              {ActiveIcon ? <ActiveIcon className="h-8 w-8" /> : null}
+            </span>
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.12em] text-[#003C69]">
+                Active Sequence
+              </p>
+              <p className="text-2xl font-black">{active?.title ?? "None"}</p>
+            </div>
+          </div>
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-4 text-lg">
+              <p>{active ? message : "Waiting for request"}</p>
+              <p className="font-black text-[#003C69]">{active?.progress ?? 0}%</p>
+            </div>
+            <ProgressBar value={active?.progress ?? 0} />
+          </div>
+          <div className="flex gap-5 lg:justify-end">
+            <IndustrialButton className="min-w-40" disabled tone="secondary">
+              <Pause className="h-5 w-5" /> Pause
+            </IndustrialButton>
+            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} tone="danger">
+              <Square className="h-5 w-5" /> Abort
+            </IndustrialButton>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

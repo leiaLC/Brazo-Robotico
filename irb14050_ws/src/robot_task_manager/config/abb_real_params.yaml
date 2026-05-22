@@ -1,0 +1,57 @@
+robot_task_tree:
+  ros__parameters:
+    simulation_mode: false
+    motion_backend: "abb_moveit"
+    robot_ready_default: true
+    tick_hz: 20.0
+    use_introspection: true
+    default_snapshot_stream: true
+    default_snapshot_period: 0.1
+    default_snapshot_blackboard_data: true
+    default_snapshot_blackboard_activity: false
+
+    joint_count: 7
+    joint_names: ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6", "joint_7"]
+    joint_states_topic: "/joint_states"
+
+    planning_group: "irb14050_arm"
+    base_frame: "base_link"
+    ee_frame: "tool0"
+    move_group_action_name: "/move_action"
+    execute_trajectory_action_name: "/execute_trajectory"
+    cartesian_path_service_name: "/compute_cartesian_path"
+    planning_time: 5.0
+    velocity_scale: 0.15
+    cartesian_max_step: 0.005
+    cartesian_min_fraction: 0.9
+    action_server_timeout_s: 15.0
+
+    gripper_command_topic: "/gripper/command"
+    servo_twist_topic: "/servo/twist_cmd"
+
+    # ABB/YuMi single-arm workspace from the existing task2.py envelope.
+    workspace_min_x: -0.60
+    workspace_max_x: 0.60
+    workspace_min_y: -0.60
+    workspace_max_y: 0.60
+    workspace_min_z: -0.20
+    workspace_max_z: 0.80
+
+    pregrasp_offset_z: 0.10
+    grasp_offset_z: 0.01
+    retreat_offset_z: 0.15
+    default_place_x: -0.30
+    default_place_y: 0.00
+    default_place_z: 0.20
+
+    use_top_down_grasp_orientation: true
+    top_down_qx: 1.0
+    top_down_qy: 0.0
+    top_down_qz: 0.0
+    top_down_qw: 0.0
+    tf_timeout_s: 1.0
+
+    web_heartbeat_timeout_s: 1.0
+    xbox_deadman_timeout_s: 0.5
+    detection_timeout_s: 1.5
+    confidence_threshold: 0.5

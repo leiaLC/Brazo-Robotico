@@ -1,29 +1,28 @@
+from glob import glob
 from setuptools import find_packages, setup
 
-package_name = 'robot_task_manager'
+package_name = "robot_task_manager"
 
 setup(
     name=package_name,
-    version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    version="0.1.0",
+    packages=find_packages(exclude=["test"]),
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
+        ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
+        (f"share/{package_name}", ["package.xml"]),
+        (f"share/{package_name}/launch", glob("launch/*.launch.py")),
+        (f"share/{package_name}/config", glob("config/*.yaml")),
     ],
-    install_requires=['setuptools'],
+    install_requires=["setuptools", "PyYAML"],
     zip_safe=True,
-    maintainer='zuriel_tov',
-    maintainer_email='zuriel.tovar.m@gmail.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
-    extras_require={
-        'test': [
-            'pytest',
-        ],
-    },
+    maintainer="Robot Decision Team",
+    maintainer_email="robot@example.com",
+    description="Central behavior-tree task manager for safe robot command arbitration.",
+    license="Apache-2.0",
     entry_points={
-        'console_scripts': [
+        "console_scripts": [
+            "robot_task_tree = robot_task_manager.task_tree_node:main",
+            "gripper_joint_state_publisher = robot_task_manager.gripper_joint_state_publisher:main",
         ],
     },
 )
