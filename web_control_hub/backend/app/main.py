@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from app.config import get_settings
 from app.models import (
+    GripperRequest,
     JointTargetRequest,
     RobotState,
     SequenceRequest,
@@ -132,6 +133,20 @@ def teleop_twist(request: TeleopTwistRequest):
     return {"ok": True}
 
 
+@app.post("/teleop/gripper")
+def teleop_gripper(request: GripperRequest):
+    try:
+        gateway.publish_gripper_sequence(request.command)
+    except PermissionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"ok": True, "command": request.command}
+
+
 @app.post("/sequence/run")
 def run_sequence(request: SequenceRequest):
     try:
@@ -174,6 +189,15 @@ def estop_task():
     return {"ok": True}
 
 
+@app.post("/task/resume")
+def resume_task():
+    try:
+        gateway.publish_task_command("RESUME")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"ok": True}
+
+
 @app.websocket("/ws/robot-state")
 async def robot_state_ws(websocket: WebSocket):
     await websocket.accept()
@@ -204,6 +228,48 @@ async def robot_state_ws(websocket: WebSocket):
         pass
     finally:
         gateway.remove_state_callback(enqueue)
+
+
+@app.websocket("/ws/task-status")
+async def task_status_ws(websocket: WebSocket):
+    await websocket.accept()
+    queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=1)
+    loop = asyncio.get_running_loop()
+
+    def enqueue(status: dict) -> None:
+        def put_latest() -> None:
+            if queue.full():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            queue.put_nowait(status)
+
+        loop.call_soon_threadsafe(put_latest)
+
+    gateway.add_task_status_callback(enqueue)
+
+    try:
+        initial = gateway.get_latest_task_status() or {
+            "mode": "UNKNOWN",
+            "current_task": "",
+            "message": "No /robot_task/status received yet",
+            "robot_ready": False,
+            "arm_busy": False,
+            "estop_active": False,
+            "teleop_active": False,
+            "progress": 0.0,
+            "error_code": "",
+        }
+        await websocket.send_text(json.dumps(initial))
+
+        while True:
+            status = await queue.get()
+            await websocket.send_text(json.dumps(status))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        gateway.remove_task_status_callback(enqueue)
 
 
 async def mjpeg_generator():

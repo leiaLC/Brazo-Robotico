@@ -29,6 +29,8 @@ setup(
             'teach = abb_irb14050_egm.teach_node:main',
             'waypoint_player = abb_irb14050_egm.waypoint_player_node:main',
             'egm_moveit_executor = abb_irb14050_egm.egm_moveit_executor:main',
+            'egm_move_joint_action_server = abb_irb14050_egm.egm_move_joint_action_server:main',
+            'egm_joint_jog_servo = abb_irb14050_egm.egm_joint_jog_servo:main',
             'gripper_node = abb_irb14050_egm.gripper_node:main',
             'routine_teach = abb_irb14050_egm.routine_teach:main',
             'routine_player = abb_irb14050_egm.routine_player:main',

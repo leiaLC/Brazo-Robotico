@@ -8,7 +8,6 @@ import math
 import py_trees
 import yaml
 from rclpy.action import ActionClient
-from std_msgs.msg import String
 
 from robot_task_manager import blackboard_keys as bb_keys
 from robot_task_manager.behaviors.common import BlackboardBehavior
@@ -20,6 +19,7 @@ from robot_task_manager.behaviors.motion_behaviors import (
     MoveGroup,
     MoveItErrorCodes,
 )
+from robot_task_msgs.action import MoveJoint
 
 
 class LoadSequence(BlackboardBehavior):
@@ -106,12 +106,15 @@ class ExecuteSequence(BlackboardBehavior):
         self._step_start: float | None = None
         self._published_step = -1
         self._move_group_client = None
+        self._action_client = None
         self._send_future = None
         self._result_future = None
         self._goal_handle = None
         self._wait_error: tuple[str, str] | None = None
         if not self.node.simulation_mode and self.node.motion_backend == "abb_moveit" and MOVEIT_AVAILABLE:
             self._move_group_client = ActionClient(self.node, MoveGroup, self.node.move_group_action_name)
+        elif not self.node.simulation_mode:
+            self._action_client = ActionClient(self.node, MoveJoint, self.node.arm_action_name)
 
     def initialise(self) -> None:
         self._index = 0
@@ -137,6 +140,8 @@ class ExecuteSequence(BlackboardBehavior):
 
         if self._uses_real_moveit(step):
             return self._update_real_move_joints(step, len(steps))
+        if self._uses_real_action(step):
+            return self._update_action_move_joints(step, len(steps))
 
         duration = self._step_duration(step)
         elapsed = self.now() - (self._step_start or self.now())
@@ -164,6 +169,13 @@ class ExecuteSequence(BlackboardBehavior):
             and step.get("type") == "move_joints"
         )
 
+    def _uses_real_action(self, step: dict) -> bool:
+        return (
+            not self.node.simulation_mode
+            and self.node.motion_backend != "abb_moveit"
+            and step.get("type") == "move_joints"
+        )
+
     def _update_real_move_joints(self, step: dict, total_steps: int) -> py_trees.common.Status:
         if not MOVEIT_AVAILABLE or self._move_group_client is None:
             self.bb_set(bb_keys.ARM_BUSY, False)
@@ -175,15 +187,10 @@ class ExecuteSequence(BlackboardBehavior):
             return py_trees.common.Status.FAILURE
 
         values_deg = [float(value) for value in step.get("joint_values_deg", [])]
-        base_progress = self._index / max(1, total_steps)
-        self.set_status(
-            mode="WEB_SEQUENCE",
-            message=f"Executing sequence joint step {self._index + 1}/{total_steps}",
-            progress=base_progress,
-        )
+        self._set_real_move_status(total_steps)
 
         if self._send_future is None:
-            if not self._wait_for_action_server("move_group"):
+            if not self._wait_for_action_server(self._move_group_client, "move_group"):
                 if self._wait_error is not None:
                     message, code = self._wait_error
                     self.bb_set(bb_keys.ARM_BUSY, False)
@@ -232,6 +239,83 @@ class ExecuteSequence(BlackboardBehavior):
         )
         return py_trees.common.Status.RUNNING
 
+    def _update_action_move_joints(self, step: dict, total_steps: int) -> py_trees.common.Status:
+        if self._action_client is None:
+            self.bb_set(bb_keys.ARM_BUSY, False)
+            self.set_status(
+                mode="ERROR",
+                message="MoveJoint action client unavailable",
+                error_code="ACTION_CLIENT_UNAVAILABLE",
+            )
+            return py_trees.common.Status.FAILURE
+
+        values_deg = [float(value) for value in step.get("joint_values_deg", [])]
+        self._set_real_move_status(total_steps)
+
+        if self._send_future is None:
+            if not self._wait_for_action_server(self._action_client, "move_joint"):
+                if self._wait_error is not None:
+                    message, code = self._wait_error
+                    self.bb_set(bb_keys.ARM_BUSY, False)
+                    self.set_status(mode="ERROR", message=message, error_code=code)
+                    return py_trees.common.Status.FAILURE
+                return py_trees.common.Status.RUNNING
+
+            goal_msg = MoveJoint.Goal()
+            goal_msg.joint_values = values_deg
+            goal_msg.max_velocity_scaling = float(self.node.velocity_scale)
+            goal_msg.max_acceleration_scaling = float(self.node.velocity_scale) * 0.5
+            self._send_future = self._action_client.send_goal_async(goal_msg)
+            return py_trees.common.Status.RUNNING
+
+        if self._goal_handle is None:
+            if not self._send_future.done():
+                return py_trees.common.Status.RUNNING
+            self._goal_handle = self._send_future.result()
+            if not self._goal_handle.accepted:
+                self.bb_set(bb_keys.ARM_BUSY, False)
+                self.set_status(mode="ERROR", message="Sequence MoveJoint goal rejected", error_code="GOAL_REJECTED")
+                return py_trees.common.Status.FAILURE
+            self._result_future = self._goal_handle.get_result_async()
+            return py_trees.common.Status.RUNNING
+
+        if self._result_future is None or not self._result_future.done():
+            return py_trees.common.Status.RUNNING
+
+        result = self._result_future.result().result
+        if not result.success:
+            self.bb_set(bb_keys.ARM_BUSY, False)
+            self.set_status(
+                mode="ERROR",
+                message=result.message,
+                error_code="SEQUENCE_MOVE_JOINT_FAILED",
+            )
+            return py_trees.common.Status.FAILURE
+
+        self.bb_set(bb_keys.JOINT_STATE_DEG, values_deg)
+        self._index += 1
+        self._step_start = self.now()
+        self._reset_motion_state()
+        progress = self._index / max(1, total_steps)
+        self.set_status(
+            mode="WEB_SEQUENCE",
+            message=f"Sequence joint step {self._index}/{total_steps} complete",
+            progress=progress,
+            error_code="",
+        )
+        return py_trees.common.Status.RUNNING
+
+    def _set_real_move_status(self, total_steps: int) -> None:
+        duration = max(0.1, float(self.node.simulation_motion_duration_s))
+        elapsed = self.now() - (self._step_start or self.now())
+        step_fraction = min(0.95, elapsed / duration)
+        progress = (self._index + step_fraction) / max(1, total_steps)
+        self.set_status(
+            mode="WEB_SEQUENCE",
+            message=f"Executing sequence joint step {self._index + 1}/{total_steps}",
+            progress=progress,
+        )
+
     def _step_duration(self, step: dict) -> float:
         step_type = step.get("type")
         if step_type == "gripper":
@@ -247,10 +331,9 @@ class ExecuteSequence(BlackboardBehavior):
 
         step_type = step.get("type")
         if step_type == "gripper":
-            msg = String()
-            msg.data = step.get("command", "open")
-            self.node.gripper_pub.publish(msg)
-            self.node.get_logger().info(f"Sequence gripper command: {msg.data}")
+            command = step.get("command", "open")
+            self.node.publish_gripper_command(command)
+            self.node.get_logger().info(f"Sequence gripper command: {command}")
         elif step_type == "move_joints":
             self.node.get_logger().info(f"Sequence move_joints: {step.get('joint_values_deg')}")
         elif step_type == "pick_object":
@@ -296,8 +379,8 @@ class ExecuteSequence(BlackboardBehavior):
         goal_msg.planning_options.replan_attempts = 3
         return goal_msg
 
-    def _wait_for_action_server(self, label: str) -> bool:
-        if self._move_group_client.server_is_ready():
+    def _wait_for_action_server(self, client, label: str) -> bool:
+        if client.server_is_ready():
             return True
         elapsed = self.now() - (self._step_start or self.now())
         if elapsed > self.node.action_server_timeout_s:

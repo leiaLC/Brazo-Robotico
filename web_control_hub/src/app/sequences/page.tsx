@@ -1,11 +1,19 @@
 "use client";
 
 import { Pause, Play, Square, Wifi, WifiOff } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, IndustrialButton, PageTitle, ProgressBar, StatusPill } from "@/components/ui";
 import { sequences } from "@/lib/mock-data";
 
 type RequestState = "idle" | "running" | "ok" | "error";
+type ConnectionState = "connecting" | "connected" | "disconnected" | "error";
+type TaskStatus = {
+  mode: string;
+  current_task: string;
+  message: string;
+  progress: number;
+  error_code: string;
+};
 
 function getDefaultBackendUrl() {
   if (typeof window === "undefined") {
@@ -15,23 +23,91 @@ function getDefaultBackendUrl() {
   return `${window.location.protocol}//${window.location.hostname}:8000`;
 }
 
+function getBackendWebSocketUrl(backendUrl: string) {
+  const url = new URL(backendUrl);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = "/ws/task-status";
+  url.search = "";
+  return url.toString();
+}
+
+function clampProgress(value: number) {
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function sequenceIdFromTask(task: string) {
+  const match = task.match(/^sequence\s+(.+)$/i);
+  return match?.[1] ?? null;
+}
+
 export default function SequencesPage() {
   const [backendUrl, setBackendUrl] = useState(
     () => process.env.NEXT_PUBLIC_BACKEND_URL ?? getDefaultBackendUrl(),
   );
   const [requestState, setRequestState] = useState<RequestState>("idle");
+  const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [activeSequenceId, setActiveSequenceId] = useState<string | null>(null);
   const [message, setMessage] = useState("Ready");
+  const [taskStatus, setTaskStatus] = useState<TaskStatus | null>(null);
+  const [sequenceProgress, setSequenceProgress] = useState(0);
+  const activeSequenceRef = useRef<string | null>(null);
   const active = useMemo(
     () => sequences.find((sequence) => sequence.id === activeSequenceId),
     [activeSequenceId],
   );
   const ActiveIcon = active?.icon;
-  const connected = requestState !== "error";
+  const connected = connectionState === "connected" && requestState !== "error";
+
+  useEffect(() => {
+    activeSequenceRef.current = activeSequenceId;
+  }, [activeSequenceId]);
+
+  useEffect(() => {
+    const socket = new WebSocket(getBackendWebSocketUrl(backendUrl));
+
+    socket.addEventListener("open", () => setConnectionState("connected"));
+    socket.addEventListener("error", () => setConnectionState("error"));
+    socket.addEventListener("close", () => setConnectionState("disconnected"));
+    socket.addEventListener("message", (event) => {
+      const nextStatus = JSON.parse(event.data) as TaskStatus;
+      setTaskStatus(nextStatus);
+
+      const statusSequenceId = sequenceIdFromTask(nextStatus.current_task);
+      if (statusSequenceId) {
+        activeSequenceRef.current = statusSequenceId;
+        setActiveSequenceId(statusSequenceId);
+      }
+
+      if (nextStatus.mode === "WEB_SEQUENCE" || statusSequenceId) {
+        setSequenceProgress(clampProgress(nextStatus.progress * 100));
+        setMessage(nextStatus.message || "Sequence running");
+        return;
+      }
+
+      if (activeSequenceRef.current && nextStatus.progress >= 1.0) {
+        setSequenceProgress(100);
+        setMessage(nextStatus.message || "Sequence complete");
+      }
+    });
+
+    return () => {
+      socket.close();
+    };
+  }, [backendUrl]);
+
+  function updateBackendUrl(value: string) {
+    setBackendUrl(value);
+    setRequestState("idle");
+    setActiveSequenceId(null);
+    setSequenceProgress(0);
+    setMessage("Ready");
+  }
 
   async function runSequence(sequenceId: string) {
     setRequestState("running");
+    activeSequenceRef.current = sequenceId;
     setActiveSequenceId(sequenceId);
+    setSequenceProgress(0);
     setMessage(`Sending ${sequenceId}`);
 
     const response = await fetch(`${backendUrl}/sequence/run`, {
@@ -54,7 +130,9 @@ export default function SequencesPage() {
   async function cancelTask() {
     setRequestState("running");
     const response = await fetch(`${backendUrl}/task/cancel`, { method: "POST" });
+    activeSequenceRef.current = null;
     setActiveSequenceId(null);
+    setSequenceProgress(0);
     setRequestState(response.ok ? "ok" : "error");
     setMessage(response.ok ? "Cancel sent" : "Cancel failed");
   }
@@ -70,7 +148,7 @@ export default function SequencesPage() {
           }
           centered
           subtitle="Select a sequence to initiate automated operations."
-          title="Secuencias"
+          title="Sequences"
         />
         <label className="mx-auto mt-6 grid max-w-xl gap-2">
           <span className="text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
@@ -78,7 +156,7 @@ export default function SequencesPage() {
           </span>
           <input
             className="min-h-12 rounded border border-[#BFC7D2] bg-white px-4 font-mono text-sm outline-none focus:border-[#003C69] focus:ring-2 focus:ring-[#CFE1F6]"
-            onChange={(event) => setBackendUrl(event.target.value)}
+            onChange={(event) => updateBackendUrl(event.target.value)}
             value={backendUrl}
           />
         </label>
@@ -107,7 +185,7 @@ export default function SequencesPage() {
                 {sequence.description}
               </p>
               <div className="mt-7 flex items-center justify-between border-t border-[#CAD1DA] pt-6">
-                <p className="font-mono text-xl">Est: {sequence.estimate}</p>
+                <p className="font-mono text-xl">ETA: {sequence.estimate}</p>
                 <button
                   className={`grid h-16 w-16 place-items-center rounded-full text-white shadow-lg ${running ? "bg-[#C7181D]" : "bg-[#00751A]"}`}
                   onClick={() => void (running ? cancelTask() : runSequence(sequence.id))}
@@ -136,10 +214,10 @@ export default function SequencesPage() {
           </div>
           <div>
             <div className="mb-3 flex items-center justify-between gap-4 text-lg">
-              <p>{active ? message : "Waiting for request"}</p>
-              <p className="font-black text-[#003C69]">{active?.progress ?? 0}%</p>
+              <p>{active ? taskStatus?.message || message : "Waiting for request"}</p>
+              <p className="font-black text-[#003C69]">{active ? sequenceProgress : 0}%</p>
             </div>
-            <ProgressBar value={active?.progress ?? 0} />
+            <ProgressBar value={active ? sequenceProgress : 0} />
           </div>
           <div className="flex gap-5 lg:justify-end">
             <IndustrialButton className="min-w-40" disabled tone="secondary">

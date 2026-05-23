@@ -1,4 +1,4 @@
-/**:
+gamepad_command_bridge:
   ros__parameters:
     joy_topic: "/joy"
     command_topic: "/robot_task/command"
@@ -9,17 +9,23 @@
     teleop_command_type: "XBOX_TELEOP"
     priority: 98.0
 
+    # Most Xbox-compatible generic gamepads use LB=4, RB=5.
     deadman_button: 4
     secondary_deadman_button: -1
     deadman_mode: "any"
     require_deadman: true
+
+    # Optional safety/system buttons. Set to your controller button indexes.
     estop_button: -1
     resume_button: -1
     cancel_button: -1
+
+    # Optional gripper buttons. Disabled by default to avoid accidental motion.
     open_gripper_button: -1
     close_gripper_button: -1
     require_deadman_for_gripper: true
 
+    # Common Xbox-style axis layout: left stick XY, right stick X/Z.
     axis_linear_x: 1
     axis_linear_y: 0
     axis_linear_z: 4

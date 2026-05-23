@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 EGM bridge node for ABB IRB 14050 (7-DOF).
 

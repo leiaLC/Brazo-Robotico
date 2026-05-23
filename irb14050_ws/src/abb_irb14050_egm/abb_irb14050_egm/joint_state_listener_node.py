@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Simple /joint_states listener.
 

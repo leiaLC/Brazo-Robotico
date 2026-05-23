@@ -6,7 +6,7 @@ import { controlCards, quickStart, systemStatus } from "@/lib/mock-data";
 export default function ControlPage() {
   return (
     <div className="space-y-7">
-      <PageTitle centered title="Panel de Control" />
+      <PageTitle centered title="Control Panel" />
 
       <section className="grid gap-6 xl:grid-cols-[1fr_390px]">
         <RobotHeroPanel />

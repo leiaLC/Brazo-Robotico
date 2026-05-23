@@ -61,6 +61,7 @@ class RosGateway:
         self._latest_jpeg: bytes | None = None
         self._latest_task_status: dict | None = None
         self._state_callbacks: list[Callable[[JointSnapshot], None]] = []
+        self._task_status_callbacks: list[Callable[[dict], None]] = []
         self._bridge = CvBridge() if CvBridge is not None else None
 
     def start(self) -> None:
@@ -119,6 +120,13 @@ class RosGateway:
         if callback in self._state_callbacks:
             self._state_callbacks.remove(callback)
 
+    def add_task_status_callback(self, callback: Callable[[dict], None]) -> None:
+        self._task_status_callbacks.append(callback)
+
+    def remove_task_status_callback(self, callback: Callable[[dict], None]) -> None:
+        if callback in self._task_status_callbacks:
+            self._task_status_callbacks.remove(callback)
+
     def publish_joint_target_deg(self, positions_deg: list[float]) -> None:
         self._validate_target(positions_deg)
 
@@ -152,6 +160,19 @@ class RosGateway:
         twist.linear.x, twist.linear.y, twist.linear.z = linear
         twist.angular.x, twist.angular.y, twist.angular.z = angular
         self.teleop_twist_pub.publish(twist)
+
+    def publish_gripper_sequence(self, command: str) -> None:
+        with self._lock:
+            enabled = self._teleop_enabled
+
+        if not enabled:
+            raise PermissionError("teleoperation is disabled")
+
+        normalized = command.strip().lower()
+        if normalized not in {"open", "close"}:
+            raise ValueError("gripper command must be 'open' or 'close'")
+
+        self.publish_sequence(f"{normalized}_gripper")
 
     def publish_sequence(self, sequence_id: str) -> None:
         if self.sequence_pub is None:
@@ -221,18 +242,22 @@ class RosGateway:
             callback(snapshot)
 
     def _on_task_status(self, msg) -> None:
+        status = {
+            "mode": msg.mode,
+            "current_task": msg.current_task,
+            "message": msg.message,
+            "robot_ready": msg.robot_ready,
+            "arm_busy": msg.arm_busy,
+            "estop_active": msg.estop_active,
+            "teleop_active": msg.teleop_active,
+            "progress": float(msg.progress),
+            "error_code": msg.error_code,
+        }
         with self._lock:
-            self._latest_task_status = {
-                "mode": msg.mode,
-                "current_task": msg.current_task,
-                "message": msg.message,
-                "robot_ready": msg.robot_ready,
-                "arm_busy": msg.arm_busy,
-                "estop_active": msg.estop_active,
-                "teleop_active": msg.teleop_active,
-                "progress": float(msg.progress),
-                "error_code": msg.error_code,
-            }
+            self._latest_task_status = status
+
+        for callback in list(self._task_status_callbacks):
+            callback(status)
 
     def _on_image(self, msg) -> None:
         if cv2 is None:

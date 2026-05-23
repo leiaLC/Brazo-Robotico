@@ -25,6 +25,7 @@ from launch.actions import (
     RegisterEventHandler,
     SetEnvironmentVariable,
 )
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -40,15 +41,22 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # --- NVIDIA Optimus offload (hybrid Intel+NVIDIA laptops) -----------
+    use_nvidia = LaunchConfiguration("use_nvidia")
+    render_engine = LaunchConfiguration("render_engine")
+    set_render_engine = SetEnvironmentVariable(
+        name="GZ_RENDER_ENGINE",
+        value=render_engine,
+    )
     nvidia_offload = SetEnvironmentVariable(
-        name="__NV_PRIME_RENDER_OFFLOAD", value="1"
+        name="__NV_PRIME_RENDER_OFFLOAD", value="1", condition=IfCondition(use_nvidia)
     )
     nvidia_glx = SetEnvironmentVariable(
-        name="__GLX_VENDOR_LIBRARY_NAME", value="nvidia"
+        name="__GLX_VENDOR_LIBRARY_NAME", value="nvidia", condition=IfCondition(use_nvidia)
     )
     nvidia_egl = SetEnvironmentVariable(
         name="__EGL_VENDOR_LIBRARY_FILENAMES",
         value="/usr/share/glvnd/egl_vendor.d/10_nvidia.json",
+        condition=IfCondition(use_nvidia),
     )
 
     # --- Gazebo's resource search path ----------------------------------
@@ -185,6 +193,17 @@ def generate_launch_description():
                 default_value="true",
                 description="Use Gazebo simulation clock",
             ),
+            DeclareLaunchArgument(
+                "use_nvidia",
+                default_value="false",
+                description="Enable NVIDIA Optimus offload variables for Gazebo rendering.",
+            ),
+            DeclareLaunchArgument(
+                "render_engine",
+                default_value="ogre",
+                description="Gazebo render engine. Use ogre on laptops where ogre2/OpenGL crashes.",
+            ),
+            set_render_engine,
             nvidia_offload,
             nvidia_glx,
             nvidia_egl,

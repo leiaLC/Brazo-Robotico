@@ -19,17 +19,21 @@ def generate_launch_description():
     launch_gripper_node = LaunchConfiguration("launch_gripper_node")
     launch_gripper_joint_states = LaunchConfiguration("launch_gripper_joint_states")
     launch_rviz = LaunchConfiguration("launch_rviz")
+    launch_gamepad_joy = LaunchConfiguration("launch_gamepad_joy")
     controller_ip = LaunchConfiguration("controller_ip")
     egm_rx_port = LaunchConfiguration("egm_rx_port")
     egm_tx_port = LaunchConfiguration("egm_tx_port")
     egm_max_speed_deg_s = LaunchConfiguration("egm_max_speed_deg_s")
+    joy_dev = LaunchConfiguration("joy_dev")
 
     task_share = Path(get_package_share_directory("robot_task_manager"))
+    gamepad_share = Path(get_package_share_directory("robot_xbox_teleop"))
     tree_params = task_share / "config" / "tree_params.yaml"
     abb_params = task_share / "config" / "abb_real_params.yaml"
     bridge_params = task_share / "config" / "object_cloud_bridge.yaml"
     joint_limits = task_share / "config" / "joint_limits.yaml"
     sequences = task_share / "config" / "sequences.yaml"
+    gamepad_params = gamepad_share / "config" / "gamepad.yaml"
 
     moveit_config = (
         MoveItConfigsBuilder(
@@ -159,6 +163,16 @@ def generate_launch_description():
                 description="Launch RViz with the ABB MoveIt configuration.",
             ),
             DeclareLaunchArgument(
+                "launch_gamepad_joy",
+                default_value="false",
+                description="Launch joy/joy_node for a connected controller.",
+            ),
+            DeclareLaunchArgument(
+                "joy_dev",
+                default_value="/dev/input/js0",
+                description="Linux joystick device used by joy_node.",
+            ),
+            DeclareLaunchArgument(
                 "controller_ip",
                 default_value="192.168.125.1",
                 description="ABB controller IP used by EGM TX and the RWS gripper client.",
@@ -243,10 +257,25 @@ def generate_launch_description():
                 output="screen",
             ),
             Node(
-                package="robot_xbox_teleop",
-                executable="xbox_command_bridge",
-                name="xbox_command_bridge",
+                package="joy",
+                executable="joy_node",
+                name="joy_node",
                 output="screen",
+                parameters=[
+                    {
+                        "dev": joy_dev,
+                        "deadzone": 0.05,
+                        "autorepeat_rate": 25.0,
+                    }
+                ],
+                condition=IfCondition(launch_gamepad_joy),
+            ),
+            Node(
+                package="robot_xbox_teleop",
+                executable="gamepad_command_bridge",
+                name="gamepad_command_bridge",
+                output="screen",
+                parameters=[str(gamepad_params)],
             ),
             ExecuteProcess(
                 condition=IfCondition(with_viewer),

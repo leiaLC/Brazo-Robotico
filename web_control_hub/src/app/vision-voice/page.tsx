@@ -13,7 +13,7 @@ export default function VisionVoicePage() {
             <StatusPill tone="gray">Detect: Active</StatusPill>
           </>
         }
-        title="Vision y Voz"
+        title="Vision and Voice"
       />
 
       <section className="grid gap-8 xl:grid-cols-[1fr_600px]">

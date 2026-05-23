@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, RotateCcw, Send, Wifi, WifiOff } from "lucide-react";
+import { Layers3, Pause, RotateCcw, Send, SquareStack, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, IndustrialButton, PageTitle, StatusPill } from "@/components/ui";
 import type { JointControl } from "@/lib/mock-data";
@@ -128,6 +128,26 @@ export function TeleopControlPanel({ joints }: { joints: JointControl[] }) {
     setLastPublish(`command #${publishCountRef.current}`);
   }
 
+  async function publishGripperCommand(command: "open" | "close") {
+    if (!canCommand) {
+      return;
+    }
+
+    publishCountRef.current += 1;
+    const response = await fetch(`${backendUrl}/teleop/gripper`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command }),
+    });
+
+    if (!response.ok) {
+      setConnectionState("error");
+      return;
+    }
+
+    setLastPublish(`${command} gripper #${publishCountRef.current}`);
+  }
+
   function updateJoint(index: number, value: number) {
     const joint = joints[index];
     const nextPositions = [...positions];
@@ -156,7 +176,7 @@ export function TeleopControlPanel({ joints }: { joints: JointControl[] }) {
             </StatusPill>
           }
           subtitle="Manual articulation routed through the backend gateway, not direct ROS topics."
-          title="Teleoperacion"
+          title="Teleoperation"
         />
       </div>
 
@@ -266,6 +286,37 @@ export function TeleopControlPanel({ joints }: { joints: JointControl[] }) {
             </div>
           </Card>
         ))}
+
+        <Card className={`p-5 ${canCommand ? "" : "opacity-75"}`}>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-mono text-lg font-black tracking-normal text-black">
+                Gripper
+              </h2>
+              <p className="text-xs uppercase tracking-[0.12em] text-[#6F7782]">
+                open_gripper | close_gripper
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <IndustrialButton
+              className="w-full"
+              disabled={!canCommand}
+              onClick={() => void publishGripperCommand("open")}
+              tone="secondary"
+            >
+              <Layers3 className="h-5 w-5" /> Open Gripper
+            </IndustrialButton>
+            <IndustrialButton
+              className="w-full"
+              disabled={!canCommand}
+              onClick={() => void publishGripperCommand("close")}
+              tone="secondary"
+            >
+              <SquareStack className="h-5 w-5" /> Close Gripper
+            </IndustrialButton>
+          </div>
+        </Card>
       </div>
     </aside>
   );

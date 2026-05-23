@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 egm_moveit_executor.py
 

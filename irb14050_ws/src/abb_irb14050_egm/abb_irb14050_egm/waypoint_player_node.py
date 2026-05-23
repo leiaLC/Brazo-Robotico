@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 waypoint_player_node.py
 

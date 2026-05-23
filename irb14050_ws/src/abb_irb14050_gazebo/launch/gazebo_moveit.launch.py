@@ -22,9 +22,10 @@ NOTE on start_state_max_bounds_error:
 """
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
@@ -32,6 +33,10 @@ import os
 
 
 def generate_launch_description():
+    launch_rviz = LaunchConfiguration("launch_rviz")
+    use_nvidia = LaunchConfiguration("use_nvidia")
+    render_engine = LaunchConfiguration("render_engine")
+
     # --- MoveIt config (xacro processed with sim_mode:=gazebo) -----------
     moveit_config = (
         MoveItConfigsBuilder("abb_irb14050", package_name="abb_irb14050_moveit_config")
@@ -50,7 +55,11 @@ def generate_launch_description():
     spawn_robot = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [gazebo_pkg, "/launch/spawn_robot.launch.py"]
-        )
+        ),
+        launch_arguments={
+            "use_nvidia": use_nvidia,
+            "render_engine": render_engine,
+        }.items(),
     )
 
     # --- MoveIt move_group ----------------------------------------------
@@ -90,10 +99,26 @@ def generate_launch_description():
             moveit_config.joint_limits,
             {"use_sim_time": True},
         ],
+        condition=IfCondition(launch_rviz),
     )
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "launch_rviz",
+                default_value="true",
+                description="Launch RViz with the MoveIt MotionPlanning panel.",
+            ),
+            DeclareLaunchArgument(
+                "use_nvidia",
+                default_value="false",
+                description="Enable NVIDIA Optimus offload variables for Gazebo rendering.",
+            ),
+            DeclareLaunchArgument(
+                "render_engine",
+                default_value="ogre",
+                description="Gazebo render engine. Use ogre on laptops where ogre2/OpenGL crashes.",
+            ),
             spawn_robot,
             move_group_node,
             rviz_node,

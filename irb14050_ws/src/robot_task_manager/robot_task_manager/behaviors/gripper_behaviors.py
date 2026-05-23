@@ -1,7 +1,6 @@
 """Gripper behaviours."""
 
 import py_trees
-from std_msgs.msg import String
 
 from robot_task_manager import blackboard_keys as bb_keys
 from robot_task_manager.behaviors.common import BlackboardBehavior
@@ -24,10 +23,8 @@ class _GripperCommand(BlackboardBehavior):
 
     def update(self) -> py_trees.common.Status:
         if not self._published:
-            msg = String()
-            msg.data = self.command
-            self.node.gripper_pub.publish(msg)
-            self.node.get_logger().info(f"Mock gripper command: {self.command}")
+            self.node.publish_gripper_command(self.command)
+            self.node.get_logger().info(f"Gripper command: {self.command}")
             self._published = True
 
         elapsed = self.now() - (self._start_time or self.now())

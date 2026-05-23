@@ -8,12 +8,15 @@ from pathlib import Path
 import py_trees
 import rclpy
 from ament_index_python.packages import PackageNotFoundError, get_package_share_directory
+from control_msgs.action import FollowJointTrajectory
 from geometry_msgs.msg import Twist
+from rclpy.action import ActionClient
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, Header, String
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from robot_task_manager import blackboard_keys as bb_keys
 from robot_task_manager.trees.robot_supervisor_tree import create_robot_supervisor_tree
@@ -83,6 +86,16 @@ class RobotTaskTreeNode(Node):
         self.status_pub = self.create_publisher(RobotStatus, "/robot_task/status", 10)
         self.servo_pub = self.create_publisher(Twist, self.servo_twist_topic, 10)
         self.gripper_pub = self.create_publisher(String, self.gripper_command_topic, 10)
+        self.gripper_trajectory_pub = self.create_publisher(
+            JointTrajectory,
+            self.gripper_trajectory_topic,
+            10,
+        )
+        self.gripper_action_client = ActionClient(
+            self,
+            FollowJointTrajectory,
+            self.gripper_action_name,
+        )
 
         root = create_robot_supervisor_tree(self)
         self.tree = self._create_behaviour_tree(root)
@@ -121,6 +134,11 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("confidence_threshold", 0.5)
         self.declare_parameter("servo_twist_topic", "/servo/twist_cmd")
         self.declare_parameter("gripper_command_topic", "/gripper/command")
+        self.declare_parameter("gripper_trajectory_topic", "/gripper_controller/joint_trajectory")
+        self.declare_parameter("gripper_action_name", "/gripper_controller/follow_joint_trajectory")
+        self.declare_parameter("gripper_joint_names", ["gripper_joint_l", "gripper_joint_r"])
+        self.declare_parameter("gripper_open_position_m", 0.025)
+        self.declare_parameter("gripper_closed_position_m", 0.0)
         self.declare_parameter("arm_action_name", "/arm/move_joint")
         self.declare_parameter("move_group_action_name", "/move_action")
         self.declare_parameter("execute_trajectory_action_name", "/execute_trajectory")
@@ -171,6 +189,11 @@ class RobotTaskTreeNode(Node):
         self.confidence_threshold = float(self.get_parameter("confidence_threshold").value)
         self.servo_twist_topic = str(self.get_parameter("servo_twist_topic").value)
         self.gripper_command_topic = str(self.get_parameter("gripper_command_topic").value)
+        self.gripper_trajectory_topic = str(self.get_parameter("gripper_trajectory_topic").value)
+        self.gripper_action_name = str(self.get_parameter("gripper_action_name").value)
+        self.gripper_joint_names = list(self.get_parameter("gripper_joint_names").value)
+        self.gripper_open_position_m = float(self.get_parameter("gripper_open_position_m").value)
+        self.gripper_closed_position_m = float(self.get_parameter("gripper_closed_position_m").value)
         self.arm_action_name = str(self.get_parameter("arm_action_name").value)
         self.move_group_action_name = str(self.get_parameter("move_group_action_name").value)
         self.execute_trajectory_action_name = str(self.get_parameter("execute_trajectory_action_name").value)
@@ -432,6 +455,41 @@ class RobotTaskTreeNode(Node):
             self.servo_pub.publish(Twist())
         except Exception as exc:  # noqa: BLE001 - publisher context can be invalid during shutdown.
             self.get_logger().debug(f"Skipping zero twist publish during shutdown: {exc}")
+
+    def publish_gripper_command(self, command: str) -> None:
+        normalized = command.strip().lower()
+        if normalized not in {"open", "close"}:
+            self.get_logger().warn(f"Ignoring unsupported gripper command: {command}")
+            return
+
+        text_command = String()
+        text_command.data = normalized
+        self.gripper_pub.publish(text_command)
+
+        target = (
+            self.gripper_open_position_m
+            if normalized == "open"
+            else self.gripper_closed_position_m
+        )
+        trajectory = JointTrajectory()
+        trajectory.joint_names = list(self.gripper_joint_names)
+        point = JointTrajectoryPoint()
+        point.positions = [target] * len(trajectory.joint_names)
+        point.time_from_start.sec = int(self.gripper_motion_duration_s)
+        point.time_from_start.nanosec = int(
+            max(0.0, self.gripper_motion_duration_s - int(self.gripper_motion_duration_s))
+            * 1_000_000_000
+        )
+        trajectory.points = [point]
+        self.gripper_trajectory_pub.publish(trajectory)
+        if self.gripper_action_client.server_is_ready():
+            goal = FollowJointTrajectory.Goal()
+            goal.trajectory = trajectory
+            self.gripper_action_client.send_goal_async(goal)
+        else:
+            self.get_logger().debug(
+                f"Gripper action server not ready: {self.gripper_action_name}"
+            )
 
     def _now(self) -> float:
         return self.get_clock().now().nanoseconds * 1e-9

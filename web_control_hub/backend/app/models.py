@@ -26,6 +26,10 @@ class TeleopTwistRequest(BaseModel):
     angular_z: float = 0.0
 
 
+class GripperRequest(BaseModel):
+    command: str = Field(pattern="^(open|close)$")
+
+
 class SequenceRequest(BaseModel):
     sequence_id: str = Field(min_length=1)
 

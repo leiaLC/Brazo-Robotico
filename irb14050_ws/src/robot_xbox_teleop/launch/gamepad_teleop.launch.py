@@ -1,4 +1,4 @@
-"""Launch the backward-compatible Xbox/gamepad command bridge."""
+"""Launch a generic gamepad Joy driver and robot command bridge."""
 
 from pathlib import Path
 
@@ -12,7 +12,8 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     share = Path(get_package_share_directory("robot_xbox_teleop"))
-    params = share / "config" / "xbox.yaml"
+    params = share / "config" / "gamepad.yaml"
+
     launch_joy = LaunchConfiguration("launch_joy")
     joy_dev = LaunchConfiguration("joy_dev")
     joy_deadzone = LaunchConfiguration("joy_deadzone")
@@ -44,7 +45,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "config_file",
                 default_value=str(params),
-                description="YAML file with gamepad bridge parameters.",
+                description="YAML file with gamepad_command_bridge parameters.",
             ),
             Node(
                 package="joy",
@@ -62,10 +63,10 @@ def generate_launch_description():
             ),
             Node(
                 package="robot_xbox_teleop",
-                executable="xbox_command_bridge",
-                name="xbox_command_bridge",
+                executable="gamepad_command_bridge",
+                name="gamepad_command_bridge",
                 output="screen",
                 parameters=[config_file],
-            )
+            ),
         ]
     )
