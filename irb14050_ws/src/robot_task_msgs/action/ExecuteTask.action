@@ -1,0 +1,7 @@
+robot_task_msgs/RobotCommand command
+---
+bool success
+string message
+---
+float32 progress
+string current_state

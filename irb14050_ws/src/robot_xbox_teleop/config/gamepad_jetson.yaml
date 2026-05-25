@@ -1,0 +1,50 @@
+gamepad_command_bridge:
+  ros__parameters:
+    joy_topic: "/joy"
+    command_topic: "/robot_task/command"
+    deadman_topic: "/xbox/deadman"
+    gripper_command_topic: "/gripper/command"
+    source: "gamepad"
+    frame_id: "gamepad_command_bridge"
+    teleop_command_type: "XBOX_TELEOP"
+    priority: 98.0
+
+    # Xbox-like default: hold LB or RB to allow robot jogging.
+    deadman_button: 4
+    secondary_deadman_button: 5
+    deadman_mode: "any"
+    require_deadman: true
+
+    # Common Xbox-style buttons. Verify with `ros2 topic echo /joy` on the
+    # Jetson before testing near the robot.
+    open_gripper_button: 0
+    close_gripper_button: 2
+    estop_button: 1
+    resume_button: 3
+    cancel_button: 6
+    require_deadman_for_gripper: true
+
+    # In the Jetson profile these are normalized joint-jog channels consumed by
+    # abb_irb14050_egm/egm_joint_jog_servo.
+    axis_linear_x: 1
+    axis_linear_y: 0
+    axis_linear_z: 4
+    axis_angular_x: 6
+    axis_angular_y: 7
+    axis_angular_z: 3
+    scale_linear_x: 1.0
+    scale_linear_y: 1.0
+    scale_linear_z: 1.0
+    scale_angular_x: 1.0
+    scale_angular_y: 1.0
+    scale_angular_z: 1.0
+
+    deadzone: 0.08
+    rescale_after_deadzone: true
+    normalize_linear_xy: true
+    publish_rate_hz: 40.0
+    joy_timeout_s: 0.35
+    publish_zero_on_release: true
+    log_mapping_on_start: true
+    log_joy_shape_once: true
+    log_button_edges: true

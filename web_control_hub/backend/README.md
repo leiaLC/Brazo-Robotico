@@ -1,0 +1,96 @@
+# Yumi Backend Gateway
+
+Backend local para correr en la laptop que tiene ROS2/EGM. Expone una API web segura para que el frontend no hable directo con tópicos ROS2.
+
+## Qué Hace
+
+- Publica comandos de articulaciones como `robot_task_msgs/RobotCommand` a `/robot_task/command`.
+- Publica secuencias web a `/web/sequence_id`, para que `web_command_bridge` las convierta al comando comun.
+- Publica texto de voz a `/voice/text`, para reutilizar `voice_command_parser`.
+- Escucha feedback desde `/joint_states`.
+- Expone estado por REST y WebSocket.
+- Expone un stream MJPEG desde un tópico de imagen ROS2 como primer paso para video web.
+- Mantiene el workspace EGM intacto y no manda `/joint_command` directo al robot.
+
+## Requisitos
+
+En la laptop ROS2/EGM:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ~/Brazo-Robotico/irb14050_ws/install/setup.bash
+cd ~/Brazo-Robotico/web_control_hub/backend
+python3 -m venv .venv --system-site-packages
+source .venv/bin/activate
+PYTHONPATH= pip install -r requirements.txt
+```
+
+`--system-site-packages` es importante para que Python encuentre `rclpy` y mensajes ROS2 instalados por apt/colcon.
+
+## Configuración
+
+Copia el ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+Variables principales:
+
+```bash
+ROS_DOMAIN_ID=0
+ROS_COMMAND_TOPIC=/robot_task/command
+ROS_STATE_TOPIC=/joint_states
+ROS_SEQUENCE_TOPIC=/web/sequence_id
+ROS_TELEOP_TWIST_TOPIC=/web/teleop_twist
+ROS_VOICE_TEXT_TOPIC=/voice/text
+ROS_IMAGE_TOPIC=/camera/color/image_raw
+ROS_IMAGE_IS_COMPRESSED=false
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
+```
+
+## Correr
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ~/Brazo-Robotico/irb14050_ws/install/setup.bash
+cd ~/Brazo-Robotico/web_control_hub/backend
+source .venv/bin/activate
+python -m app.main
+```
+
+## Endpoints
+
+```txt
+GET  /health
+GET  /robot/state
+GET  /robot/task-status
+POST /teleop/enable
+POST /teleop/disable
+POST /teleop/joint-target
+POST /teleop/twist
+POST /sequence/run
+POST /voice/text
+POST /task/cancel
+POST /task/estop
+WS   /ws/robot-state
+GET  /video/mjpeg
+```
+
+Ejemplo de comando:
+
+```bash
+curl -X POST http://localhost:8000/teleop/enable
+curl -X POST http://localhost:8000/teleop/joint-target \
+  -H "Content-Type: application/json" \
+  -d '{"positions_deg":[0,0,0,0,0,0,0]}'
+```
+
+Ejemplo de secuencia:
+
+```bash
+curl -X POST http://localhost:8000/sequence/run \
+  -H "Content-Type: application/json" \
+  -d '{"sequence_id":"open_gripper"}'
+```

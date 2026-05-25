@@ -14,9 +14,14 @@
   <maintainer email="ariadna@example.com">Ives</maintainer>
   <license>MIT</license>
 
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>ament_cmake_python</build_depend>
+
   <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>robot_task_msgs</depend>
   <depend>python3-numpy</depend>
   <depend>python3-protobuf</depend>
   <depend>python3-requests</depend>
@@ -24,6 +29,6 @@
   <exec_depend>moveit_msgs</exec_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

@@ -1,0 +1,9 @@
+float64[] joint_values
+float64 max_velocity_scaling
+float64 max_acceleration_scaling
+---
+bool success
+string message
+---
+float32 progress
+string current_state

@@ -1,0 +1,7 @@
+mock_yolo_detector:
+  ros__parameters:
+    mock_mode: true
+    confidence_threshold: 0.5
+    camera_frame: "camera_depth_frame"
+    base_frame: "base_link"
+    publish_hz: 2.0
