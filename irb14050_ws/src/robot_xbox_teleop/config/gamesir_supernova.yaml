@@ -1,0 +1,59 @@
+gamepad_command_bridge:
+  ros__parameters:
+    joy_topic: "/joy"
+    command_topic: "/robot_task/command"
+    deadman_topic: "/xbox/deadman"
+    gripper_command_topic: "/gripper/command"
+    source: "gamesir_supernova"
+    frame_id: "gamesir_supernova_bridge"
+    teleop_command_type: "XBOX_TELEOP"
+    priority: 98.0
+
+    # The GameSir Super Nova enumerates on this laptop as a DualShock 4 style
+    # controller: Sony Interactive Entertainment Wireless Controller, 8 axes,
+    # 13 buttons. Hold L1 or R1 to allow jogging.
+    deadman_button: 4
+    secondary_deadman_button: 5
+    deadman_mode: "any"
+    require_deadman: true
+
+    # Face buttons in this Linux mapping.
+    # Cross / lower button: open gripper
+    # Square / left button: close gripper
+    # Circle / right button: emergency stop
+    # Triangle / upper button: resume
+    # Share / select: cancel current task
+    open_gripper_button: 0
+    close_gripper_button: 3
+    estop_button: 1
+    resume_button: 2
+    cancel_button: 8
+    require_deadman_for_gripper: false
+
+    # DualShock-style axes:
+    # 0 left stick horizontal, 1 left stick vertical,
+    # 2 L2 trigger, 3 right stick horizontal, 4 right stick vertical,
+    # 5 R2 trigger, 6 D-pad horizontal, 7 D-pad vertical.
+    # In the Jetson/real-robot profile these are normalized joint-jog channels.
+    axis_linear_x: 1
+    axis_linear_y: 0
+    axis_linear_z: 4
+    axis_angular_x: 6
+    axis_angular_y: 7
+    axis_angular_z: 3
+    scale_linear_x: 1.0
+    scale_linear_y: 1.0
+    scale_linear_z: 1.0
+    scale_angular_x: 1.0
+    scale_angular_y: 1.0
+    scale_angular_z: 1.0
+
+    deadzone: 0.08
+    rescale_after_deadzone: true
+    normalize_linear_xy: true
+    publish_rate_hz: 40.0
+    joy_timeout_s: 0.35
+    publish_zero_on_release: true
+    log_mapping_on_start: true
+    log_joy_shape_once: true
+    log_button_edges: true
