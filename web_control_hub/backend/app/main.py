@@ -3,7 +3,11 @@ import json
 import math
 from contextlib import asynccontextmanager
 
+import cv2
+import numpy as np
 import uvicorn
+from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
+from av import VideoFrame
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -23,6 +27,51 @@ from app.ros_gateway import JointSnapshot, RosGateway
 
 settings = get_settings()
 gateway = RosGateway(settings)
+pcs: set[RTCPeerConnection] = set()
+
+
+def make_waiting_frame() -> np.ndarray:
+    image = np.zeros((480, 640, 3), dtype=np.uint8)
+    cv2.putText(
+        image,
+        "Waiting for ROS image...",
+        (120, 240),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (210, 230, 240),
+        2,
+        cv2.LINE_AA,
+    )
+    return image
+
+
+class MJPEGVideoStreamTrack(VideoStreamTrack):
+    def __init__(self, ros_gateway: RosGateway):
+        super().__init__()
+        self.gateway = ros_gateway
+
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
+
+        frame = self.gateway.get_latest_jpeg()
+        if frame is None:
+            image = make_waiting_frame()
+        else:
+            image = cv2.imdecode(np.frombuffer(frame, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if image is None:
+                image = make_waiting_frame()
+
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        video_frame = VideoFrame.from_ndarray(image, format="rgb24")
+        video_frame.pts = pts
+        video_frame.time_base = time_base
+        return video_frame
+
+
+async def close_all_peer_connections() -> None:
+    for pc in list(pcs):
+        await pc.close()
+    pcs.clear()
 
 
 def snapshot_to_state(snapshot: JointSnapshot | None) -> RobotState:
@@ -50,6 +99,7 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
+        await close_all_peer_connections()
         gateway.stop()
 
 
@@ -297,6 +347,40 @@ def video_mjpeg():
         mjpeg_generator(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+@app.post("/webrtc/offer")
+async def webrtc_offer(offer: dict):
+    if "sdp" not in offer or "type" not in offer:
+        raise HTTPException(status_code=422, detail="expected SDP offer with sdp and type")
+
+    pc = RTCPeerConnection()
+    pcs.add(pc)
+
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        if pc.connectionState in {"failed", "closed", "disconnected"}:
+            await pc.close()
+            pcs.discard(pc)
+
+    pc.addTrack(MJPEGVideoStreamTrack(gateway))
+
+    offer_sdp = RTCSessionDescription(sdp=offer["sdp"], type=offer["type"])
+    await pc.setRemoteDescription(offer_sdp)
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    try:
+        await asyncio.wait_for(_wait_for_ice_gathering(pc), timeout=5)
+    except asyncio.TimeoutError:
+        pass
+
+    return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
+
+
+async def _wait_for_ice_gathering(pc: RTCPeerConnection) -> None:
+    while pc.iceGatheringState != "complete":
+        await asyncio.sleep(0.05)
 
 
 if __name__ == "__main__":

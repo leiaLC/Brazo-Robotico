@@ -1,3 +1,4 @@
 build/
 install/
 log/
+web_control_hub/backend/venv/
