@@ -9,7 +9,8 @@ Backend local para correr en la laptop que tiene ROS2/EGM. Expone una API web se
 - Publica texto de voz a `/voice/text`, para reutilizar `voice_command_parser`.
 - Escucha feedback desde `/joint_states`.
 - Expone estado por REST y WebSocket.
-- Expone un stream MJPEG desde un tópico de imagen ROS2 como primer paso para video web.
+- Expone video desde un tópico de imagen ROS2 por WebRTC para la pestaña Vision/Voice.
+- Mantiene el stream MJPEG en `/video/mjpeg` como compatibilidad.
 - Mantiene el workspace EGM intacto y no manda `/joint_command` directo al robot.
 
 ## Requisitos
@@ -75,7 +76,9 @@ POST /voice/text
 POST /task/cancel
 POST /task/estop
 WS   /ws/robot-state
+WS   /ws/task-status
 GET  /video/mjpeg
+POST /webrtc/offer
 ```
 
 Ejemplo de comando:

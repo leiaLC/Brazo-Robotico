@@ -1,10 +1,11 @@
 "use client";
 
-import { Camera, Crosshair, Maximize, Minus, Plus, RotateCcw, ScanLine, Box, Radio } from "lucide-react";
+import { Maximize, Minus, Plus, RotateCcw, Box, Radio } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { visionDetections } from "@/lib/mock-data";
 import { UrdfRobotViewer } from "@/components/urdf-robot-viewer";
+
+const WEBRTC_TIMEOUT_MS = 8_000;
 
 export function RobotHeroPanel() {
   return (
@@ -37,13 +38,6 @@ type RobotStateMessage = {
 type RenderConnectionState = "idle" | "connecting" | "connected" | "error";
 type RenderMode = "urdf" | "simple";
 
-function getDefaultBackendUrl() {
-  if (typeof window === "undefined") {
-    return "http://localhost:8000";
-  }
-
-  return `${window.location.protocol}//${window.location.hostname}:8000`;
-}
 
 function getRobotStateWebSocketUrl(backendUrl: string) {
   const url = new URL(backendUrl || getDefaultBackendUrl());
@@ -457,34 +451,110 @@ function Readout({ title, value, success = false }: { title: string; value: stri
 }
 
 export function VisionCameraPanel() {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? getDefaultBackendUrl();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [status, setStatus] = useState("Connecting...");
+
+  useEffect(() => {
+    let pc: RTCPeerConnection | null = new RTCPeerConnection();
+    let cancelled = false;
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), WEBRTC_TIMEOUT_MS);
+    const remoteStream = new MediaStream();
+
+    pc.ontrack = (event) => {
+      if (cancelled) {
+        return;
+      }
+
+      const track = event.track;
+      if (!track) {
+        return;
+      }
+
+      remoteStream.addTrack(track);
+      if (videoRef.current) {
+        videoRef.current.srcObject = remoteStream;
+      }
+      setStatus("Stream received");
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc && ["failed", "disconnected", "closed"].includes(pc.iceConnectionState)) {
+        setStatus("WebRTC disconnected");
+        pc.close();
+        pc = null;
+      }
+    };
+
+    async function startWebRTC() {
+      try {
+        pc?.addTransceiver("video", { direction: "recvonly" });
+        const offer = await pc?.createOffer();
+        if (!offer) {
+          return;
+        }
+
+        await pc?.setLocalDescription(offer);
+
+        const response = await fetch(`${backendUrl}/webrtc/offer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: abortController.signal,
+          body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Could not create WebRTC offer");
+        }
+
+        const answer = await response.json();
+        await pc?.setRemoteDescription(answer);
+        window.clearTimeout(timeoutId);
+        setStatus("Video connected");
+      } catch (error) {
+        console.error("WebRTC init failed", error);
+        setStatus("WebRTC error");
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
+      }
+    }
+
+    startWebRTC();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      abortController.abort();
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+    };
+  }, [backendUrl]);
+
   return (
     <div className="relative min-h-[620px] overflow-hidden rounded-lg border border-[#B8C2CD] bg-[#091D22] shadow-[0_2px_8px_rgba(20,30,45,0.08)]">
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(127,255,255,0.08)_1px,transparent_1px),linear-gradient(rgba(127,255,255,0.08)_1px,transparent_1px)] bg-[size:72px_72px]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_48%_48%,rgba(111,184,197,0.35),rgba(9,29,34,0.85)_58%),linear-gradient(180deg,rgba(0,60,105,0.35),rgba(0,0,0,0.25))]" />
-      <div className="absolute left-[35%] top-[24%] h-[12%] w-[32%] rounded bg-[#A9BEC4]/30 blur-[1px]" />
-      <div className="absolute left-[44%] top-[36%] h-[10%] w-[11%] rounded border-8 border-[#84969C]/50" />
-      <div className="absolute left-[33%] top-[52%] h-[9%] w-[42%] rounded bg-[#87999E]/30" />
-      <Crosshair className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 text-white/80" />
-      {visionDetections.map((item) => (
-        <div
-          className="absolute border-2 border-[#9CF59D] bg-[#9CF59D]/6"
-          key={item.label}
-          style={{ left: item.x, top: item.y, width: item.w, height: item.h }}
-        >
-          <span className="absolute left-2 top-1 bg-[#DDFBDD] px-2 py-1 font-mono text-xs font-bold text-[#002204]">
-            {item.label} {item.confidence}
-          </span>
-        </div>
-      ))}
-      <div className="absolute bottom-6 left-6 flex items-center gap-5 rounded-lg border border-[#C2CAD6] bg-white/95 px-5 py-3 font-mono text-sm">
-        <span>FPS: 59.9</span>
-        <span>LATENCY: 12ms</span>
-        <span>RES: 1080p</span>
-      </div>
-      <div className="absolute right-6 top-6 flex items-center gap-3 text-white/80">
-        <Camera className="h-5 w-5" />
-        <ScanLine className="h-5 w-5" />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="absolute inset-0 h-full w-full bg-black object-cover"
+      />
+      <div className="absolute left-4 top-4 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+        {status}
       </div>
     </div>
   );
+}
+
+function getDefaultBackendUrl() {
+  if (typeof window === "undefined") {
+    return "http://localhost:8000";
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:8000`;
 }
