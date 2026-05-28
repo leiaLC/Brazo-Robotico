@@ -29,7 +29,17 @@ function getBackendWebSocketUrl(backendUrl: string) {
   return url.toString();
 }
 
-export function TeleopControlPanel({ joints }: { joints: JointControl[] }) {
+export function TeleopControlPanel({
+  joints,
+  onBackendUrlChange,
+  onPreviewPositionsChange,
+  onTeleopEnabledChange,
+}: {
+  joints: JointControl[];
+  onBackendUrlChange?: (backendUrl: string) => void;
+  onPreviewPositionsChange?: (positions: number[]) => void;
+  onTeleopEnabledChange?: (enabled: boolean) => void;
+}) {
   const initialDegrees = useMemo(() => joints.map((joint) => joint.value), [joints]);
   const [positions, setPositions] = useState(initialDegrees);
   const [enabled, setEnabled] = useState(false);
@@ -43,6 +53,18 @@ export function TeleopControlPanel({ joints }: { joints: JointControl[] }) {
   const lastPublishRef = useRef(0);
   const publishCountRef = useRef(0);
   const positionsInitializedRef = useRef(false);
+
+  useEffect(() => {
+    onBackendUrlChange?.(backendUrl);
+  }, [backendUrl, onBackendUrlChange]);
+
+  useEffect(() => {
+    onTeleopEnabledChange?.(enabled && connectionState === "connected");
+  }, [connectionState, enabled, onTeleopEnabledChange]);
+
+  useEffect(() => {
+    onPreviewPositionsChange?.(positions);
+  }, [onPreviewPositionsChange, positions]);
 
   useEffect(() => {
     const socket = new WebSocket(getBackendWebSocketUrl(backendUrl));
