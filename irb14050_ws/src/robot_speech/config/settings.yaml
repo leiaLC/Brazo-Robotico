@@ -10,6 +10,7 @@ audio:
 speaker_verification:
   enabled: true
   password: "arroz"
+  accepted_variants: ["arros"]
   session_timeout_sec: 60.0
 
 whisper:
@@ -35,6 +36,7 @@ robot:
     - stop
     - pick
     - rotate_joint
+  object_classes: ["cube", "cylinder", "hexagon", "toroid", "apple"]
   joints: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
   cartesian_axes: ["x", "y", "z", "roll", "pitch", "yaw"]
   units:

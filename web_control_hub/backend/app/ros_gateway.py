@@ -1,4 +1,5 @@
 import math
+import json
 import threading
 from dataclasses import dataclass
 from typing import Callable
@@ -62,8 +63,12 @@ class RosGateway:
         self._snapshot: JointSnapshot | None = None
         self._latest_jpeg: bytes | None = None
         self._latest_task_status: dict | None = None
+        self._latest_voice_status: dict = {"status": "unknown"}
+        self._voice_events: list[dict] = []
         self._state_callbacks: list[Callable[[JointSnapshot], None]] = []
         self._task_status_callbacks: list[Callable[[dict], None]] = []
+        self._voice_status_callbacks: list[Callable[[dict], None]] = []
+        self._voice_event_callbacks: list[Callable[[dict], None]] = []
         self._bridge = CvBridge() if CvBridge is not None else None
 
     def start(self) -> None:
@@ -78,6 +83,8 @@ class RosGateway:
         self.voice_start_pub = self.node.create_publisher(Empty, self.settings.voice_start_topic, 10)
         self.node.create_subscription(JointState, self.settings.state_topic, self._on_joint_state, 10)
         self.node.create_subscription(RobotStatus, "/robot_task/status", self._on_task_status, 10)
+        self.node.create_subscription(String, self.settings.voice_status_topic, self._on_voice_status, 10)
+        self.node.create_subscription(String, self.settings.voice_events_topic, self._on_voice_event, 10)
 
         image_msg_type = CompressedImage if self.settings.image_is_compressed else Image
         self.node.create_subscription(image_msg_type, self.settings.image_topic, self._on_image, 10)
@@ -116,6 +123,14 @@ class RosGateway:
         with self._lock:
             return self._latest_task_status
 
+    def get_latest_voice_status(self) -> dict:
+        with self._lock:
+            return dict(self._latest_voice_status)
+
+    def get_voice_events(self) -> list[dict]:
+        with self._lock:
+            return list(self._voice_events)
+
     def add_state_callback(self, callback: Callable[[JointSnapshot], None]) -> None:
         self._state_callbacks.append(callback)
 
@@ -129,6 +144,20 @@ class RosGateway:
     def remove_task_status_callback(self, callback: Callable[[dict], None]) -> None:
         if callback in self._task_status_callbacks:
             self._task_status_callbacks.remove(callback)
+
+    def add_voice_status_callback(self, callback: Callable[[dict], None]) -> None:
+        self._voice_status_callbacks.append(callback)
+
+    def remove_voice_status_callback(self, callback: Callable[[dict], None]) -> None:
+        if callback in self._voice_status_callbacks:
+            self._voice_status_callbacks.remove(callback)
+
+    def add_voice_event_callback(self, callback: Callable[[dict], None]) -> None:
+        self._voice_event_callbacks.append(callback)
+
+    def remove_voice_event_callback(self, callback: Callable[[dict], None]) -> None:
+        if callback in self._voice_event_callbacks:
+            self._voice_event_callbacks.remove(callback)
 
     def publish_joint_target_deg(self, positions_deg: list[float]) -> None:
         self._validate_target(positions_deg)
@@ -266,6 +295,27 @@ class RosGateway:
 
         for callback in list(self._task_status_callbacks):
             callback(status)
+
+    def _on_voice_status(self, msg: String) -> None:
+        status = {"status": msg.data}
+        with self._lock:
+            self._latest_voice_status = status
+
+        for callback in list(self._voice_status_callbacks):
+            callback(status)
+
+    def _on_voice_event(self, msg: String) -> None:
+        try:
+            event = json.loads(msg.data)
+        except json.JSONDecodeError:
+            event = {"type": "message", "text": msg.data, "confidence": None}
+
+        with self._lock:
+            self._voice_events.append(event)
+            self._voice_events = self._voice_events[-25:]
+
+        for callback in list(self._voice_event_callbacks):
+            callback(event)
 
     def _on_image(self, msg) -> None:
         if cv2 is None:

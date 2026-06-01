@@ -10,6 +10,17 @@ Your ONLY job is to convert natural-language instructions into structured JSON c
 ## Available actions
 {actions_list}
 
+## Object classes
+Use only these canonical object_class values for pick commands:
+{object_classes_list}
+
+Spanish object aliases:
+- cubo -> cube
+- cilindro -> cylinder
+- hexagono / hexágono -> hexagon
+- toroide -> toroid
+- manzana -> apple
+
 ## Joint names
 {joints_list}
 
@@ -43,6 +54,8 @@ Your ONLY job is to convert natural-language instructions into structured JSON c
 4. If the command is ambiguous or references an object not detected in the scene, set clarification_needed to true.
 5. If the command is unsafe (e.g. extreme joint values), set confidence below 0.3 and explain in intent.
 6. speed defaults to 30 if not specified.
+7. Spanish commands such as "toma", "agarra", "dame" or "mueve" followed by an object should map to action "pick" with target_object set to the canonical object class.
+8. If the user asks to group objects or figures, and no explicit sequence/action exists, set clarification_needed to true.
 
 ## Examples
 
@@ -82,16 +95,53 @@ Response:
   "clarification_message": ""
 }}
 
-User: "pick up the cup"
-Response (when cup is detected):
+User: "pick up the cube"
+Response:
 {{
-  "intent": "Pick up the detected cup",
+  "intent": "Pick up the cube",
   "confidence": 0.85,
   "actions": [
     {{
       "action": "pick",
       "parameters": {{
-        "target_object": "cup",
+        "target_object": "cube",
+        "speed": 20
+      }}
+    }}
+  ],
+  "clarification_needed": false,
+  "clarification_message": ""
+}}
+
+User: "agarra el cilindro"
+Response:
+{{
+  "intent": "Pick up the cylinder",
+  "confidence": 0.90,
+  "actions": [
+    {{
+      "action": "pick",
+      "parameters": {{
+        "target_object": "cylinder",
+        "speed": 20
+      }}
+    }}
+  ],
+  "clarification_needed": false,
+  "clarification_message": ""
+}}
+
+User: "mueve el cubo azul"
+Response:
+{{
+  "intent": "Pick up the blue cube",
+  "confidence": 0.88,
+  "actions": [
+    {{
+      "action": "pick",
+      "parameters": {{
+        "target_object": "cube",
+        "color": "blue",
         "speed": 20
       }}
     }}
@@ -107,6 +157,7 @@ def build_system_prompt(robot_config: dict, scene_context: str) -> str:
     rc = robot_config
     return SYSTEM_PROMPT_TEMPLATE.format(
         actions_list="\n".join(f"- {a}" for a in rc["actions"]),
+        object_classes_list="\n".join(f"- {c}" for c in rc.get("object_classes", [])),
         joints_list=", ".join(rc["joints"]),
         cartesian_axes_list=", ".join(rc["cartesian_axes"]),
         angle_unit=rc["units"]["angles"],

@@ -46,6 +46,7 @@ ROS_SEQUENCE_TOPIC=/web/sequence_id
 ROS_TELEOP_TWIST_TOPIC=/web/teleop_twist
 ROS_VOICE_TEXT_TOPIC=/voice/text
 ROS_VOICE_START_TOPIC=/voice/start_listening
+ROS_VOICE_STATUS_TOPIC=/voice/status
 ROS_IMAGE_TOPIC=/camera/color/image_raw
 ROS_IMAGE_IS_COMPRESSED=false
 BACKEND_HOST=0.0.0.0
@@ -75,10 +76,12 @@ POST /teleop/twist
 POST /sequence/run
 POST /voice/text
 POST /voice/start
+GET  /voice/status
 POST /task/cancel
 POST /task/estop
 WS   /ws/robot-state
 WS   /ws/task-status
+WS   /ws/voice-status
 GET  /video/mjpeg
 POST /webrtc/offer
 ```

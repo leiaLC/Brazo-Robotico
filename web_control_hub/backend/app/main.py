@@ -29,6 +29,18 @@ settings = get_settings()
 gateway = RosGateway(settings)
 pcs: set[RTCPeerConnection] = set()
 
+VOICE_SUGGESTIONS = [
+    "toma el cubo",
+    "mueve el cubo azul",
+    "agarra el cilindro",
+    "toma el hexagono",
+    "agarra el toroide",
+    "dame la manzana",
+    "regresa a home",
+    "abre el gripper",
+    "cierra el gripper",
+]
+
 
 def make_waiting_frame() -> np.ndarray:
     image = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -124,6 +136,9 @@ def health():
         "teleop_twist_topic": settings.teleop_twist_topic,
         "voice_text_topic": settings.voice_text_topic,
         "voice_start_topic": settings.voice_start_topic,
+        "voice_status_topic": settings.voice_status_topic,
+        "voice_events_topic": settings.voice_events_topic,
+        "voice_status": gateway.get_latest_voice_status(),
         "image_topic": settings.image_topic,
         "teleop_enabled": gateway.is_teleop_enabled(),
         "task_status": gateway.get_latest_task_status(),
@@ -232,6 +247,21 @@ def voice_start():
     return {"ok": True}
 
 
+@app.get("/voice/status")
+def voice_status():
+    return gateway.get_latest_voice_status()
+
+
+@app.get("/voice/log")
+def voice_log():
+    return {"events": gateway.get_voice_events()}
+
+
+@app.get("/voice/suggestions")
+def voice_suggestions():
+    return {"commands": VOICE_SUGGESTIONS}
+
+
 @app.post("/task/cancel")
 def cancel_task():
     try:
@@ -331,6 +361,68 @@ async def task_status_ws(websocket: WebSocket):
         pass
     finally:
         gateway.remove_task_status_callback(enqueue)
+
+
+@app.websocket("/ws/voice-status")
+async def voice_status_ws(websocket: WebSocket):
+    await websocket.accept()
+    queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=1)
+    loop = asyncio.get_running_loop()
+
+    def enqueue(status: dict) -> None:
+        def put_latest() -> None:
+            if queue.full():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            queue.put_nowait(status)
+
+        loop.call_soon_threadsafe(put_latest)
+
+    gateway.add_voice_status_callback(enqueue)
+
+    try:
+        await websocket.send_text(json.dumps(gateway.get_latest_voice_status()))
+
+        while True:
+            status = await queue.get()
+            await websocket.send_text(json.dumps(status))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        gateway.remove_voice_status_callback(enqueue)
+
+
+@app.websocket("/ws/voice-events")
+async def voice_events_ws(websocket: WebSocket):
+    await websocket.accept()
+    queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=1)
+    loop = asyncio.get_running_loop()
+
+    def enqueue(event: dict) -> None:
+        def put_latest() -> None:
+            if queue.full():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            queue.put_nowait(event)
+
+        loop.call_soon_threadsafe(put_latest)
+
+    gateway.add_voice_event_callback(enqueue)
+
+    try:
+        await websocket.send_text(json.dumps({"events": gateway.get_voice_events()}))
+
+        while True:
+            event = await queue.get()
+            await websocket.send_text(json.dumps(event))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        gateway.remove_voice_event_callback(enqueue)
 
 
 async def mjpeg_generator():
