@@ -11,7 +11,7 @@ try:
     from geometry_msgs.msg import Twist
     from rclpy.node import Node
     from sensor_msgs.msg import CompressedImage, Image, JointState
-    from std_msgs.msg import String
+    from std_msgs.msg import Empty, String
     from robot_task_msgs.msg import RobotCommand, RobotStatus
 except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2 env
     cv2 = None
@@ -23,6 +23,7 @@ except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2
     JointState = None
     Image = None
     CompressedImage = None
+    Empty = None
     String = None
     RobotCommand = None
     RobotStatus = None
@@ -54,6 +55,7 @@ class RosGateway:
         self.sequence_pub = None
         self.teleop_twist_pub = None
         self.voice_text_pub = None
+        self.voice_start_pub = None
         self._spin_thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._teleop_enabled = False
@@ -73,6 +75,7 @@ class RosGateway:
         self.sequence_pub = self.node.create_publisher(String, self.settings.sequence_topic, 10)
         self.teleop_twist_pub = self.node.create_publisher(Twist, self.settings.teleop_twist_topic, 10)
         self.voice_text_pub = self.node.create_publisher(String, self.settings.voice_text_topic, 10)
+        self.voice_start_pub = self.node.create_publisher(Empty, self.settings.voice_start_topic, 10)
         self.node.create_subscription(JointState, self.settings.state_topic, self._on_joint_state, 10)
         self.node.create_subscription(RobotStatus, "/robot_task/status", self._on_task_status, 10)
 
@@ -191,6 +194,11 @@ class RosGateway:
         if not msg.data:
             raise ValueError("text cannot be empty")
         self.voice_text_pub.publish(msg)
+
+    def publish_voice_start(self) -> None:
+        if self.voice_start_pub is None:
+            raise RuntimeError("ROS gateway is not started")
+        self.voice_start_pub.publish(Empty())
 
     def publish_task_command(self, command_type: str) -> None:
         if self.task_command_pub is None or self.node is None:

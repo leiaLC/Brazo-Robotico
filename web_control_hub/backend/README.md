@@ -6,7 +6,7 @@ Backend local para correr en la laptop que tiene ROS2/EGM. Expone una API web se
 
 - Publica comandos de articulaciones como `robot_task_msgs/RobotCommand` a `/robot_task/command`.
 - Publica secuencias web a `/web/sequence_id`, para que `web_command_bridge` las convierta al comando comun.
-- Publica texto de voz a `/voice/text`, para reutilizar `voice_command_parser`.
+- Publica un disparador de voz a `/voice/start_listening`, para activar `robot_speech`.
 - Escucha feedback desde `/joint_states`.
 - Expone estado por REST y WebSocket.
 - Expone video desde un tópico de imagen ROS2 por WebRTC para la pestaña Vision/Voice.
@@ -45,6 +45,7 @@ ROS_STATE_TOPIC=/joint_states
 ROS_SEQUENCE_TOPIC=/web/sequence_id
 ROS_TELEOP_TWIST_TOPIC=/web/teleop_twist
 ROS_VOICE_TEXT_TOPIC=/voice/text
+ROS_VOICE_START_TOPIC=/voice/start_listening
 ROS_IMAGE_TOPIC=/camera/color/image_raw
 ROS_IMAGE_IS_COMPRESSED=false
 BACKEND_HOST=0.0.0.0
@@ -73,6 +74,7 @@ POST /teleop/joint-target
 POST /teleop/twist
 POST /sequence/run
 POST /voice/text
+POST /voice/start
 POST /task/cancel
 POST /task/estop
 WS   /ws/robot-state

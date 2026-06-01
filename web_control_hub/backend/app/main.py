@@ -123,6 +123,7 @@ def health():
         "sequence_topic": settings.sequence_topic,
         "teleop_twist_topic": settings.teleop_twist_topic,
         "voice_text_topic": settings.voice_text_topic,
+        "voice_start_topic": settings.voice_start_topic,
         "image_topic": settings.image_topic,
         "teleop_enabled": gateway.is_teleop_enabled(),
         "task_status": gateway.get_latest_task_status(),
@@ -215,6 +216,16 @@ def voice_text(request: VoiceTextRequest):
         gateway.publish_voice_text(request.text)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"ok": True}
+
+
+@app.post("/voice/start")
+def voice_start():
+    try:
+        gateway.publish_voice_start()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

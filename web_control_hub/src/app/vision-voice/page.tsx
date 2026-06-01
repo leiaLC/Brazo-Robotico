@@ -1,9 +1,49 @@
+"use client";
+
 import { List, Mic, MicOff } from "lucide-react";
+import { useState } from "react";
 import { VisionCameraPanel } from "@/components/robot-visuals";
 import { Card, IndustrialButton, PageTitle, StatusPill } from "@/components/ui";
 import { suggestedVoiceCommands, voiceCommands } from "@/lib/mock-data";
 
+type VoiceRequestState = "idle" | "sending" | "sent" | "error";
+
+function getDefaultBackendUrl() {
+  if (typeof window === "undefined") {
+    return "http://localhost:8000";
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:8000`;
+}
+
 export default function VisionVoicePage() {
+  const [backendUrl] = useState(
+    () => process.env.NEXT_PUBLIC_BACKEND_URL ?? getDefaultBackendUrl(),
+  );
+  const [voiceRequestState, setVoiceRequestState] = useState<VoiceRequestState>("idle");
+  const [voiceMessage, setVoiceMessage] = useState("System is not listening.");
+  const voiceRequested = voiceRequestState === "sent";
+  const voiceBusy = voiceRequestState === "sending";
+  const voiceError = voiceRequestState === "error";
+  const VoiceIcon = voiceRequested ? Mic : MicOff;
+
+  async function startVoiceListening() {
+    setVoiceRequestState("sending");
+    setVoiceMessage("Requesting voice listener...");
+
+    try {
+      const response = await fetch(`${backendUrl}/voice/start`, { method: "POST" });
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+      setVoiceRequestState("sent");
+      setVoiceMessage("Voice listener requested. Watch robot_speech logs.");
+    } catch (error) {
+      setVoiceRequestState("error");
+      setVoiceMessage(error instanceof Error ? error.message : "Voice request failed.");
+    }
+  }
+
   return (
     <div className="space-y-7">
       <PageTitle
@@ -21,13 +61,24 @@ export default function VisionVoicePage() {
         <aside className="space-y-6">
           <h2 className="text-3xl font-black">Voice Command</h2>
           <Card className="p-9 text-center">
-            <span className="mx-auto grid h-28 w-28 place-items-center rounded-full bg-[#E7E7E7]">
-              <MicOff className="h-12 w-12 text-[#29303A]" />
+            <span
+              className={`mx-auto grid h-28 w-28 place-items-center rounded-full ${
+                voiceRequested ? "bg-[#DDFBDD]" : voiceError ? "bg-[#FDE2DE]" : "bg-[#E7E7E7]"
+              }`}
+            >
+              <VoiceIcon className="h-12 w-12 text-[#29303A]" />
             </span>
-            <h3 className="mt-8 text-2xl font-black">Voice Disabled</h3>
-            <p className="mt-3 text-lg text-[#29303A]">System is not listening.</p>
-            <IndustrialButton className="mt-9 w-full" tone="secondary">
-              <Mic className="h-5 w-5" /> Enable Voice Commands
+            <h3 className="mt-8 text-2xl font-black">
+              {voiceRequested ? "Voice Requested" : voiceError ? "Voice Request Failed" : "Voice Disabled"}
+            </h3>
+            <p className="mt-3 text-lg text-[#29303A]">{voiceMessage}</p>
+            <IndustrialButton
+              className="mt-9 w-full"
+              disabled={voiceBusy}
+              onClick={startVoiceListening}
+              tone={voiceRequested ? "success" : "secondary"}
+            >
+              <Mic className="h-5 w-5" /> {voiceBusy ? "Requesting..." : "Enable Voice Commands"}
             </IndustrialButton>
           </Card>
 
