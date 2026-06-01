@@ -36,7 +36,7 @@
   <exec_depend>abb_irb14050_egm</exec_depend>
   <exec_depend>robot_xbox_teleop</exec_depend>
   <exec_depend>robot_web_interface</exec_depend>
-  <exec_depend>robot_voice_interface</exec_depend>
+  <exec_depend>robot_speech</exec_depend>
   <exec_depend>robot_perception</exec_depend>
   <exec_depend>realsense_d415_bringup</exec_depend>
   <exec_depend>robot_interfaces</exec_depend>

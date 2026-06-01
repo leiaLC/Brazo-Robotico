@@ -11,7 +11,7 @@ import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import Empty, String
 
 from robot_task_msgs.msg import RobotCommand
 
@@ -27,6 +27,7 @@ from .pipeline import VoiceCommandPipeline
 
 COMMAND_TOPIC = "/robot_task/command"
 TEXT_TOPIC = "/voice/text"
+START_TOPIC = "/voice/start_listening"
 
 
 class UnsupportedVoiceCommand(ValueError):
@@ -40,12 +41,21 @@ class VoiceCommanderNode(Node):
         super().__init__("voice_pipeline_node")
 
         self.declare_parameter("publish_voice_text", False)
+        self.declare_parameter("triggered_mode", False)
         self.publish_voice_text = bool(self.get_parameter("publish_voice_text").value)
+        self.triggered_mode = bool(self.get_parameter("triggered_mode").value)
+        self.cycle_active = False
         self.command_pub = self.create_publisher(RobotCommand, COMMAND_TOPIC, 10)
         self.text_pub = (
             self.create_publisher(String, TEXT_TOPIC, 10)
             if self.publish_voice_text
             else None
+        )
+        self.start_sub = self.create_subscription(
+            Empty,
+            START_TOPIC,
+            self._start_listening_callback,
+            10,
         )
 
         cfg = get_hardware_config(self._load_config())
@@ -66,10 +76,17 @@ class VoiceCommanderNode(Node):
             context_builder=ContextBuilder(),
         )
 
-        self.timer = self.create_timer(0.1, self.run_cycle)
+        self.timer = None
+        if not self.triggered_mode:
+            self.timer = self.create_timer(0.1, self.run_cycle)
+
         self.get_logger().info(
             f"voice_pipeline_node ready: publishing RobotCommand on {COMMAND_TOPIC}"
         )
+        if self.triggered_mode:
+            self.get_logger().info(
+                f"Triggered mode enabled: waiting for {START_TOPIC}"
+            )
 
     def _load_config(self) -> dict[str, Any]:
         cfg_path = os.environ.get("ROBOT_SPEECH_CONFIG") or os.environ.get("RVC_CONFIG")
@@ -81,11 +98,17 @@ class VoiceCommanderNode(Node):
             return yaml.safe_load(config_file)
 
     def run_cycle(self) -> None:
-        self.timer.cancel()
+        if self.cycle_active:
+            self.get_logger().warn("Voice cycle already active; start request ignored")
+            return
+
+        self.cycle_active = True
+        if self.timer is not None:
+            self.timer.cancel()
 
         if not self._has_active_authorization():
             if not self._authorize_speaker():
-                self.timer.reset()
+                self._finish_cycle()
                 return
 
         self.get_logger().info("Waiting for a voice command...")
@@ -97,31 +120,40 @@ class VoiceCommanderNode(Node):
             self.get_logger().info(f"Recognized voice text: {ctx.transcription!r}")
         else:
             self.get_logger().warn("No voice detected")
-            self.timer.reset()
+            self._finish_cycle()
             return
 
         if ctx.parse_error:
             self.get_logger().error(f"LLM/parser error: {ctx.parse_error}")
-            self.timer.reset()
+            self._finish_cycle()
             return
 
         if not ctx.success:
             self.get_logger().warn("Pipeline finished without a valid command")
-            self.timer.reset()
+            self._finish_cycle()
             return
 
         try:
             command = self._to_task_command(ctx.parsed_command)
         except UnsupportedVoiceCommand as exc:
             self.get_logger().warn(str(exc))
-            self.timer.reset()
+            self._finish_cycle()
             return
 
         self.command_pub.publish(command)
         self.get_logger().info(
             f"Published {command.command_type} command on {COMMAND_TOPIC}"
         )
-        self.timer.reset()
+        self._finish_cycle()
+
+    def _start_listening_callback(self, _msg: Empty) -> None:
+        self.get_logger().info(f"Received voice start request on {START_TOPIC}")
+        self.run_cycle()
+
+    def _finish_cycle(self) -> None:
+        self.cycle_active = False
+        if self.timer is not None:
+            self.timer.reset()
 
     def _has_active_authorization(self) -> bool:
         if not self.password_verifier.is_enabled():
