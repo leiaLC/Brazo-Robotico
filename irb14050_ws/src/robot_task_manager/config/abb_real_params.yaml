@@ -13,6 +13,8 @@ robot_task_tree:
     joint_count: 7
     joint_names: ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6", "joint_7"]
     joint_states_topic: "/joint_states"
+    srdf_file: ""
+    perception_group_state_name: "vision"
 
     planning_group: "irb14050_arm"
     base_frame: "base_link"
@@ -22,11 +24,14 @@ robot_task_tree:
     cartesian_path_service_name: "/compute_cartesian_path"
     planning_time: 5.0
     velocity_scale: 0.15
+    pose_position_tolerance_m: 0.01
+    pose_orientation_tolerance_rad: 0.1
     cartesian_max_step: 0.005
     cartesian_min_fraction: 0.9
     action_server_timeout_s: 15.0
 
     gripper_command_topic: "/gripper/command"
+    gripper_motion_duration_s: 1.0
     servo_twist_topic: "/servo/twist_cmd"
 
     # ABB/YuMi single-arm workspace from the existing task2.py envelope.
@@ -37,11 +42,11 @@ robot_task_tree:
     workspace_min_z: -0.20
     workspace_max_z: 0.80
 
-    pregrasp_offset_z: 0.10
-    grasp_offset_z: 0.01
-    retreat_offset_z: 0.15
+    pregrasp_offset_z: 0.18
+    grasp_offset_z: 0.14
+    retreat_offset_z: 0.14
     default_place_x: -0.30
-    default_place_y: 0.00
+    default_place_y: 0.20
     default_place_z: 0.20
 
     use_top_down_grasp_orientation: true

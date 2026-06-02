@@ -14,6 +14,8 @@ robot_task_tree:
     joint_states_topic: "/joint_states"
     joint_limits_file: ""
     sequences_file: ""
+    srdf_file: ""
+    perception_group_state_name: "vision"
     web_heartbeat_timeout_s: 1.0
     xbox_deadman_timeout_s: 0.5
     detection_timeout_s: 2.0
@@ -28,7 +30,9 @@ robot_task_tree:
     base_frame: "base_link"
     ee_frame: "tool0"
     planning_time: 5.0
-    velocity_scale: 0.15
+    velocity_scale: 0.4
+    pose_position_tolerance_m: 0.03
+    pose_orientation_tolerance_rad: 0.35
     cartesian_max_step: 0.005
     cartesian_min_fraction: 0.9
     action_server_timeout_s: 10.0
@@ -40,8 +44,8 @@ robot_task_tree:
     workspace_max_y: 0.45
     workspace_min_z: 0.02
     workspace_max_z: 0.75
-    pregrasp_offset_z: 0.10
-    grasp_offset_z: 0.01
+    pregrasp_offset_z: 0.18
+    grasp_offset_z: 0.14
     retreat_offset_z: 0.12
     default_place_x: 0.35
     default_place_y: -0.30

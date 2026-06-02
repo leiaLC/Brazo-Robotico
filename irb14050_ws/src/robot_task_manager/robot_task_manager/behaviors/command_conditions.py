@@ -43,6 +43,10 @@ class ClearCurrentCommand(BlackboardBehavior):
         self.bb_set(bb_keys.CURRENT_COMMAND, None)
         self.bb_set(bb_keys.ARM_BUSY, False)
         self.bb_set(bb_keys.TELEOP_ACTIVE, False)
+        self.bb_set(bb_keys.CANDIDATE_OBJECTS, [])
+        self.bb_set(bb_keys.SELECTED_OBJECT, None)
+        self.bb_set(bb_keys.SELECTED_OBJECT_POSE_CAMERA, None)
+        self.bb_set(bb_keys.SELECTED_OBJECT_POSE_BASE, None)
         self.bb_set(bb_keys.TASK_PROGRESS, 1.0)
         self.set_status(message="Task complete", error_code="", current_task="")
         return py_trees.common.Status.SUCCESS

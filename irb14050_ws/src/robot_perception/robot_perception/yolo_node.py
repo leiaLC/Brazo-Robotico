@@ -38,7 +38,7 @@ class YoloNode(Node):
         super().__init__('yolo_node')
 
         # ── Parámetros ───────────────────────────────────────────────────
-        self.declare_parameter('model_path', 'yolov8n-seg.pt')
+        self.declare_parameter('model_path', 'best.pt')
         self.declare_parameter('confidence', 0.5)
         self.declare_parameter('device',     'cuda:0')
 

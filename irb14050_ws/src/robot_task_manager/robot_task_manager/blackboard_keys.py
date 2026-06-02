@@ -9,6 +9,7 @@ ARM_BUSY = "arm_busy"
 TELEOP_ACTIVE = "teleop_active"
 
 YOLO_DETECTIONS = "yolo_detections"
+CANDIDATE_OBJECTS = "candidate_objects"
 SELECTED_OBJECT = "selected_object"
 SELECTED_OBJECT_POSE_CAMERA = "selected_object_pose_camera"
 SELECTED_OBJECT_POSE_BASE = "selected_object_pose_base"

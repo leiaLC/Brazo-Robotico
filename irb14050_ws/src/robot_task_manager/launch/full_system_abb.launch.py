@@ -16,6 +16,7 @@ def generate_launch_description():
     with_viewer = LaunchConfiguration("with_viewer")
     launch_abb_stack = LaunchConfiguration("launch_abb_stack")
     launch_object_cloud_bridge = LaunchConfiguration("launch_object_cloud_bridge")
+    launch_tool_camera_tf = LaunchConfiguration("launch_tool_camera_tf")
     launch_gripper_node = LaunchConfiguration("launch_gripper_node")
     launch_gripper_joint_states = LaunchConfiguration("launch_gripper_joint_states")
     launch_rviz = LaunchConfiguration("launch_rviz")
@@ -130,6 +131,24 @@ def generate_launch_description():
         condition=IfCondition(launch_abb_stack),
     )
 
+    tool_camera_static_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="tool0_to_camera_link_tf",
+        output="screen",
+        arguments=[
+            "0.01",
+            "0.03",
+            "0.09",
+            "-1.57",
+            "-1.57",
+            "0",
+            "tool0",
+            "camera_link",
+        ],
+        condition=IfCondition(launch_tool_camera_tf),
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument(
@@ -146,6 +165,11 @@ def generate_launch_description():
                 "launch_object_cloud_bridge",
                 default_value="true",
                 description="Bridge robot_interfaces/DetectedObjectCloudArray to Detection3D.",
+            ),
+            DeclareLaunchArgument(
+                "launch_tool_camera_tf",
+                default_value="true",
+                description="Publish the calibrated static transform tool0 -> camera_link.",
             ),
             DeclareLaunchArgument(
                 "launch_gripper_node",
@@ -197,6 +221,7 @@ def generate_launch_description():
             rviz,
             egm_bridge,
             egm_moveit_executor,
+            tool_camera_static_tf,
             Node(
                 package="abb_irb14050_egm",
                 executable="gripper_node",
