@@ -35,7 +35,11 @@ def generate_launch_description():
     launch_tool_camera_tf = LaunchConfiguration("launch_tool_camera_tf")
     launch_gamepad_bridge = LaunchConfiguration("launch_gamepad_bridge")
     launch_gamepad_joy = LaunchConfiguration("launch_gamepad_joy")
+    gamepad_config = LaunchConfiguration("gamepad_config")
     joy_dev = LaunchConfiguration("joy_dev")
+    gripper_host = LaunchConfiguration("gripper_host")
+    gripper_publish_rate_hz = LaunchConfiguration("gripper_publish_rate_hz")
+    gripper_rws_timeout = LaunchConfiguration("gripper_rws_timeout")
 
     task_share = Path(get_package_share_directory("robot_task_manager"))
     gamepad_share = Path(get_package_share_directory("robot_xbox_teleop"))
@@ -69,7 +73,22 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller_ip",
                 default_value="192.168.125.1",
-                description="ABB controller IP used by EGM TX and the RWS gripper client.",
+                description="ABB controller IP used by EGM TX.",
+            ),
+            DeclareLaunchArgument(
+                "gripper_host",
+                default_value="192.168.125.1",
+                description="IP/host used by the RWS gripper client.",
+            ),
+            DeclareLaunchArgument(
+                "gripper_publish_rate_hz",
+                default_value="0.0",
+                description="RWS gripper state polling rate. 0 disables polling so commands stay responsive.",
+            ),
+            DeclareLaunchArgument(
+                "gripper_rws_timeout",
+                default_value="0.75",
+                description="HTTP timeout in seconds for RWS gripper reads/writes.",
             ),
             DeclareLaunchArgument(
                 "egm_rx_port",
@@ -172,6 +191,11 @@ def generate_launch_description():
                 description="Launch joy/joy_node for the controller connected to the Jetson.",
             ),
             DeclareLaunchArgument(
+                "gamepad_config",
+                default_value=str(gamepad_params),
+                description="YAML file with gamepad_command_bridge mapping parameters.",
+            ),
+            DeclareLaunchArgument(
                 "joy_dev",
                 default_value="/dev/input/js0",
                 description="Linux joystick device used by joy_node.",
@@ -267,7 +291,19 @@ def generate_launch_description():
                 executable="gripper_node",
                 name="gripper_node",
                 output="screen",
-                parameters=[{"host": controller_ip, "publish_rate_hz": 2.0}],
+                parameters=[
+                    {
+                        "host": gripper_host,
+                        "publish_rate_hz": ParameterValue(
+                            gripper_publish_rate_hz,
+                            value_type=float,
+                        ),
+                        "timeout": ParameterValue(
+                            gripper_rws_timeout,
+                            value_type=float,
+                        ),
+                    }
+                ],
                 condition=IfCondition(launch_gripper_node),
             ),
             Node(
@@ -340,7 +376,7 @@ def generate_launch_description():
                 executable="gamepad_command_bridge",
                 name="gamepad_command_bridge",
                 output="screen",
-                parameters=[str(gamepad_params)],
+                parameters=[gamepad_config],
                 condition=IfCondition(launch_gamepad_bridge),
             ),
         ]

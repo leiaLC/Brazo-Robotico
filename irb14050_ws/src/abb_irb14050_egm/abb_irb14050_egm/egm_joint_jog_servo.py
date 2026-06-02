@@ -36,6 +36,7 @@ class EgmJointJogServo(Node):
 
         self._lock = Lock()
         self._current_positions: list[float] | None = None
+        self._target_positions: list[float] | None = None
         self._latest_twist = Twist()
         self._last_twist_time: float | None = None
         self._last_tick_time = self._now()
@@ -138,6 +139,8 @@ class EgmJointJogServo(Node):
             return
         with self._lock:
             self._current_positions = list(positions)
+            if self._target_positions is None:
+                self._target_positions = list(positions)
 
     def _twist_callback(self, msg: Twist) -> None:
         with self._lock:
@@ -151,23 +154,34 @@ class EgmJointJogServo(Node):
 
         with self._lock:
             current = None if self._current_positions is None else list(self._current_positions)
+            target_base = None if self._target_positions is None else list(self._target_positions)
             twist = self._latest_twist
             last_twist_time = self._last_twist_time
 
         if current is None or last_twist_time is None:
             return
         if now - last_twist_time > self.command_timeout_s:
+            with self._lock:
+                self._target_positions = list(current)
             return
 
         velocities = self._joint_velocities(twist)
         if not any(abs(value) > 1e-9 for value in velocities):
+            with self._lock:
+                self._target_positions = list(current)
             return
 
+        if target_base is None:
+            target_base = list(current)
+
         target = []
-        for index, (position, velocity) in enumerate(zip(current, velocities)):
+        for index, (position, velocity) in enumerate(zip(target_base, velocities)):
             step = max(-self.max_step_rad, min(velocity * dt, self.max_step_rad))
             unclamped = position + step
             target.append(max(self.joint_min[index], min(unclamped, self.joint_max[index])))
+
+        with self._lock:
+            self._target_positions = list(target)
 
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()

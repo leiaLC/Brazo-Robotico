@@ -1,7 +1,7 @@
 "use client";
 
 import { Maximize, Minus, Plus, RotateCcw, Box, Radio } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { UrdfRobotViewer } from "@/components/urdf-robot-viewer";
 
@@ -37,7 +37,14 @@ type RobotStateMessage = {
 
 type RenderConnectionState = "idle" | "connecting" | "connected" | "error";
 type RenderMode = "urdf" | "simple";
+type CameraControls = {
+  reset: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+};
+type CameraControlsRef = RefObject<CameraControls | null>;
 
+const ZERO_JOINT_POSITIONS = [0, 0, 0, 0, 0, 0, 0];
 
 function getRobotStateWebSocketUrl(backendUrl: string) {
   const url = new URL(backendUrl || getDefaultBackendUrl());
@@ -67,55 +74,23 @@ function createJoint(radius: number, material: THREE.Material) {
   return mesh;
 }
 
-export function TeleopViewport({
-  backendUrl,
-  teleopEnabled,
+function SimpleRobotViewer({
+  jointPositions,
+  controlsRef,
 }: {
-  backendUrl: string;
-  teleopEnabled: boolean;
+  jointPositions: number[] | null;
+  controlsRef: CameraControlsRef;
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const jointsRef = useRef<number[]>([0, 0, 0, 0, 0, 0, 0]);
-  const cameraControlsRef = useRef<{
-    reset: () => void;
-    zoomIn: () => void;
-    zoomOut: () => void;
-  } | null>(null);
-  const [renderEnabled, setRenderEnabled] = useState(true);
-  const [renderMode, setRenderMode] = useState<RenderMode>("urdf");
-  const [connectionState, setConnectionState] = useState<RenderConnectionState>("idle");
-  const [frameCount, setFrameCount] = useState(0);
-  const [jointPositions, setJointPositions] = useState<number[] | null>(null);
-  const renderActive = renderEnabled && teleopEnabled;
-  const simpleRenderActive = renderActive && renderMode === "simple";
+  const latestJointsRef = useRef<number[]>(ZERO_JOINT_POSITIONS.map(degToRad));
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!renderActive) {
-      return;
-    }
-
-    const socket = new WebSocket(getRobotStateWebSocketUrl(backendUrl));
-
-    socket.addEventListener("open", () => setConnectionState("connected"));
-    socket.addEventListener("error", () => setConnectionState("error"));
-    socket.addEventListener("close", () => setConnectionState("idle"));
-    socket.addEventListener("message", (event) => {
-      const robotState = JSON.parse(event.data) as RobotStateMessage;
-      if (!robotState.positions_deg || robotState.positions_deg.length !== 7) {
-        return;
-      }
-      jointsRef.current = robotState.positions_deg.map(degToRad);
-      setJointPositions(robotState.positions_deg);
-      setFrameCount(robotState.state_count ?? 0);
-    });
-
-    return () => {
-      socket.close();
-    };
-  }, [backendUrl, renderActive]);
+    latestJointsRef.current = (jointPositions ?? ZERO_JOINT_POSITIONS).map(degToRad);
+  }, [jointPositions]);
 
   useEffect(() => {
-    if (!simpleRenderActive || !mountRef.current) {
+    if (!mountRef.current) {
       return;
     }
 
@@ -123,7 +98,16 @@ export function TeleopViewport({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xb7c1c8);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+    } catch {
+      const errorTimer = window.setTimeout(() => {
+        setRenderError("WebGL is not available in this browser session.");
+      }, 0);
+      controlsRef.current = null;
+      return () => window.clearTimeout(errorTimer);
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -150,7 +134,7 @@ export function TeleopViewport({
       updateCamera();
     }
 
-    cameraControlsRef.current = {
+    controlsRef.current = {
       reset: () => {
         orbit.azimuth = -0.72;
         orbit.elevation = 0.46;
@@ -160,14 +144,6 @@ export function TeleopViewport({
       zoomIn: () => applyZoom(-0.16),
       zoomOut: () => applyZoom(0.16),
     };
-
-    function resetCamera() {
-      orbit.azimuth = -0.72;
-      orbit.elevation = 0.46;
-      orbit.radius = 1.85;
-      updateCamera();
-    }
-    resetCamera();
     updateCamera();
 
     const ambient = new THREE.HemisphereLight(0xf4fbff, 0x4a545a, 2.0);
@@ -290,13 +266,14 @@ export function TeleopViewport({
 
     function onPointerUp(event: PointerEvent) {
       pointer.active = false;
-      renderer.domElement.releasePointerCapture(event.pointerId);
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
     }
 
     function onWheel(event: WheelEvent) {
       event.preventDefault();
-      orbit.radius = Math.max(0.82, Math.min(3.1, orbit.radius + event.deltaY * 0.001));
-      updateCamera();
+      applyZoom(event.deltaY * 0.001);
     }
 
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
@@ -306,7 +283,7 @@ export function TeleopViewport({
 
     let animationFrame = 0;
     function animate() {
-      const joints = jointsRef.current;
+      const joints = latestJointsRef.current;
       groups[0].rotation.y = joints[0] ?? 0;
       groups[1].rotation.z = joints[1] ?? 0;
       groups[2].rotation.z = joints[2] ?? 0;
@@ -321,21 +298,86 @@ export function TeleopViewport({
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
-      cameraControlsRef.current = null;
+      controlsRef.current = null;
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       renderer.domElement.removeEventListener("wheel", onWheel);
-      renderer.dispose();
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
+          if (Array.isArray(object.material)) {
+            object.material.forEach((material) => material.dispose());
+          } else {
+            object.material.dispose();
+          }
         }
       });
-      mount.removeChild(renderer.domElement);
+      renderer.dispose();
+      if (renderer.domElement.parentNode === mount) {
+        mount.removeChild(renderer.domElement);
+      }
     };
-  }, [simpleRenderActive]);
+  }, [controlsRef]);
+
+  return (
+    <div ref={mountRef} className="absolute inset-0">
+      {renderError ? (
+        <div className="absolute inset-0 grid place-items-center px-8 text-center">
+          <div className="max-w-sm rounded-lg border border-[#C1C9D3] bg-white/94 px-6 py-5 shadow-lg">
+            <Box className="mx-auto mb-3 h-8 w-8 text-[#003C69]" />
+            <p className="font-mono text-sm font-bold uppercase tracking-[0.12em] text-[#29303A]">
+              {renderError}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function TeleopViewport({
+  backendUrl,
+  previewJointPositions,
+  teleopEnabled,
+}: {
+  backendUrl: string;
+  previewJointPositions: number[] | null;
+  teleopEnabled: boolean;
+}) {
+  const actualCameraControlsRef = useRef<CameraControls | null>(null);
+  const previewCameraControlsRef = useRef<CameraControls | null>(null);
+  const [renderEnabled, setRenderEnabled] = useState(true);
+  const [renderMode, setRenderMode] = useState<RenderMode>("urdf");
+  const [connectionState, setConnectionState] = useState<RenderConnectionState>("idle");
+  const [frameCount, setFrameCount] = useState(0);
+  const [jointPositions, setJointPositions] = useState<number[] | null>(null);
+  const renderActive = renderEnabled && teleopEnabled;
+
+  useEffect(() => {
+    if (!renderActive) {
+      return;
+    }
+
+    const socket = new WebSocket(getRobotStateWebSocketUrl(backendUrl));
+
+    socket.addEventListener("open", () => setConnectionState("connected"));
+    socket.addEventListener("error", () => setConnectionState("error"));
+    socket.addEventListener("close", () => setConnectionState("idle"));
+    socket.addEventListener("message", (event) => {
+      const robotState = JSON.parse(event.data) as RobotStateMessage;
+      if (!robotState.positions_deg || robotState.positions_deg.length !== 7) {
+        return;
+      }
+      setJointPositions(robotState.positions_deg);
+      setFrameCount(robotState.state_count ?? 0);
+    });
+
+    return () => {
+      socket.close();
+    };
+  }, [backendUrl, renderActive]);
 
   const statusText = renderActive
     ? connectionState === "connected"
@@ -347,92 +389,156 @@ export function TeleopViewport({
       ? "3D render disabled"
       : "Enable teleop to start 3D render";
 
+  function applyCameraControl(action: keyof CameraControls) {
+    actualCameraControlsRef.current?.[action]();
+    previewCameraControlsRef.current?.[action]();
+  }
+
+  function renderSimulation(
+    sourcePositions: number[] | null,
+    controlsRef: CameraControlsRef,
+  ) {
+    return renderMode === "urdf" ? (
+      <UrdfRobotViewer controlsRef={controlsRef} jointPositions={sourcePositions} />
+    ) : (
+      <SimpleRobotViewer controlsRef={controlsRef} jointPositions={sourcePositions} />
+    );
+  }
+
   return (
     <div className="relative min-h-[calc(100vh-8rem)] overflow-hidden bg-[#AEB7B9]">
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.19)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.19)_1px,transparent_1px)] bg-[size:72px_72px]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgba(246,247,248,0.62))]" />
-      {renderActive ? (
-        renderMode === "urdf" ? (
-          <UrdfRobotViewer controlsRef={cameraControlsRef} jointPositions={jointPositions} />
-        ) : (
-          <div ref={mountRef} className="absolute inset-0" />
-        )
-      ) : (
-        <div className="absolute inset-0 grid place-items-center px-8 text-center">
-          <div className="max-w-sm rounded-lg border border-[#C1C9D3] bg-white/92 px-6 py-5 shadow-lg">
-            <Box className="mx-auto mb-3 h-8 w-8 text-[#003C69]" />
-            <p className="font-mono text-sm font-bold uppercase tracking-[0.12em] text-[#29303A]">
-              {statusText}
-            </p>
+
+      <div className="relative z-10 flex min-h-[calc(100vh-8rem)] flex-col gap-5 p-5 md:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
+            <label className="flex min-h-12 items-center gap-3 rounded-lg border border-[#C1C9D3] bg-white/94 px-4 py-3 shadow-lg">
+              <input
+                checked={renderEnabled}
+                className="h-5 w-5 accent-[#003C69]"
+                onChange={(event) => setRenderEnabled(event.target.checked)}
+                type="checkbox"
+              />
+              <span className="font-mono text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
+                3D Render
+              </span>
+            </label>
+
+            <label className="flex min-h-12 items-center gap-3 rounded-lg border border-[#C1C9D3] bg-white/94 px-4 py-3 shadow-lg">
+              <span className="font-mono text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
+                Model
+              </span>
+              <select
+                className="rounded border border-[#BFC7D2] bg-white px-3 py-2 font-mono text-xs font-black uppercase tracking-[0.08em] text-[#003C69] outline-none focus:border-[#003C69] focus:ring-2 focus:ring-[#CFE1F6]"
+                disabled={!renderEnabled}
+                onChange={(event) => setRenderMode(event.target.value as RenderMode)}
+                value={renderMode}
+              >
+                <option value="urdf">URDF</option>
+                <option value="simple">Simple</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="flex overflow-hidden rounded-lg border border-[#C1C9D3] bg-white shadow-lg">
+            {[
+              { Icon: Plus, action: "zoomIn", title: "Zoom in" },
+              { Icon: Minus, action: "zoomOut", title: "Zoom out" },
+              { Icon: RotateCcw, action: "reset", title: "Reset camera" },
+              { Icon: Maximize, action: "reset", title: "Fit camera" },
+            ].map(({ Icon, action, title }) => (
+              <button
+                className="grid h-12 w-12 place-items-center border-r border-[#C1C9D3] last:border-r-0"
+                key={title}
+                onClick={() => applyCameraControl(action as keyof CameraControls)}
+                title={title}
+                type="button"
+              >
+                <Icon className="h-5 w-5" />
+              </button>
+            ))}
           </div>
         </div>
-      )}
 
-      <div className="absolute right-9 top-9 overflow-hidden rounded-lg border border-[#C1C9D3] bg-white shadow-lg">
-        {[Plus, Minus, RotateCcw, Maximize].map((Icon, index) => (
-          <button
-            className="grid h-16 w-16 place-items-center border-b border-[#C1C9D3] last:border-b-0"
-            key={index}
-            onClick={() => {
-              if (Icon === Plus) cameraControlsRef.current?.zoomIn();
-              if (Icon === Minus) cameraControlsRef.current?.zoomOut();
-              if (Icon === RotateCcw) cameraControlsRef.current?.reset();
-              if (Icon === Maximize) cameraControlsRef.current?.reset();
-            }}
-            title="Viewport camera control"
-            type="button"
-          >
-            <Icon className="h-6 w-6" />
-          </button>
-        ))}
+        {renderActive ? (
+          <div className="grid min-h-[520px] flex-1 gap-4 xl:grid-cols-2">
+            <SimulationPane detail={statusText} title="Live Robot">
+              {renderSimulation(jointPositions, actualCameraControlsRef)}
+            </SimulationPane>
+            <SimulationPane detail="Pending target" title="Target Preview">
+              {renderSimulation(previewJointPositions, previewCameraControlsRef)}
+            </SimulationPane>
+          </div>
+        ) : (
+          <EmptySimulationState statusText={statusText} />
+        )}
+
+        <div className="flex flex-wrap gap-4">
+          <Readout
+            title="Render Status"
+            value={statusText}
+            success={renderActive && connectionState === "connected"}
+          />
+          <Readout title="Feedback Frames" value={`${frameCount}`} />
+          <Readout
+            title="Live Snapshot"
+            value={
+              jointPositions
+                ? jointPositions.map((value) => value.toFixed(0)).join("  ")
+                : "No joint data"
+            }
+          />
+          <Readout
+            title="Preview Target"
+            value={
+              previewJointPositions
+                ? previewJointPositions.map((value) => value.toFixed(0)).join("  ")
+                : "No target"
+            }
+          />
+        </div>
+
+        <div className="hidden h-12 w-12 place-items-center self-end rounded-lg border border-[#C1C9D3] bg-white/90 text-[#003C69] xl:grid">
+          <Radio className="h-5 w-5" />
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <label className="absolute left-8 top-8 flex min-h-12 items-center gap-3 rounded-lg border border-[#C1C9D3] bg-white/94 px-4 py-3 shadow-lg">
-        <input
-          checked={renderEnabled}
-          className="h-5 w-5 accent-[#003C69]"
-          onChange={(event) => setRenderEnabled(event.target.checked)}
-          type="checkbox"
-        />
-        <span className="font-mono text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
-          3D Render
-        </span>
-      </label>
-
-      <label className="absolute left-8 top-24 flex min-h-12 items-center gap-3 rounded-lg border border-[#C1C9D3] bg-white/94 px-4 py-3 shadow-lg">
-        <span className="font-mono text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
-          Model
-        </span>
-        <select
-          className="rounded border border-[#BFC7D2] bg-white px-3 py-2 font-mono text-xs font-black uppercase tracking-[0.08em] text-[#003C69] outline-none focus:border-[#003C69] focus:ring-2 focus:ring-[#CFE1F6]"
-          disabled={!renderEnabled}
-          onChange={(event) => setRenderMode(event.target.value as RenderMode)}
-          value={renderMode}
-        >
-          <option value="urdf">URDF</option>
-          <option value="simple">Simple</option>
-        </select>
-      </label>
-
-      <div className="absolute bottom-8 left-10 flex flex-wrap gap-5 pr-6">
-        <Readout
-          title="Render Status"
-          value={statusText}
-          success={renderActive && connectionState === "connected"}
-        />
-        <Readout title="Feedback Frames" value={`${frameCount}`} />
-        <Readout
-          title="Joint Snapshot"
-          value={
-            jointPositions
-              ? jointPositions.map((value) => value.toFixed(0)).join("  ")
-              : "No joint data"
-          }
-        />
+function SimulationPane({
+  children,
+  detail,
+  title,
+}: {
+  children: ReactNode;
+  detail: string;
+  title: string;
+}) {
+  return (
+    <div className="relative min-h-[420px] overflow-hidden rounded-lg border border-[#C1C9D3] bg-[#B7C1C8] shadow-[0_2px_8px_rgba(20,30,45,0.12)]">
+      {children}
+      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-lg border border-[#C1C9D3] bg-white/94 px-4 py-3 shadow-lg">
+        <p className="font-mono text-xs font-black uppercase tracking-[0.12em] text-[#29303A]">
+          {title}
+        </p>
+        <p className="mt-1 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#5F6874]">
+          {detail}
+        </p>
       </div>
+    </div>
+  );
+}
 
-      <div className="absolute right-8 bottom-8 hidden h-12 w-12 place-items-center rounded-lg border border-[#C1C9D3] bg-white/90 text-[#003C69] xl:grid">
-        <Radio className="h-5 w-5" />
+function EmptySimulationState({ statusText }: { statusText: string }) {
+  return (
+    <div className="grid min-h-[520px] flex-1 place-items-center rounded-lg border border-[#C1C9D3] bg-white/72 px-8 text-center shadow-[0_2px_8px_rgba(20,30,45,0.08)]">
+      <div className="max-w-sm rounded-lg border border-[#C1C9D3] bg-white/92 px-6 py-5 shadow-lg">
+        <Box className="mx-auto mb-3 h-8 w-8 text-[#003C69]" />
+        <p className="font-mono text-sm font-bold uppercase tracking-[0.12em] text-[#29303A]">
+          {statusText}
+        </p>
       </div>
     </div>
   );
@@ -440,9 +546,9 @@ export function TeleopViewport({
 
 function Readout({ title, value, success = false }: { title: string; value: string; success?: boolean }) {
   return (
-    <div className="rounded-lg border border-[#C2CAD6] bg-white/94 px-6 py-4 shadow-lg">
+    <div className="max-w-full rounded-lg border border-[#C2CAD6] bg-white/94 px-6 py-4 shadow-lg">
       <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#29303A]">{title}</p>
-      <p className="mt-2 font-mono text-lg text-black">
+      <p className="mt-2 break-words font-mono text-lg text-black">
         {success ? <span className="mr-2 text-[#00751A]">OK</span> : null}
         {value}
       </p>

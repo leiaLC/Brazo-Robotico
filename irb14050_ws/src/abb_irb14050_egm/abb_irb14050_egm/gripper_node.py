@@ -5,7 +5,7 @@ ROS2 node for SmartGripper control via RWS IO signals.
 
 Topics:
   /gripper/command  (std_msgs/String, in)
-      Accepts: "open" | "close" | "standby"
+      Accepts: "open" | "close" | "ready" | "standby"
   /gripper/state    (std_msgs/String, out)
       Periodic snapshot of gripper status (cmd/position/speed/etc.)
 
@@ -13,6 +13,7 @@ Parameters:
   host             (str, default '192.168.125.1') - OmniCore IP
   user             (str, default 'Default User')
   password         (str, default 'robotics')
+  timeout          (double, default 0.75)
   publish_rate_hz  (double, default 2.0)
 
 Runs independently of the EGM bridge. EGM (UDP) controls the arm, this
@@ -25,7 +26,10 @@ from std_msgs.msg import String
 
 # Same package — gripper_rws.py lives alongside this file under
 # src/abb_irb14050_egm/abb_irb14050_egm/
-from abb_irb14050_egm.gripper_rws import SmartGripperIO
+try:
+    from abb_irb14050_egm.gripper_rws import SmartGripperIO
+except ImportError:
+    from .gripper_rws import SmartGripperIO
 
 
 class GripperNode(Node):
@@ -36,15 +40,22 @@ class GripperNode(Node):
         self.declare_parameter('host', '192.168.125.1')
         self.declare_parameter('user', 'Default User')
         self.declare_parameter('password', 'robotics')
+        self.declare_parameter('timeout', 0.75)
         self.declare_parameter('publish_rate_hz', 2.0)
 
         host = self.get_parameter('host').get_parameter_value().string_value
         user = self.get_parameter('user').get_parameter_value().string_value
         passwd = self.get_parameter('password').get_parameter_value().string_value
+        timeout = self.get_parameter('timeout').get_parameter_value().double_value
         rate = self.get_parameter('publish_rate_hz').get_parameter_value().double_value
 
         # RWS client
-        self.gripper = SmartGripperIO(host=host, user=user, password=passwd)
+        self.gripper = SmartGripperIO(
+            host=host,
+            user=user,
+            password=passwd,
+            timeout=max(0.1, timeout),
+        )
 
         # Subscriber: commands
         self.cmd_sub = self.create_subscription(
@@ -53,16 +64,25 @@ class GripperNode(Node):
 
         # Publisher: state
         self.state_pub = self.create_publisher(String, '/gripper/state', 10)
-        self.state_timer = self.create_timer(
-            max(0.1, 1.0 / rate), self._publish_state
-        )
+        self.state_timer = None
+        if rate > 0.0:
+            self.state_timer = self.create_timer(
+                max(0.1, 1.0 / rate), self._publish_state
+            )
 
         self.get_logger().info(
             f"Gripper node up. RWS host={host}. "
+            f"RWS timeout={max(0.1, timeout):.2f}s. "
             f"Publishing /gripper/state at {rate:.1f} Hz. "
             f"Commands: ros2 topic pub --once /gripper/command "
-            f"std_msgs/String \"data: open\""
+            f"std_msgs/String \"data: open\". "
+            f"Motion commands run the RWS ready->open/close sequence."
         )
+        if rate <= 0.0:
+            self.get_logger().info(
+                "Periodic /gripper/state polling disabled; "
+                "open/close commands are still active."
+            )
 
     # --- callbacks --------------------------------------------------
 
@@ -74,13 +94,13 @@ class GripperNode(Node):
         elif cmd == 'close':
             ok = self.gripper.close()
             self.get_logger().info(f"CLOSE -> {ok}")
-        elif cmd == 'standby':
-            ok = self.gripper.standby()
-            self.get_logger().info(f"STANDBY -> {ok}")
+        elif cmd in {'ready', 'standby'}:
+            ok = self.gripper.ready()
+            self.get_logger().info(f"READY -> {ok}")
         else:
             self.get_logger().warn(
                 f"Unknown gripper command '{msg.data}'. "
-                f"Use 'open' | 'close' | 'standby'."
+                f"Use 'open' | 'close' | 'ready' | 'standby'."
             )
 
     def _publish_state(self):

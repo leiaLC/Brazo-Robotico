@@ -24,7 +24,8 @@ Run the development server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). The initial route redirects to the
+Control tab, where the ROS2 node health panel is refreshed automatically.
 
 ## Backend Gateway
 
@@ -73,15 +74,21 @@ The backend publishes through the behavior-tree contract, not directly to EGM:
 ```txt
 joint targets: /robot_task/command   robot_task_msgs/msg/RobotCommand
 sequences:     /web/sequence_id      std_msgs/msg/String
-voice text:    /voice/text           std_msgs/msg/String
+voice trigger: /voice/start_listening std_msgs/msg/Empty
+voice status:  /voice/status          std_msgs/msg/String
 feedback:      /joint_states         sensor_msgs/msg/JointState
 ```
+
+The required ROS2 nodes shown in Control can be adjusted in the backend `.env` with
+`ROS_REQUIRED_NODES`, using a comma-separated list.
 
 You can verify messages from the ROS2 computer:
 
 ```bash
 ros2 topic echo /robot_task/command
 ros2 topic echo /web/sequence_id
+ros2 topic echo /voice/start_listening
+ros2 topic echo /voice/status
 ros2 topic echo /joint_states
 ```
 

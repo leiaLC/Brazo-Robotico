@@ -2,6 +2,8 @@ import asyncio
 import json
 import math
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from typing import TypeVar
 
 import cv2
 import numpy as np
@@ -28,6 +30,15 @@ from app.ros_gateway import JointSnapshot, RosGateway
 settings = get_settings()
 gateway = RosGateway(settings)
 pcs: set[RTCPeerConnection] = set()
+QueueItem = TypeVar("QueueItem")
+
+VOICE_SUGGESTIONS = [
+    "toma el cubo",
+    "agarra el cilindro",
+    "regresa a home",
+    "abre el gripper",
+    "cierra el gripper",
+]
 
 
 def make_waiting_frame() -> np.ndarray:
@@ -93,6 +104,31 @@ def snapshot_to_state(snapshot: JointSnapshot | None) -> RobotState:
     )
 
 
+async def wait_for_queue_or_disconnect(
+    websocket: WebSocket,
+    queue: asyncio.Queue[QueueItem],
+) -> QueueItem | None:
+    queue_task = asyncio.create_task(queue.get())
+    receive_task = asyncio.create_task(websocket.receive())
+
+    try:
+        done, _ = await asyncio.wait(
+            {queue_task, receive_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if receive_task in done:
+            message = receive_task.result()
+            if message["type"] == "websocket.disconnect":
+                raise WebSocketDisconnect(code=message.get("code", 1000))
+            return None
+        return queue_task.result()
+    finally:
+        for task in (queue_task, receive_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(queue_task, receive_task, return_exceptions=True)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     gateway.start()
@@ -123,6 +159,10 @@ def health():
         "sequence_topic": settings.sequence_topic,
         "teleop_twist_topic": settings.teleop_twist_topic,
         "voice_text_topic": settings.voice_text_topic,
+        "voice_start_topic": settings.voice_start_topic,
+        "voice_status_topic": settings.voice_status_topic,
+        "voice_events_topic": settings.voice_events_topic,
+        "voice_status": gateway.get_latest_voice_status(),
         "image_topic": settings.image_topic,
         "teleop_enabled": gateway.is_teleop_enabled(),
         "task_status": gateway.get_latest_task_status(),
@@ -139,6 +179,19 @@ def robot_task_status():
     return gateway.get_latest_task_status() or {
         "mode": "UNKNOWN",
         "message": "No /robot_task/status received yet",
+    }
+
+
+@app.get("/robot/nodes")
+def robot_nodes():
+    nodes = gateway.get_required_node_statuses()
+    active_count = sum(node["active"] for node in nodes)
+    return {
+        "checked_at": datetime.now(UTC).isoformat(),
+        "all_required_active": bool(nodes) and active_count == len(nodes),
+        "active_count": active_count,
+        "required_count": len(nodes),
+        "nodes": nodes,
     }
 
 
@@ -221,6 +274,31 @@ def voice_text(request: VoiceTextRequest):
     return {"ok": True}
 
 
+@app.post("/voice/start")
+def voice_start():
+    try:
+        gateway.publish_voice_start()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"ok": True}
+
+
+@app.get("/voice/status")
+def voice_status():
+    return gateway.get_latest_voice_status()
+
+
+@app.get("/voice/log")
+def voice_log():
+    return {"events": gateway.get_voice_events()}
+
+
+@app.get("/voice/suggestions")
+def voice_suggestions():
+    return {"commands": VOICE_SUGGESTIONS}
+
+
 @app.post("/task/cancel")
 def cancel_task():
     try:
@@ -272,7 +350,9 @@ async def robot_state_ws(websocket: WebSocket):
         await websocket.send_text(json.dumps(initial))
 
         while True:
-            snapshot = await queue.get()
+            snapshot = await wait_for_queue_or_disconnect(websocket, queue)
+            if snapshot is None:
+                continue
             await websocket.send_text(json.dumps(snapshot_to_state(snapshot).model_dump()))
     except WebSocketDisconnect:
         pass
@@ -314,12 +394,76 @@ async def task_status_ws(websocket: WebSocket):
         await websocket.send_text(json.dumps(initial))
 
         while True:
-            status = await queue.get()
+            status = await wait_for_queue_or_disconnect(websocket, queue)
+            if status is None:
+                continue
             await websocket.send_text(json.dumps(status))
     except WebSocketDisconnect:
         pass
     finally:
         gateway.remove_task_status_callback(enqueue)
+
+
+@app.websocket("/ws/voice-status")
+async def voice_status_ws(websocket: WebSocket):
+    await websocket.accept()
+    queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=1)
+    loop = asyncio.get_running_loop()
+
+    def enqueue(status: dict) -> None:
+        def put_latest() -> None:
+            if queue.full():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            queue.put_nowait(status)
+
+        loop.call_soon_threadsafe(put_latest)
+
+    gateway.add_voice_status_callback(enqueue)
+
+    try:
+        await websocket.send_text(json.dumps(gateway.get_latest_voice_status()))
+
+        while True:
+            status = await queue.get()
+            await websocket.send_text(json.dumps(status))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        gateway.remove_voice_status_callback(enqueue)
+
+
+@app.websocket("/ws/voice-events")
+async def voice_events_ws(websocket: WebSocket):
+    await websocket.accept()
+    queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=1)
+    loop = asyncio.get_running_loop()
+
+    def enqueue(event: dict) -> None:
+        def put_latest() -> None:
+            if queue.full():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            queue.put_nowait(event)
+
+        loop.call_soon_threadsafe(put_latest)
+
+    gateway.add_voice_event_callback(enqueue)
+
+    try:
+        await websocket.send_text(json.dumps({"events": gateway.get_voice_events()}))
+
+        while True:
+            event = await queue.get()
+            await websocket.send_text(json.dumps(event))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        gateway.remove_voice_event_callback(enqueue)
 
 
 async def mjpeg_generator():

@@ -15,7 +15,7 @@ def generate_launch_description():
     launch_realsense = LaunchConfiguration("launch_realsense")
     launch_perception = LaunchConfiguration("launch_perception")
     launch_object_cloud_bridge = LaunchConfiguration("launch_object_cloud_bridge")
-    launch_voice_parser = LaunchConfiguration("launch_voice_parser")
+    launch_robot_speech = LaunchConfiguration("launch_robot_speech")
 
     task_share = Path(get_package_share_directory("robot_task_manager"))
     realsense_share = Path(get_package_share_directory("realsense_d415_bringup"))
@@ -41,9 +41,9 @@ def generate_launch_description():
                 description="Convert /perception/object_clouds into /perception/detections_3d for the Jetson BT.",
             ),
             DeclareLaunchArgument(
-                "launch_voice_parser",
+                "launch_robot_speech",
                 default_value="true",
-                description="Launch voice text parser on the GPU workstation.",
+                description="Launch the robot_speech voice pipeline on the GPU workstation.",
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -66,11 +66,11 @@ def generate_launch_description():
                 condition=IfCondition(launch_object_cloud_bridge),
             ),
             Node(
-                package="robot_voice_interface",
-                executable="voice_command_parser",
-                name="voice_command_parser",
+                package="robot_speech",
+                executable="voice_pipeline_node",
+                name="voice_pipeline_node",
                 output="screen",
-                condition=IfCondition(launch_voice_parser),
+                condition=IfCondition(launch_robot_speech),
             ),
         ]
     )

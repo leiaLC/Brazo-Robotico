@@ -33,8 +33,15 @@ COLOR_WORDS = {
 CLASS_ALIASES = {
     "cubo": "cube",
     "cube": "cube",
-    "botella": "bottle",
-    "bottle": "bottle",
+    "cilindro": "cylinder",
+    "cylinder": "cylinder",
+    "hexagono": "hexagon",
+    "hexágono": "hexagon",
+    "hexagon": "hexagon",
+    "toroide": "toroid",
+    "toroid": "toroid",
+    "manzana": "apple",
+    "apple": "apple",
 }
 
 

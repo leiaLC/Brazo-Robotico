@@ -7,7 +7,7 @@ Esta rama integra el supervisor basado en `py_trees` dentro del workspace princi
 ```text
 src/robot_task_msgs        Interfaces comunes
 src/robot_task_manager     Arbol de decisiones central
-src/robot_voice_interface  Parser de texto/voz a RobotCommand
+src/robot_speech           Pipeline de voz oficial a RobotCommand
 src/robot_web_interface    Bridge web a RobotCommand
 src/robot_xbox_teleop      Bridge Xbox a RobotCommand
 src/robot_arm_control      Mocks de brazo/gripper/servo
@@ -56,12 +56,15 @@ py-trees-tree-viewer
 ## Comandos De Prueba
 
 ```bash
-ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 'mueve el joint 1 uno grados'}"
-ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 'agarra el cubo azul'}"
+ros2 run robot_speech voice_pipeline_node
 ros2 topic pub --once /web/sequence_id std_msgs/msg/String "{data: 'open_gripper'}"
 ros2 topic pub --once /web/sequence_id std_msgs/msg/String "{data: 'close_gripper'}"
-ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 'cancelar'}"
 ```
+
+Para pruebas sin microfono, se puede publicar directamente un
+`robot_task_msgs/msg/RobotCommand` en `/robot_task/command`. El paquete
+historico `robot_voice_interface` no se lanza por defecto para evitar doble
+publicacion de comandos de voz.
 
 ## Hub Web
 

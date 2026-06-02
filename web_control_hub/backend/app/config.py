@@ -7,6 +7,21 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+DEFAULT_REQUIRED_ROS_NODES = ",".join(
+    [
+        "robot_state_publisher",
+        "move_group",
+        "egm_bridge",
+        "egm_moveit_executor",
+        "gripper_node",
+        "gripper_joint_state_publisher",
+        "robot_task_tree",
+        "voice_command_parser",
+        "web_command_bridge",
+        "gamepad_command_bridge",
+    ]
+)
+
 
 class Settings(BaseModel):
     ros_domain_id: str = getenv("ROS_DOMAIN_ID", "0")
@@ -15,6 +30,9 @@ class Settings(BaseModel):
     sequence_topic: str = getenv("ROS_SEQUENCE_TOPIC", "/web/sequence_id")
     teleop_twist_topic: str = getenv("ROS_TELEOP_TWIST_TOPIC", "/web/teleop_twist")
     voice_text_topic: str = getenv("ROS_VOICE_TEXT_TOPIC", "/voice/text")
+    voice_start_topic: str = getenv("ROS_VOICE_START_TOPIC", "/voice/start_listening")
+    voice_status_topic: str = getenv("ROS_VOICE_STATUS_TOPIC", "/voice/status")
+    voice_events_topic: str = getenv("ROS_VOICE_EVENTS_TOPIC", "/voice/events")
     image_topic: str = getenv("ROS_IMAGE_TOPIC", "/perception/yolo/debug_image")
     image_is_compressed: bool = getenv("ROS_IMAGE_IS_COMPRESSED", "false").lower() == "true"
     backend_host: str = getenv("BACKEND_HOST", "0.0.0.0")
@@ -23,6 +41,11 @@ class Settings(BaseModel):
         origin.strip()
         for origin in getenv("FRONTEND_ORIGINS", "http://localhost:3000").split(",")
         if origin.strip()
+    ]
+    required_ros_nodes: list[str] = [
+        node.strip()
+        for node in getenv("ROS_REQUIRED_NODES", DEFAULT_REQUIRED_ROS_NODES).split(",")
+        if node.strip()
     ]
     joint_names: list[str] = [
         "joint_1",

@@ -1,0 +1,51 @@
+audio:
+  sample_rate: 16000
+  channels: 1
+  chunk_size: 1024
+  silence_threshold: 0.01
+  silence_duration: 1.5
+  max_recording_duration: 15.0
+  device_index: null
+
+speaker_verification:
+  enabled: true
+  password: "robótica"
+  accepted_variants: ["robotica"]
+  session_timeout_sec: 60.0
+
+whisper:
+  model_size: "base"
+  device: "cpu"
+  compute_type: "int8"
+  language: "es"
+  beam_size: 5
+
+llama_cpp:
+  model_path: "/home/arizbeth/8_semestre/voice_to_abb_ws/models/llama3.2-3b-q4.gguf"
+  temperature: 0.1
+  max_tokens: 512
+  n_ctx: 2048
+  n_threads: 4
+
+robot:
+  actions:
+    - move_joint
+    - open_gripper
+    - close_gripper
+    - move_home
+    - stop
+    - pick
+    - rotate_joint
+  object_classes: ["cube", "cylinder", "hexagon", "toroid", "apple"]
+  joints: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
+  cartesian_axes: ["x", "y", "z", "roll", "pitch", "yaw"]
+  units:
+    angles: "degrees"
+    distances: "meters"
+    speed: "percentage"
+
+logging:
+  level: "INFO"
+  log_to_file: false
+  log_file: "logs/robot_voice.log"
+  show_timestamps: true

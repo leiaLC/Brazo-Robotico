@@ -1,4 +1,5 @@
 import math
+import json
 import threading
 from dataclasses import dataclass
 from typing import Callable
@@ -9,9 +10,10 @@ try:
     import rclpy
     from cv_bridge import CvBridge
     from geometry_msgs.msg import Twist
+    from rclpy.executors import ExternalShutdownException
     from rclpy.node import Node
     from sensor_msgs.msg import CompressedImage, Image, JointState
-    from std_msgs.msg import String
+    from std_msgs.msg import Empty, String
     from robot_task_msgs.msg import RobotCommand, RobotStatus
 except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2 env
     cv2 = None
@@ -23,9 +25,11 @@ except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2
     JointState = None
     Image = None
     CompressedImage = None
+    Empty = None
     String = None
     RobotCommand = None
     RobotStatus = None
+    ExternalShutdownException = Exception
     ROS_IMPORT_ERROR = exc
 else:
     ROS_IMPORT_ERROR = None
@@ -54,14 +58,19 @@ class RosGateway:
         self.sequence_pub = None
         self.teleop_twist_pub = None
         self.voice_text_pub = None
+        self.voice_start_pub = None
         self._spin_thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._teleop_enabled = False
         self._snapshot: JointSnapshot | None = None
         self._latest_jpeg: bytes | None = None
         self._latest_task_status: dict | None = None
+        self._latest_voice_status: dict = {"status": "unknown"}
+        self._voice_events: list[dict] = []
         self._state_callbacks: list[Callable[[JointSnapshot], None]] = []
         self._task_status_callbacks: list[Callable[[dict], None]] = []
+        self._voice_status_callbacks: list[Callable[[dict], None]] = []
+        self._voice_event_callbacks: list[Callable[[dict], None]] = []
         self._bridge = CvBridge() if CvBridge is not None else None
 
     def start(self) -> None:
@@ -73,13 +82,16 @@ class RosGateway:
         self.sequence_pub = self.node.create_publisher(String, self.settings.sequence_topic, 10)
         self.teleop_twist_pub = self.node.create_publisher(Twist, self.settings.teleop_twist_topic, 10)
         self.voice_text_pub = self.node.create_publisher(String, self.settings.voice_text_topic, 10)
+        self.voice_start_pub = self.node.create_publisher(Empty, self.settings.voice_start_topic, 10)
         self.node.create_subscription(JointState, self.settings.state_topic, self._on_joint_state, 10)
         self.node.create_subscription(RobotStatus, "/robot_task/status", self._on_task_status, 10)
+        self.node.create_subscription(String, self.settings.voice_status_topic, self._on_voice_status, 10)
+        self.node.create_subscription(String, self.settings.voice_events_topic, self._on_voice_event, 10)
 
         image_msg_type = CompressedImage if self.settings.image_is_compressed else Image
         self.node.create_subscription(image_msg_type, self.settings.image_topic, self._on_image, 10)
 
-        self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.node,), daemon=True)
+        self._spin_thread = threading.Thread(target=self._spin, args=(self.node,), daemon=True)
         self._spin_thread.start()
 
     def stop(self) -> None:
@@ -88,6 +100,15 @@ class RosGateway:
             self.node = None
         if rclpy.ok():
             rclpy.shutdown()
+        if self._spin_thread is not None:
+            self._spin_thread.join(timeout=2.0)
+            self._spin_thread = None
+
+    def _spin(self, node: Node) -> None:
+        try:
+            rclpy.spin(node)
+        except ExternalShutdownException:
+            pass
 
     def enable_teleop(self) -> None:
         with self._lock:
@@ -113,6 +134,31 @@ class RosGateway:
         with self._lock:
             return self._latest_task_status
 
+    def get_latest_voice_status(self) -> dict:
+        with self._lock:
+            return dict(self._latest_voice_status)
+
+    def get_voice_events(self) -> list[dict]:
+        with self._lock:
+            return list(self._voice_events)
+
+    def get_required_node_statuses(self) -> list[dict]:
+        if self.node is None:
+            raise RuntimeError("ROS gateway is not started")
+
+        discovered_nodes = {
+            self._fully_qualified_node_name(name, namespace)
+            for name, namespace in self.node.get_node_names_and_namespaces()
+        }
+
+        return [
+            {
+                "name": configured_name,
+                "active": self._is_node_active(configured_name, discovered_nodes),
+            }
+            for configured_name in self.settings.required_ros_nodes
+        ]
+
     def add_state_callback(self, callback: Callable[[JointSnapshot], None]) -> None:
         self._state_callbacks.append(callback)
 
@@ -126,6 +172,20 @@ class RosGateway:
     def remove_task_status_callback(self, callback: Callable[[dict], None]) -> None:
         if callback in self._task_status_callbacks:
             self._task_status_callbacks.remove(callback)
+
+    def add_voice_status_callback(self, callback: Callable[[dict], None]) -> None:
+        self._voice_status_callbacks.append(callback)
+
+    def remove_voice_status_callback(self, callback: Callable[[dict], None]) -> None:
+        if callback in self._voice_status_callbacks:
+            self._voice_status_callbacks.remove(callback)
+
+    def add_voice_event_callback(self, callback: Callable[[dict], None]) -> None:
+        self._voice_event_callbacks.append(callback)
+
+    def remove_voice_event_callback(self, callback: Callable[[dict], None]) -> None:
+        if callback in self._voice_event_callbacks:
+            self._voice_event_callbacks.remove(callback)
 
     def publish_joint_target_deg(self, positions_deg: list[float]) -> None:
         self._validate_target(positions_deg)
@@ -192,6 +252,11 @@ class RosGateway:
             raise ValueError("text cannot be empty")
         self.voice_text_pub.publish(msg)
 
+    def publish_voice_start(self) -> None:
+        if self.voice_start_pub is None:
+            raise RuntimeError("ROS gateway is not started")
+        self.voice_start_pub.publish(Empty())
+
     def publish_task_command(self, command_type: str) -> None:
         if self.task_command_pub is None or self.node is None:
             raise RuntimeError("ROS gateway is not started")
@@ -210,6 +275,21 @@ class RosGateway:
                 raise ValueError(
                     f"joint {index + 1} out of limits: {value:.2f} deg not in [{lower}, {upper}]"
                 )
+
+    @staticmethod
+    def _fully_qualified_node_name(name: str, namespace: str) -> str:
+        return f"/{namespace.strip('/')}/{name}".replace("//", "/")
+
+    @staticmethod
+    def _is_node_active(configured_name: str, discovered_nodes: set[str]) -> bool:
+        normalized_name = f"/{configured_name.strip('/')}"
+        if configured_name.startswith("/"):
+            return normalized_name in discovered_nodes
+
+        return any(
+            node_name.rsplit("/", maxsplit=1)[-1] == configured_name
+            for node_name in discovered_nodes
+        )
 
     def _base_robot_command(self):
         command = RobotCommand()
@@ -258,6 +338,27 @@ class RosGateway:
 
         for callback in list(self._task_status_callbacks):
             callback(status)
+
+    def _on_voice_status(self, msg: String) -> None:
+        status = {"status": msg.data}
+        with self._lock:
+            self._latest_voice_status = status
+
+        for callback in list(self._voice_status_callbacks):
+            callback(status)
+
+    def _on_voice_event(self, msg: String) -> None:
+        try:
+            event = json.loads(msg.data)
+        except json.JSONDecodeError:
+            event = {"type": "message", "text": msg.data, "confidence": None}
+
+        with self._lock:
+            self._voice_events.append(event)
+            self._voice_events = self._voice_events[-25:]
+
+        for callback in list(self._voice_event_callbacks):
+            callback(event)
 
     def _on_image(self, msg) -> None:
         if cv2 is None:

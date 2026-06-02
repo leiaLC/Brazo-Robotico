@@ -9,6 +9,7 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
@@ -22,6 +23,9 @@ def generate_launch_description():
     launch_rviz = LaunchConfiguration("launch_rviz")
     launch_gamepad_joy = LaunchConfiguration("launch_gamepad_joy")
     controller_ip = LaunchConfiguration("controller_ip")
+    gripper_host = LaunchConfiguration("gripper_host")
+    gripper_publish_rate_hz = LaunchConfiguration("gripper_publish_rate_hz")
+    gripper_rws_timeout = LaunchConfiguration("gripper_rws_timeout")
     egm_rx_port = LaunchConfiguration("egm_rx_port")
     egm_tx_port = LaunchConfiguration("egm_tx_port")
     egm_max_speed_deg_s = LaunchConfiguration("egm_max_speed_deg_s")
@@ -199,7 +203,22 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller_ip",
                 default_value="192.168.125.1",
-                description="ABB controller IP used by EGM TX and the RWS gripper client.",
+                description="ABB controller IP used by EGM TX.",
+            ),
+            DeclareLaunchArgument(
+                "gripper_host",
+                default_value="192.168.125.1",
+                description="IP/host used by the RWS gripper client.",
+            ),
+            DeclareLaunchArgument(
+                "gripper_publish_rate_hz",
+                default_value="0.0",
+                description="RWS gripper state polling rate. 0 disables polling so commands stay responsive.",
+            ),
+            DeclareLaunchArgument(
+                "gripper_rws_timeout",
+                default_value="0.75",
+                description="HTTP timeout in seconds for RWS gripper reads/writes.",
             ),
             DeclareLaunchArgument(
                 "egm_rx_port",
@@ -227,7 +246,19 @@ def generate_launch_description():
                 executable="gripper_node",
                 name="gripper_node",
                 output="screen",
-                parameters=[{"host": controller_ip}],
+                parameters=[
+                    {
+                        "host": gripper_host,
+                        "publish_rate_hz": ParameterValue(
+                            gripper_publish_rate_hz,
+                            value_type=float,
+                        ),
+                        "timeout": ParameterValue(
+                            gripper_rws_timeout,
+                            value_type=float,
+                        ),
+                    }
+                ],
                 condition=IfCondition(launch_gripper_node),
             ),
             Node(
@@ -270,9 +301,9 @@ def generate_launch_description():
                 condition=IfCondition(launch_object_cloud_bridge),
             ),
             Node(
-                package="robot_voice_interface",
-                executable="voice_command_parser",
-                name="voice_command_parser",
+                package="robot_speech",
+                executable="voice_pipeline_node",
+                name="voice_pipeline_node",
                 output="screen",
             ),
             Node(
