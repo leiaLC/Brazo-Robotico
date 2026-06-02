@@ -7,6 +7,21 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+DEFAULT_REQUIRED_ROS_NODES = ",".join(
+    [
+        "robot_state_publisher",
+        "move_group",
+        "egm_bridge",
+        "egm_moveit_executor",
+        "gripper_node",
+        "gripper_joint_state_publisher",
+        "robot_task_tree",
+        "voice_command_parser",
+        "web_command_bridge",
+        "gamepad_command_bridge",
+    ]
+)
+
 
 class Settings(BaseModel):
     ros_domain_id: str = getenv("ROS_DOMAIN_ID", "0")
@@ -26,6 +41,11 @@ class Settings(BaseModel):
         origin.strip()
         for origin in getenv("FRONTEND_ORIGINS", "http://localhost:3000").split(",")
         if origin.strip()
+    ]
+    required_ros_nodes: list[str] = [
+        node.strip()
+        for node in getenv("ROS_REQUIRED_NODES", DEFAULT_REQUIRED_ROS_NODES).split(",")
+        if node.strip()
     ]
     joint_names: list[str] = [
         "joint_1",

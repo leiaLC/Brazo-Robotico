@@ -49,6 +49,7 @@ ROS_VOICE_START_TOPIC=/voice/start_listening
 ROS_VOICE_STATUS_TOPIC=/voice/status
 ROS_IMAGE_TOPIC=/camera/color/image_raw
 ROS_IMAGE_IS_COMPRESSED=false
+ROS_REQUIRED_NODES=robot_state_publisher,move_group,egm_bridge,egm_moveit_executor,gripper_node,gripper_joint_state_publisher,robot_task_tree,voice_command_parser,web_command_bridge,gamepad_command_bridge
 BACKEND_HOST=0.0.0.0
 BACKEND_PORT=8000
 ```
@@ -69,6 +70,7 @@ python -m app.main
 GET  /health
 GET  /robot/state
 GET  /robot/task-status
+GET  /robot/nodes
 POST /teleop/enable
 POST /teleop/disable
 POST /teleop/joint-target
