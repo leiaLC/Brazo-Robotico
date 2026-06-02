@@ -3,6 +3,7 @@ import json
 import math
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from typing import TypeVar
 
 import cv2
 import numpy as np
@@ -29,6 +30,7 @@ from app.ros_gateway import JointSnapshot, RosGateway
 settings = get_settings()
 gateway = RosGateway(settings)
 pcs: set[RTCPeerConnection] = set()
+QueueItem = TypeVar("QueueItem")
 
 
 def make_waiting_frame() -> np.ndarray:
@@ -92,6 +94,31 @@ def snapshot_to_state(snapshot: JointSnapshot | None) -> RobotState:
         positions_rad=snapshot.positions_rad,
         positions_deg=[math.degrees(value) for value in snapshot.positions_rad],
     )
+
+
+async def wait_for_queue_or_disconnect(
+    websocket: WebSocket,
+    queue: asyncio.Queue[QueueItem],
+) -> QueueItem | None:
+    queue_task = asyncio.create_task(queue.get())
+    receive_task = asyncio.create_task(websocket.receive())
+
+    try:
+        done, _ = await asyncio.wait(
+            {queue_task, receive_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if receive_task in done:
+            message = receive_task.result()
+            if message["type"] == "websocket.disconnect":
+                raise WebSocketDisconnect(code=message.get("code", 1000))
+            return None
+        return queue_task.result()
+    finally:
+        for task in (queue_task, receive_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(queue_task, receive_task, return_exceptions=True)
 
 
 @asynccontextmanager
@@ -286,7 +313,9 @@ async def robot_state_ws(websocket: WebSocket):
         await websocket.send_text(json.dumps(initial))
 
         while True:
-            snapshot = await queue.get()
+            snapshot = await wait_for_queue_or_disconnect(websocket, queue)
+            if snapshot is None:
+                continue
             await websocket.send_text(json.dumps(snapshot_to_state(snapshot).model_dump()))
     except WebSocketDisconnect:
         pass
@@ -328,7 +357,9 @@ async def task_status_ws(websocket: WebSocket):
         await websocket.send_text(json.dumps(initial))
 
         while True:
-            status = await queue.get()
+            status = await wait_for_queue_or_disconnect(websocket, queue)
+            if status is None:
+                continue
             await websocket.send_text(json.dumps(status))
     except WebSocketDisconnect:
         pass
