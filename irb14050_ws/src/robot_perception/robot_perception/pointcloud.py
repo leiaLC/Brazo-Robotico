@@ -24,7 +24,7 @@ import cv2
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, CameraInfo
-from std_msgs.msg import Header
+# from std_msgs.msg import Header
 import sensor_msgs_py.point_cloud2 as pc2
 
 from robot_interfaces.msg import (
