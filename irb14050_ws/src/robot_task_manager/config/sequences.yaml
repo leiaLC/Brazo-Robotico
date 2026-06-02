@@ -4,11 +4,17 @@ home:
     - type: move_joints
       joint_values_deg: [0, 0, 0, 0, 0, 0, 0]
 
-perception:
-  description: "Move to perception pose"
+perception1:
+  description: "Move to diagonal perception pose"
   steps:
     - type: move_joints
-      joint_values_deg: [0, -30, 30, 0, 45, 0, 0]
+      joint_values_deg: [-160, -46, -7, 57, -201, -46, 101]
+
+perception2:
+  description: "Move to upward perception pose"
+  steps:
+    - type: move_joints
+      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
 
 open_gripper:
   description: "Open gripper"
@@ -29,3 +35,38 @@ demo_pick_blue_cube:
       object_class: cube
       object_color: blue
       place_target: box
+# estaban en orden de cable EGM [J1,J2,J3,J4,J5,J6,J7]; aqui se remapearon
+# al orden del arbol de comportamiento [joint_1..joint_7] = EGM [J1,J2,J7,J3,J4,J5,J6].
+pick_place_completo:
+  description: "Complete pick & place: decuoples the disks"
+  steps:
+    - type: move_joints
+      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+    - type: gripper
+      command: open
+    - type: move_joints
+      joint_values_deg: [-11.92, -56.01, -168.39, -11.26, -20.13, 49.00, -84.22]
+    - type: gripper
+      command: close
+    - type: move_joints
+      joint_values_deg: [-14.60, -47.10, -164.99, -9.78, -19.53, 55.62, -84.27]
+    - type: move_joints
+      joint_values_deg: [-54.23, -53.70, -163.97, 26.07, -35.04, 18.09, -104.34]
+    - type: gripper
+      command: open
+    - type: move_joints
+      joint_values_deg: [-17.81, -56.74, -163.99, -20.68, -11.80, 63.76, -93.18]
+    - type: move_joints
+      joint_values_deg: [-13.96, -60.55, -167.99, -14.81, -14.18, 48.58, -87.19]
+    - type: gripper
+      command: close
+    - type: move_joints
+      joint_values_deg: [-15.42, -52.72, -165.82, -13.29, -13.97, 55.14, -87.24]
+    - type: move_joints
+      joint_values_deg: [19.43, -51.30, -166.71, 26.77, -20.30, 22.89, -46.55]
+    - type: gripper
+      command: open
+    - type: move_joints
+      joint_values_deg: [-5.75, 6.51, -168.40, 3.06, 0.70, 19.41, -14.13]
+    - type: gripper
+      command: close

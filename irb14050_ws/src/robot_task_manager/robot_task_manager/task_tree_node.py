@@ -289,6 +289,15 @@ class RobotTaskTreeNode(Node):
         self.blackboard.set(bb_keys.CURRENT_TASK, "")
         self.blackboard.set(bb_keys.XBOX_DEADMAN_PRESSED, False)
         self.blackboard.set(bb_keys.XBOX_DEADMAN_LAST_TIME, 0.0)
+        self.blackboard.set(bb_keys.PAUSED_SEQUENCE_ID, None)
+        self.blackboard.set(bb_keys.PAUSED_SEQUENCE_STEP, 0)
+
+    def _bb_get(self, key, default=None):
+        """Safe blackboard read: the raw py_trees Blackboard.get() takes no
+        default and raises KeyError if the key was never set."""
+        if py_trees.blackboard.Blackboard.exists(key):
+            return self.blackboard.get(key)
+        return default
 
     def _initialise_tf(self) -> None:
         self.tf_buffer = None
@@ -365,15 +374,60 @@ class RobotTaskTreeNode(Node):
 
         if command.command_type == "RESUME":
             self.blackboard.set(bb_keys.ESTOP_ACTIVE, False)
-            self.blackboard.set(bb_keys.CURRENT_COMMAND, None)
-            self.blackboard.set(bb_keys.CURRENT_MODE, "IDLE")
-            self.blackboard.set(bb_keys.STATUS_TEXT, "Resumed")
+            paused_id = self._bb_get(bb_keys.PAUSED_SEQUENCE_ID, None)
+            paused_step = self._bb_get(bb_keys.PAUSED_SEQUENCE_STEP, None)
+
+            if paused_id:
+                # Reconstruimos un RUN_SEQUENCE para esa secuencia. El campo
+                # PAUSED_SEQUENCE_STEP queda en el blackboard para que
+                # ExecuteSequence.initialise() lo consuma.
+                from robot_task_msgs.msg import RobotCommand
+                resumed = RobotCommand()
+                resumed.header.stamp = self.get_clock().now().to_msg()
+                resumed.source = "web"
+                resumed.command_type = "RUN_SEQUENCE"
+                resumed.sequence_id = paused_id
+                resumed.priority = 90.0
+                self.blackboard.set(bb_keys.CURRENT_COMMAND, resumed)
+                self.blackboard.set(bb_keys.CURRENT_MODE, "WEB_SEQUENCE")
+                self.blackboard.set(
+                    bb_keys.STATUS_TEXT, f"Resuming sequence '{paused_id}' from step {paused_step}"
+                )
+                # Limpiamos el id pero NO el step — el step lo limpia ExecuteSequence
+                # cuando lo consume en initialise().
+                self.blackboard.set(bb_keys.PAUSED_SEQUENCE_ID, None)
+                self.get_logger().info(
+                    f"Resuming sequence '{paused_id}' from step {paused_step}"
+                )
+            else:
+                # Comportamiento original: solo salir de ESTOP
+                self.blackboard.set(bb_keys.CURRENT_COMMAND, None)
+                self.blackboard.set(bb_keys.CURRENT_MODE, "IDLE")
+                self.blackboard.set(bb_keys.STATUS_TEXT, "Resumed")
+                self.get_logger().info("Resumed from ESTOP/paused state")
             self.blackboard.set(bb_keys.ERROR_CODE, "")
             self.publish_zero_twist()
-            self.get_logger().info("Resumed from ESTOP/paused state")
             return
 
         if command.command_type == "PAUSE":
+            # Si hay una secuencia en curso, guardamos su id y el paso actual
+            # para poder reanudarla con RESUME.
+            current = self.blackboard.get(bb_keys.CURRENT_COMMAND)
+            if (
+                current is not None
+                and current.command_type == "RUN_SEQUENCE"
+                and current.sequence_id
+            ):
+                # Pedimos al ExecuteSequence behavior que reporte su _index actual
+                # vía un blackboard intermedio. Como el behavior se invalidará al
+                # borrar CURRENT_COMMAND, leemos PAUSED_SEQUENCE_STEP directo del
+                # blackboard donde el behavior lo escribe en cada update().
+                last_step = int(self._bb_get(bb_keys.PAUSED_SEQUENCE_STEP, 0) or 0)
+                self.blackboard.set(bb_keys.PAUSED_SEQUENCE_ID, current.sequence_id)
+                self.blackboard.set(bb_keys.PAUSED_SEQUENCE_STEP, last_step)
+                self.get_logger().info(
+                    f"Pausing sequence '{current.sequence_id}' at step {last_step}"
+                )
             self.blackboard.set(bb_keys.CURRENT_COMMAND, None)
             self.blackboard.set(bb_keys.STATUS_TEXT, "Paused")
             self.publish_zero_twist()
@@ -383,6 +437,9 @@ class RobotTaskTreeNode(Node):
         if self.blackboard.get(bb_keys.ESTOP_ACTIVE) and command.command_type not in {"ESTOP", "CANCEL"}:
             self.get_logger().warn("Ignoring command while ESTOP is active; send RESUME first")
             self.blackboard.set(bb_keys.STATUS_TEXT, "ESTOP active; command ignored")
+            # Si había una secuencia pausada y el usuario aborta, descartar el estado
+            self.blackboard.set(bb_keys.PAUSED_SEQUENCE_ID, None)
+            self.blackboard.set(bb_keys.PAUSED_SEQUENCE_STEP, 0)
             return
 
         if command.command_type == "WEB_TELEOP":
@@ -399,6 +456,14 @@ class RobotTaskTreeNode(Node):
         if command.command_type == "ESTOP":
             self.blackboard.set(bb_keys.ESTOP_ACTIVE, True)
             self.publish_zero_twist()
+
+        # Un RUN_SEQUENCE que llega hasta aqui es un arranque fresco (el RESUME
+        # retorna antes y reconstruye su propio comando). Reseteamos el estado
+        # de pausa para que la secuencia empiece desde el paso 0 y no herede un
+        # paso pausado de una corrida anterior.
+        if command.command_type == "RUN_SEQUENCE":
+            self.blackboard.set(bb_keys.PAUSED_SEQUENCE_ID, None)
+            self.blackboard.set(bb_keys.PAUSED_SEQUENCE_STEP, 0)
 
         self.blackboard.set(bb_keys.CURRENT_COMMAND, command)
         self.blackboard.set(bb_keys.CURRENT_MODE, mode_for_command(command))

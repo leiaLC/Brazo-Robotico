@@ -33,3 +33,7 @@ JOINT_STATE_DEG = "joint_state_deg"
 WEB_LAST_HEARTBEAT_TIME = "web_last_heartbeat_time"
 XBOX_DEADMAN_PRESSED = "xbox_deadman_pressed"
 XBOX_DEADMAN_LAST_TIME = "xbox_deadman_last_time"
+
+# Paused sequence state — set on PAUSE, consumed on RESUME
+PAUSED_SEQUENCE_ID = "paused_sequence_id"
+PAUSED_SEQUENCE_STEP = "paused_sequence_step"

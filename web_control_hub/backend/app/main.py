@@ -324,6 +324,15 @@ def resume_task():
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {"ok": True}
+    
+
+@app.post("/task/pause")
+def pause_task():
+    try:
+        gateway.publish_task_command("PAUSE")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"ok": True}
 
 
 @app.websocket("/ws/robot-state")
