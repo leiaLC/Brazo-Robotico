@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Guia tecnica del proyecto Brazo Robotico ABB IRB 14050</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 1.5cm;
+    }
+    body {
+      font-family: "Liberation Sans", Arial, sans-serif;
+      color: #161616;
+      line-height: 1.45;
+      font-size: 10.5pt;
+    }
+    h1, h2, h3, h4 {
+      color: #003c69;
+      line-height: 1.15;
+      page-break-after: avoid;
+    }
+    h1 {
+      font-size: 24pt;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 17pt;
+      margin-top: 28px;
+      border-bottom: 1px solid #b7c9d8;
+      padding-bottom: 4px;
+    }
+    h3 {
+      font-size: 13pt;
+      margin-top: 20px;
+    }
+    h4 {
+      font-size: 11pt;
+      margin-top: 14px;
+    }
+    p {
+      margin: 7px 0;
+    }
+    .cover {
+      min-height: 760px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      page-break-after: always;
+    }
+    .cover .subtitle {
+      font-size: 14pt;
+      color: #404040;
+      margin-top: 14px;
+    }
+    .cover .meta {
+      margin-top: 40px;
+      font-size: 11pt;
+    }
+    .note, .warning, .ok {
+      border-left: 5px solid #003c69;
+      background: #eef6fb;
+      padding: 10px 12px;
+      margin: 12px 0;
+    }
+    .warning {
+      border-color: #a33a00;
+      background: #fff4eb;
+    }
+    .ok {
+      border-color: #167a3d;
+      background: #effaf3;
+    }
+    code {
+      font-family: "Liberation Mono", Consolas, monospace;
+      font-size: 9.4pt;
+      color: #111;
+    }
+    pre {
+      font-family: "Liberation Mono", Consolas, monospace;
+      font-size: 8.6pt;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 4px;
+      padding: 10px;
+      white-space: pre-wrap;
+      page-break-inside: avoid;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #c8d2dc;
+      padding: 6px 7px;
+      vertical-align: top;
+    }
+    th {
+      background: #e8f1f8;
+      color: #003c69;
+      font-weight: 700;
+    }
+    ul, ol {
+      margin-top: 6px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .toc li {
+      margin-bottom: 7px;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>Guia tecnica del proyecto<br>Brazo Robotico ABB IRB 14050</h1>
+    <p class="subtitle">
+      Workspace ROS 2, behavior tree, simulacion Gazebo, control web,
+      gamepad, EGM, Jetson y computadora de vision/voz.
+    </p>
+    <div class="meta">
+      <p><strong>Repositorio:</strong> Brazo-Robotico</p>
+      <p><strong>Workspace ROS:</strong> <code>irb14050_ws</code></p>
+      <p><strong>Aplicacion web:</strong> <code>web_control_hub</code></p>
+      <p><strong>Objetivo:</strong> entender como se comunican todos los componentes para poder operar, depurar y presentar el sistema.</p>
+    </div>
+  </section>
+
+  <h2>Indice</h2>
+  <ol class="toc">
+    <li>Resumen del sistema</li>
+    <li>Estructura del repositorio</li>
+    <li>Conceptos base: ROS 2, nodos, topicos, mensajes y actions</li>
+    <li>Mapa de conexiones fundamentales</li>
+    <li>Arquitectura completa en laptop con simulacion</li>
+    <li>Arquitectura distribuida: Jetson + computadora con GPU</li>
+    <li>Behavior tree: el cerebro del robot</li>
+    <li>Backend FastAPI y ROS gateway</li>
+    <li>Frontend Next.js</li>
+    <li>Control por gamepad tipo Xbox</li>
+    <li>EGM, MoveIt y robot real</li>
+    <li>Vision, voz y percepcion 3D</li>
+    <li>Comandos para lanzar cada perfil</li>
+    <li>Comandos de diagnostico</li>
+    <li>Errores comunes</li>
+    <li>Checklist de presentacion</li>
+    <li>Resumen final</li>
+  </ol>
+
+  <h2>1. Resumen del sistema</h2>
+  <p>
+    El proyecto integra un brazo ABB IRB 14050 con una interfaz web, un
+    backend, un behavior tree en ROS 2, una simulacion en Gazebo, comunicacion
+    EGM para el robot real, comandos de voz, vision con YOLO/RealSense y
+    control por gamepad tipo Xbox.
+  </p>
+  <p>
+    La idea central es que <strong>todas las ordenes importantes se convierten
+    en un mensaje comun</strong>: <code>robot_task_msgs/msg/RobotCommand</code>.
+    Ese mensaje llega al nodo <code>robot_task_tree</code>, que funciona como
+    arbitro y cerebro. El behavior tree decide si acepta la orden, si el robot
+    esta ocupado, si hay paro de emergencia, si se puede teleoperar, si hay
+    detecciones de vision disponibles y cual backend de movimiento se debe usar.
+  </p>
+
+  <div class="note">
+    <strong>Frase para explicar a profesores:</strong>
+    El sistema no deja que cada interfaz controle el robot por su cuenta.
+    Web, voz, secuencias y gamepad pasan por el mismo behavior tree. Eso da un
+    punto unico de seguridad, arbitraje, estado y ejecucion.
+  </div>
+
+  <h3>Flujo conceptual</h3>
+  <pre>
+Usuario
+  |
+  |-- Frontend web -------------\
+  |-- Voz / texto ---------------+--> RobotCommand --> behavior tree --> backend de movimiento
+  |-- Gamepad tipo Xbox --------/                         |
+                                                           |-- Gazebo + MoveIt, en laptop
+                                                           |-- EGM + MoveIt, en robot real
+                                                           |-- EGM directo, modo ligero
+                                                           |
+                                                           +--> RobotStatus --> web/back/status
+  </pre>
+
+  <h2>2. Estructura del repositorio</h2>
+  <p>El repositorio esta dividido en dos grandes partes:</p>
+  <ul>
+    <li><code>irb14050_ws</code>: workspace ROS 2 con paquetes del robot, behavior tree, mensajes, EGM, Gazebo, percepcion, voz y gamepad.</li>
+    <li><code>web_control_hub</code>: aplicacion web con frontend Next.js y backend FastAPI.</li>
+  </ul>
+
+  <h3>Paquetes ROS mas importantes</h3>
+  <table>
+    <tr>
+      <th>Paquete</th>
+      <th>Responsabilidad</th>
+    </tr>
+    <tr>
+      <td><code>robot_task_msgs</code></td>
+      <td>Define mensajes y actions comunes: <code>RobotCommand</code>, <code>RobotStatus</code>, <code>Detection3D</code>, <code>MoveJoint</code>.</td>
+    </tr>
+    <tr>
+      <td><code>robot_task_manager</code></td>
+      <td>Contiene el behavior tree, nodos auxiliares, launch files y configuraciones de secuencias.</td>
+    </tr>
+    <tr>
+      <td><code>robot_web_interface</code></td>
+      <td>Puente ROS que convierte topicos web como <code>/web/teleop_twist</code> y <code>/web/sequence_id</code> en <code>RobotCommand</code>.</td>
+    </tr>
+    <tr>
+      <td><code>robot_voice_interface</code></td>
+      <td>Parser de comandos de voz/texto. Publica <code>RobotCommand</code> a partir de frases como "agarra el cubo azul" o "paro de emergencia".</td>
+    </tr>
+    <tr>
+      <td><code>robot_xbox_teleop</code></td>
+      <td>Lee <code>sensor_msgs/Joy</code> desde <code>joy_node</code> y publica teleop seguro como <code>XBOX_TELEOP</code>.</td>
+    </tr>
+    <tr>
+      <td><code>abb_irb14050_egm</code></td>
+      <td>Comunicacion real con el controlador ABB por EGM, gripper por RWS, ejecutores para MoveIt y nodos ligeros para Jetson.</td>
+    </tr>
+    <tr>
+      <td><code>abb_irb14050_gazebo</code></td>
+      <td>Lanza Gazebo y el robot simulado con controladores.</td>
+    </tr>
+    <tr>
+      <td><code>abb_irb14050_moveit_config</code></td>
+      <td>Configuracion MoveIt: SRDF, kinematics, controladores y planning group.</td>
+    </tr>
+    <tr>
+      <td><code>robot_perception</code></td>
+      <td>YOLO, mascara, point cloud y centroides 3D para detectar objetos.</td>
+    </tr>
+    <tr>
+      <td><code>realsense_d415_bringup</code></td>
+      <td>Launch y parametros de la RealSense D415.</td>
+    </tr>
+  </table>
+
+  <h2>3. Conceptos base de ROS 2 usados en este proyecto</h2>
+  <h3>Nodo</h3>
+  <p>
+    Un nodo es un proceso ROS. Por ejemplo, <code>robot_task_tree</code>,
+    <code>web_command_bridge</code>, <code>egm_bridge</code>,
+    <code>gamepad_command_bridge</code> y <code>move_group</code> son nodos.
+  </p>
+
+  <h3>Topico</h3>
+  <p>
+    Un topico es un canal de comunicacion asincorono. Un nodo publica y otro
+    se suscribe. Ejemplo: el backend publica un <code>Twist</code> en
+    <code>/web/teleop_twist</code>; <code>web_command_bridge</code> se suscribe
+    y lo convierte a <code>RobotCommand</code>.
+  </p>
+
+  <h3>Action</h3>
+  <p>
+    Un action es para tareas que tardan y tienen feedback. MoveIt y el nodo
+    <code>MoveJoint</code> usan actions porque mover el brazo puede tardar
+    segundos y puede cancelarse.
+  </p>
+
+  <h3>Mensajes centrales</h3>
+  <table>
+    <tr>
+      <th>Mensaje</th>
+      <th>Uso</th>
+    </tr>
+    <tr>
+      <td><code>RobotCommand</code></td>
+      <td>Entrada comun al behavior tree. Indica tipo de comando, prioridad, fuente, joint values, secuencia, twist de teleop, etc.</td>
+    </tr>
+    <tr>
+      <td><code>RobotStatus</code></td>
+      <td>Salida comun del behavior tree. Informa modo actual, progreso, si hay ESTOP, si el brazo esta ocupado, texto de estado y errores.</td>
+    </tr>
+    <tr>
+      <td><code>Detection3D</code></td>
+      <td>Representa un objeto detectado con clase, color, confianza y pose 3D.</td>
+    </tr>
+    <tr>
+      <td><code>MoveJoint.action</code></td>
+      <td>Action simple para mover a un vector de 7 articulaciones cuando no se quiere usar MoveIt directamente.</td>
+    </tr>
+  </table>
+
+  <h2>4. Mapa de conexiones fundamentales</h2>
+  <p>
+    Esta tabla resume las conexiones que hacen que el sistema realmente se
+    comunique. Si algo falla, normalmente se depura siguiendo estas rutas.
+  </p>
+
+  <table>
+    <tr>
+      <th>Ruta</th>
+      <th>Publica</th>
+      <th>Topico/API</th>
+      <th>Consume</th>
+      <th>Resultado</th>
+    </tr>
+    <tr>
+      <td>Frontend a backend</td>
+      <td>Next.js</td>
+      <td><code>HTTP http://localhost:8000</code>, <code>WebSocket /ws/*</code></td>
+      <td>FastAPI</td>
+      <td>El operador puede mandar comandos y recibir estado en tiempo real.</td>
+    </tr>
+    <tr>
+      <td>Backend a ROS</td>
+      <td><code>RosGateway</code></td>
+      <td><code>/web/teleop_twist</code>, <code>/web/sequence_id</code>, <code>/voice/text</code>, <code>/robot_task/command</code></td>
+      <td>ROS graph</td>
+      <td>La API web entra al mundo ROS 2.</td>
+    </tr>
+    <tr>
+      <td>Web bridge a BT</td>
+      <td><code>web_command_bridge</code></td>
+      <td><code>/robot_task/command</code></td>
+      <td><code>robot_task_tree</code></td>
+      <td>Teleop y secuencias web se convierten a <code>RobotCommand</code>.</td>
+    </tr>
+    <tr>
+      <td>Voz a BT</td>
+      <td><code>voice_command_parser</code></td>
+      <td><code>/robot_task/command</code></td>
+      <td><code>robot_task_tree</code></td>
+      <td>Frases parseadas se vuelven comandos de movimiento, pick, cancel, ESTOP o RESUME.</td>
+    </tr>
+    <tr>
+      <td>Gamepad a BT</td>
+      <td><code>gamepad_command_bridge</code></td>
+      <td><code>/robot_task/command</code> y <code>/xbox/deadman</code></td>
+      <td><code>robot_task_tree</code></td>
+      <td>Teleop con deadman y botones de seguridad.</td>
+    </tr>
+    <tr>
+      <td>BT a web</td>
+      <td><code>robot_task_tree</code></td>
+      <td><code>/robot_task/status</code></td>
+      <td><code>RosGateway</code> y frontend por WebSocket</td>
+      <td>Barra de progreso, modo, errores, ESTOP activo y estado del brazo.</td>
+    </tr>
+    <tr>
+      <td>BT a Gazebo</td>
+      <td><code>robot_task_tree</code> / MoveIt</td>
+      <td>Actions de MoveIt y controladores Gazebo</td>
+      <td>Gazebo controllers</td>
+      <td>El robot simulado se mueve.</td>
+    </tr>
+    <tr>
+      <td>BT a robot real</td>
+      <td><code>robot_task_tree</code> / MoveIt / EGM directo</td>
+      <td><code>/joint_command</code></td>
+      <td><code>egm_bridge</code></td>
+      <td>El controlador ABB recibe setpoints por EGM.</td>
+    </tr>
+    <tr>
+      <td>Percepcion a BT</td>
+      <td><code>object_cloud_bridge</code></td>
+      <td><code>/perception/detections_3d</code></td>
+      <td><code>robot_task_tree</code></td>
+      <td>Pick/place puede seleccionar objetos detectados.</td>
+    </tr>
+  </table>
+
+  <h3>Variables de entorno utiles</h3>
+  <table>
+    <tr>
+      <th>Variable</th>
+      <th>Donde se usa</th>
+      <th>Ejemplo</th>
+    </tr>
+    <tr>
+      <td><code>ROS_DOMAIN_ID</code></td>
+      <td>ROS 2 DDS entre laptop, Jetson y GPU PC.</td>
+      <td><code>export ROS_DOMAIN_ID=14</code></td>
+    </tr>
+    <tr>
+      <td><code>NEXT_PUBLIC_BACKEND_URL</code></td>
+      <td>Frontend Next.js para saber a que backend llamar.</td>
+      <td><code>NEXT_PUBLIC_BACKEND_URL=http://192.168.125.5:8000</code></td>
+    </tr>
+    <tr>
+      <td><code>ROS_IMAGE_TOPIC</code></td>
+      <td>Backend FastAPI si se quiere transmitir imagen al frontend.</td>
+      <td><code>ROS_IMAGE_TOPIC=/camera/color/image_raw</code></td>
+    </tr>
+    <tr>
+      <td><code>FRONTEND_ORIGINS</code></td>
+      <td>CORS del backend.</td>
+      <td><code>FRONTEND_ORIGINS=http://localhost:3000</code></td>
+    </tr>
+  </table>
+
+  <h2>5. Arquitectura completa en laptop con simulacion</h2>
+  <p>
+    En la laptop se corre el sistema completo para desarrollo: Gazebo,
+    MoveIt, behavior tree, web bridge, voz, backend y frontend. Este perfil
+    sirve para probar sin robot fisico.
+  </p>
+  <pre>
+Frontend Next.js (localhost:3000)
+  |
+  | HTTP/WebSocket
+  v
+Backend FastAPI (localhost:8000)
+  |
+  | ROS publishers/subscribers via rclpy
+  v
+ROS graph
+  |
+  | /web/teleop_twist, /web/sequence_id, /voice/text
+  v
+web_command_bridge / voice_command_parser
+  |
+  | /robot_task/command
+  v
+robot_task_tree (behavior tree)
+  |
+  | MoveIt actions / gripper trajectory / servo topics
+  v
+Gazebo + MoveIt + controllers
+  </pre>
+
+  <h3>Launch principal para laptop</h3>
+  <p>
+    Archivo: <code>irb14050_ws/src/robot_task_manager/launch/full_system_gazebo.launch.py</code>
+  </p>
+  <p>Este launch inicia:</p>
+  <ul>
+    <li>Gazebo con el ABB IRB 14050 simulado.</li>
+    <li>MoveIt para planificar y ejecutar trayectorias.</li>
+    <li><code>robot_task_tree</code> como cerebro.</li>
+    <li><code>web_command_bridge</code>.</li>
+    <li><code>voice_command_parser</code>.</li>
+    <li>Opcionalmente el puente de gamepad.</li>
+  </ul>
+
+  <h2>6. Arquitectura distribuida: Jetson + computadora con GPU</h2>
+  <p>
+    Para el robot real, la arquitectura se divide por carga computacional y
+    latencia:
+  </p>
+  <ul>
+    <li><strong>Jetson Orin NX 8GB:</strong> behavior tree, EGM, gripper, teleop/gamepad, web bridge y opcionalmente MoveIt headless.</li>
+    <li><strong>Computadora con GPU:</strong> RealSense, YOLO, pointcloud, voz y conversion de detecciones 3D.</li>
+  </ul>
+
+  <pre>
+Computadora GPU                              Jetson Orin NX
+-----------------------------                -----------------------------
+RealSense D415                               robot_task_tree
+yolo_node                                    egm_bridge
+pointcloud_node                              egm_moveit_executor o egm_direct
+voice_command_parser                         egm_joint_jog_servo
+object_cloud_bridge                          gamepad_command_bridge + joy_node
+        |                                             |
+        | ROS_DOMAIN_ID compartido                    | EGM UDP/RWS
+        +-------------------- ROS 2 DDS --------------+----> ABB controller
+  </pre>
+
+  <div class="warning">
+    <strong>Importante:</strong> ambas computadoras deben estar en la misma red
+    y con el mismo <code>ROS_DOMAIN_ID</code>. Si no, los topicos ROS 2 no se
+    descubren entre maquinas.
+  </div>
+
+  <h2>7. Behavior tree: el cerebro del robot</h2>
+  <p>
+    El nodo principal es <code>robot_task_tree</code>. Esta en:
+    <code>robot_task_manager/robot_task_manager/task_tree_node.py</code>.
+    Su trabajo no es solo ejecutar, sino tambien decidir que comandos acepta y
+    en que orden.
+  </p>
+
+  <h3>Responsabilidades principales</h3>
+  <ul>
+    <li>Suscribirse a <code>/robot_task/command</code>.</li>
+    <li>Suscribirse a <code>/perception/detections_3d</code>.</li>
+    <li>Suscribirse a <code>/web/heartbeat</code> para teleop web.</li>
+    <li>Suscribirse a <code>/xbox/deadman</code> para teleop por gamepad.</li>
+    <li>Publicar estado en <code>/robot_task/status</code>.</li>
+    <li>Publicar comandos de gripper en <code>/gripper/command</code>.</li>
+    <li>Publicar teleop en <code>/servo/twist_cmd</code>.</li>
+    <li>Usar MoveIt, acciones o simulacion segun el backend configurado.</li>
+  </ul>
+
+  <h3>Fragmento representativo</h3>
+  <pre>
+self.command_sub = self.create_subscription(
+    RobotCommand,
+    "/robot_task/command",
+    self._command_callback,
+    10,
+)
+
+self.status_pub = self.create_publisher(
+    RobotStatus,
+    "/robot_task/status",
+    10,
+)
+  </pre>
+
+  <h3>Tipos de comando</h3>
+  <table>
+    <tr>
+      <th>command_type</th>
+      <th>Origen comun</th>
+      <th>Que hace</th>
+    </tr>
+    <tr>
+      <td><code>WEB_TELEOP</code></td>
+      <td>Frontend/backend/web bridge</td>
+      <td>Stream de teleoperacion desde la interfaz web.</td>
+    </tr>
+    <tr>
+      <td><code>XBOX_TELEOP</code></td>
+      <td>Gamepad</td>
+      <td>Teleoperacion segura con deadman.</td>
+    </tr>
+    <tr>
+      <td><code>MOVE_JOINT</code></td>
+      <td>Web, voz o backend</td>
+      <td>Mueve una articulacion o un vector completo de 7 joints.</td>
+    </tr>
+    <tr>
+      <td><code>RUN_SEQUENCE</code></td>
+      <td>Frontend de secuencias</td>
+      <td>Carga y ejecuta una rutina definida en YAML.</td>
+    </tr>
+    <tr>
+      <td><code>PICK_OBJECT</code></td>
+      <td>Voz/percepcion</td>
+      <td>Selecciona un objeto detectado y ejecuta pick/place.</td>
+    </tr>
+    <tr>
+      <td><code>ESTOP</code></td>
+      <td>Web, voz o gamepad</td>
+      <td>Activa paro de emergencia logico y detiene el movimiento.</td>
+    </tr>
+    <tr>
+      <td><code>RESUME</code></td>
+      <td>Web, voz o gamepad</td>
+      <td>Libera el estado de paro de emergencia logico.</td>
+    </tr>
+    <tr>
+      <td><code>CANCEL</code></td>
+      <td>Web, voz o gamepad</td>
+      <td>Cancela tarea activa y vuelve a estado seguro.</td>
+    </tr>
+  </table>
+
+  <h3>Arbitraje y seguridad</h3>
+  <p>
+    El archivo <code>command_utils.py</code> define prioridades. La idea es que
+    comandos criticos como <code>ESTOP</code> y <code>CANCEL</code> puedan
+    preemptar. Teleop tiene prioridad alta, y comandos largos como secuencias
+    o pick/place se bloquean si el brazo esta ocupado.
+  </p>
+  <pre>
+COMMAND_PRIORITY_RANK = {
+    "ESTOP": 1,
+    "CANCEL": 1,
+    "XBOX_TELEOP": 2,
+    "WEB_TELEOP": 3,
+    "MOVE_JOINT": 4,
+    "RUN_SEQUENCE": 5,
+    "PICK_OBJECT": 6,
+}
+  </pre>
+
+  <h2>8. Backend FastAPI y ROS gateway</h2>
+  <p>
+    El backend vive en <code>web_control_hub/backend/app</code>. Es una API
+    HTTP/WebSocket que traduce acciones del frontend a publicaciones ROS.
+    La clase clave es <code>RosGateway</code>, que crea un nodo ROS dentro del
+    proceso de FastAPI.
+  </p>
+
+  <h3>Endpoints importantes</h3>
+  <table>
+    <tr>
+      <th>Endpoint</th>
+      <th>Metodo</th>
+      <th>Uso</th>
+    </tr>
+    <tr>
+      <td><code>/health</code></td>
+      <td>GET</td>
+      <td>Verifica si el backend esta vivo y muestra topicos configurados.</td>
+    </tr>
+    <tr>
+      <td><code>/robot/state</code></td>
+      <td>GET</td>
+      <td>Devuelve ultima lectura de <code>/joint_states</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/robot/task-status</code></td>
+      <td>GET</td>
+      <td>Devuelve ultimo <code>/robot_task/status</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/teleop/enable</code>, <code>/teleop/disable</code></td>
+      <td>POST</td>
+      <td>Habilita o deshabilita teleoperacion desde backend.</td>
+    </tr>
+    <tr>
+      <td><code>/teleop/joint-target</code></td>
+      <td>POST</td>
+      <td>Envia objetivo completo de joints como <code>MOVE_JOINT</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/teleop/twist</code></td>
+      <td>POST</td>
+      <td>Publica un <code>Twist</code> en <code>/web/teleop_twist</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/teleop/gripper</code></td>
+      <td>POST</td>
+      <td>Ejecuta secuencia <code>open_gripper</code> o <code>close_gripper</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/sequence/run</code></td>
+      <td>POST</td>
+      <td>Publica el ID de secuencia en <code>/web/sequence_id</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/task/estop</code></td>
+      <td>POST</td>
+      <td>Publica <code>RobotCommand(command_type="ESTOP")</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/task/resume</code></td>
+      <td>POST</td>
+      <td>Publica <code>RobotCommand(command_type="RESUME")</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/ws/robot-state</code></td>
+      <td>WebSocket</td>
+      <td>Stream de estado de joints al frontend.</td>
+    </tr>
+    <tr>
+      <td><code>/ws/task-status</code></td>
+      <td>WebSocket</td>
+      <td>Stream de estado del behavior tree al frontend.</td>
+    </tr>
+  </table>
+
+  <h3>Ejemplo: gripper desde el frontend</h3>
+  <pre>
+Frontend button
+  -> POST /teleop/gripper {"command": "open"}
+  -> backend RosGateway.publish_gripper_sequence("open")
+  -> publica /web/sequence_id = "open_gripper"
+  -> web_command_bridge crea RobotCommand RUN_SEQUENCE
+  -> robot_task_tree carga secuencia open_gripper
+  -> publish_gripper_command("open")
+  -> /gripper/command
+  </pre>
+
+  <h2>9. Frontend Next.js</h2>
+  <p>
+    El frontend vive en <code>web_control_hub/src</code>. Es la interfaz que
+    el operador usa para teleoperar, lanzar secuencias, ver estado y enviar
+    paro de emergencia.
+  </p>
+
+  <h3>Vistas principales</h3>
+  <table>
+    <tr>
+      <th>Ruta</th>
+      <th>Funcion</th>
+    </tr>
+    <tr>
+      <td><code>/teleoperation</code></td>
+      <td>Panel para habilitar teleop, mandar objetivos de joints y abrir/cerrar gripper.</td>
+    </tr>
+    <tr>
+      <td><code>/sequences</code></td>
+      <td>Lanzar rutinas y ver progreso real usando <code>/ws/task-status</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/vision-voice</code></td>
+      <td>Interfaz para comandos de voz/texto y vision.</td>
+    </tr>
+    <tr>
+      <td>AppShell global</td>
+      <td>Contiene navegacion y boton global <code>Emergency Stop</code>/<code>Resume System</code>.</td>
+    </tr>
+  </table>
+
+  <h3>Boton de emergencia global</h3>
+  <p>
+    El componente <code>app-shell.tsx</code> escucha
+    <code>/ws/task-status</code>. Si <code>estop_active</code> es verdadero,
+    el boton cambia a <code>Resume System</code>; si no, muestra
+    <code>Emergency Stop</code>.
+  </p>
+
+  <h2>10. Control por gamepad tipo Xbox</h2>
+  <p>
+    El paquete <code>robot_xbox_teleop</code> convierte mensajes
+    <code>/joy</code> a comandos del behavior tree. El nodo nuevo es
+    <code>gamepad_command_bridge</code>.
+  </p>
+
+  <h3>Flujo</h3>
+  <pre>
+Control fisico
+  -> Linux /dev/input/js0
+  -> joy_node
+  -> /joy (sensor_msgs/Joy)
+  -> gamepad_command_bridge
+  -> /robot_task/command (XBOX_TELEOP)
+  -> /xbox/deadman (Bool)
+  -> robot_task_tree
+  -> /servo/twist_cmd
+  -> Gazebo servo simulado o egm_joint_jog_servo en Jetson
+  </pre>
+
+  <h3>Concepto de deadman</h3>
+  <p>
+    El deadman es un boton que se debe mantener presionado para que el robot se
+    mueva. Si se suelta, el sistema publica cero y el behavior tree deja de
+    transmitir teleop. En la config Jetson se usan por default <code>LB</code>
+    o <code>RB</code>.
+  </p>
+
+  <h3>Config importante</h3>
+  <ul>
+    <li><code>config/gamepad.yaml</code>: perfil generico para laptop.</li>
+    <li><code>config/gamepad_jetson.yaml</code>: perfil de Jetson con botones de ESTOP, RESUME y gripper.</li>
+  </ul>
+
+  <h2>11. EGM, MoveIt y robot real</h2>
+  <p>
+    EGM es la comunicacion de baja latencia con el controlador ABB. El nodo
+    <code>egm_bridge</code> habla por UDP con el robot. Publica
+    <code>/joint_states</code> y recibe <code>/joint_command</code>.
+  </p>
+
+  <h3>Flujo real con MoveIt</h3>
+  <pre>
+robot_task_tree
+  -> MoveIt move_group action
+  -> FollowJointTrajectory
+  -> egm_moveit_executor
+  -> /joint_command
+  -> egm_bridge
+  -> UDP EGM
+  -> ABB controller
+  </pre>
+
+  <h3>Flujo ligero egm_direct</h3>
+  <pre>
+robot_task_tree
+  -> MoveJoint.action /arm/move_joint
+  -> egm_move_joint_action_server
+  -> /joint_command
+  -> egm_bridge
+  -> ABB controller
+  </pre>
+
+  <h3>Teleop en Jetson</h3>
+  <pre>
+gamepad_command_bridge
+  -> XBOX_TELEOP
+  -> robot_task_tree
+  -> /servo/twist_cmd
+  -> egm_joint_jog_servo
+  -> /joint_command
+  -> egm_bridge
+  </pre>
+
+  <div class="warning">
+    <strong>Seguridad:</strong> EGM envia comandos reales al robot. Antes de
+    probar, confirmar area despejada, velocidad baja, deadman funcionando,
+    ESTOP fisico disponible y RAPID/EGM configurado hacia la IP correcta de la Jetson.
+  </div>
+
+  <h2>12. Vision, voz y percepcion 3D</h2>
+  <p>
+    La percepcion esta pensada para correr en la computadora con GPU. La
+    Jetson recibe resultados ya procesados por ROS 2.
+  </p>
+
+  <h3>Vision</h3>
+  <pre>
+RealSense D415
+  -> /camera/camera/color/image_raw
+  -> yolo_node
+  -> /perception/detections
+  -> pointcloud_node + /camera/camera/depth/color/points
+  -> /perception/object_clouds
+  -> object_cloud_bridge
+  -> /perception/detections_3d
+  -> robot_task_tree
+  </pre>
+
+  <h3>Voz</h3>
+  <pre>
+Texto de voz o input manual
+  -> /voice/text
+  -> voice_command_parser
+  -> /robot_task/command
+  -> robot_task_tree
+  </pre>
+
+  <h2>13. Comandos para lanzar cada perfil</h2>
+
+  <h3>Preparacion comun</h3>
+  <pre>
+cd ~/Brazo-Robotico/irb14050_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+  </pre>
+
+  <h3>Laptop: simulacion completa con Gazebo</h3>
+  <pre>
+cd ~/Brazo-Robotico/irb14050_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 launch robot_task_manager full_system_gazebo.launch.py \
+  launch_rviz:=false \
+  render_engine:=ogre
+  </pre>
+
+  <h3>Laptop con control conectado</h3>
+  <pre>
+ros2 launch robot_task_manager full_system_gazebo.launch.py \
+  launch_rviz:=false \
+  render_engine:=ogre \
+  launch_gamepad_joy:=true \
+  joy_dev:=/dev/input/js0
+  </pre>
+
+  <h3>Backend web</h3>
+  <pre>
+cd ~/Brazo-Robotico/web_control_hub
+source ~/Brazo-Robotico/irb14050_ws/install/setup.bash
+
+python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+  </pre>
+
+  <h3>Frontend apuntando a backend en otra maquina</h3>
+  <pre>
+cd ~/Brazo-Robotico/web_control_hub
+
+# Ejemplo: backend corriendo en la Jetson o en otra laptop
+export NEXT_PUBLIC_BACKEND_URL=http://192.168.125.5:8000
+
+PATH="$HOME/.local/node/current/bin:$PATH" npm run dev
+  </pre>
+
+  <h3>Frontend web</h3>
+  <pre>
+cd ~/Brazo-Robotico/web_control_hub
+PATH="$HOME/.local/node/current/bin:$PATH" npm run dev
+
+# Abrir en navegador:
+# http://localhost:3000
+  </pre>
+
+  <h3>Sistema mock sin Gazebo</h3>
+  <pre>
+ros2 launch robot_task_manager full_system_mock.launch.py
+  </pre>
+
+  <h3>Jetson: stack real ligero recomendado</h3>
+  <pre>
+cd ~/Brazo-Robotico/irb14050_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+export ROS_DOMAIN_ID=14
+
+ros2 launch robot_task_manager full_system_jetson.launch.py
+  </pre>
+
+  <h3>Jetson con IP del controlador ABB distinta</h3>
+  <pre>
+ros2 launch robot_task_manager full_system_jetson.launch.py \
+  controller_ip:=192.168.125.1 \
+  egm_rx_port:=6511 \
+  egm_tx_port:=6510
+  </pre>
+
+  <h3>Jetson en modo aun mas ligero: sin MoveIt</h3>
+  <pre>
+ros2 launch robot_task_manager full_system_jetson.launch.py \
+  motion_backend:=egm_direct \
+  launch_moveit:=false \
+  launch_egm_moveit_executor:=false \
+  launch_egm_direct_action:=true
+  </pre>
+
+  <p>
+    Este modo sirve para teleop y movimientos por joints. Para pick/place
+    cartesiano con planeacion se recomienda usar <code>motion_backend:=abb_moveit</code>.
+  </p>
+
+  <h3>Computadora con GPU: vision y voz remotas</h3>
+  <pre>
+cd ~/Brazo-Robotico/irb14050_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+export ROS_DOMAIN_ID=14
+
+ros2 launch robot_task_manager remote_ai_workstation.launch.py
+  </pre>
+
+  <h3>Solo gamepad standalone</h3>
+  <pre>
+ros2 launch robot_xbox_teleop gamepad_teleop.launch.py
+  </pre>
+
+  <h3>Ver mapeo del control</h3>
+  <pre>
+ros2 topic echo /joy
+  </pre>
+
+  <h2>14. Comandos de diagnostico</h2>
+  <table>
+    <tr>
+      <th>Comando</th>
+      <th>Para que sirve</th>
+    </tr>
+    <tr>
+      <td><code>ros2 node list</code></td>
+      <td>Ver nodos activos.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 topic list -t</code></td>
+      <td>Ver topicos y tipos de mensaje.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 topic echo /robot_task/status</code></td>
+      <td>Ver estado del behavior tree.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 topic echo /robot_task/command</code></td>
+      <td>Ver comandos que entran al behavior tree.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 topic echo /joint_states</code></td>
+      <td>Ver estado actual de joints.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 topic echo /xbox/deadman</code></td>
+      <td>Confirmar si el deadman del control esta activo.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 topic hz /joint_states</code></td>
+      <td>Medir frecuencia de feedback del robot/simulador.</td>
+    </tr>
+    <tr>
+      <td><code>ros2 action list</code></td>
+      <td>Ver actions disponibles.</td>
+    </tr>
+    <tr>
+      <td><code>curl http://localhost:8000/health</code></td>
+      <td>Ver si el backend esta conectado y que topicos usa.</td>
+    </tr>
+  </table>
+
+  <h3>Publicar comandos manuales para pruebas</h3>
+  <pre>
+# Paro de emergencia
+ros2 topic pub --once /robot_task/command robot_task_msgs/msg/RobotCommand \
+"{source: manual, command_type: ESTOP, priority: 100.0}"
+
+# Resume
+ros2 topic pub --once /robot_task/command robot_task_msgs/msg/RobotCommand \
+"{source: manual, command_type: RESUME, priority: 100.0}"
+
+# Abrir gripper por topico bajo nivel
+ros2 topic pub --once /gripper/command std_msgs/msg/String "{data: open}"
+  </pre>
+
+  <h2>15. Errores comunes y como pensarlos</h2>
+  <table>
+    <tr>
+      <th>Sintoma</th>
+      <th>Posible causa</th>
+      <th>Que revisar</th>
+    </tr>
+    <tr>
+      <td>El frontend abre pero no mueve nada.</td>
+      <td>Backend no esta corriendo o no esta sourced con ROS.</td>
+      <td><code>curl /health</code>, logs de Uvicorn, <code>ros2 topic list</code>.</td>
+    </tr>
+    <tr>
+      <td>El BT no recibe comandos web.</td>
+      <td>Falta <code>web_command_bridge</code> o backend publica en otro topico.</td>
+      <td><code>ros2 topic echo /web/sequence_id</code> y <code>/robot_task/command</code>.</td>
+    </tr>
+    <tr>
+      <td>El gamepad no mueve.</td>
+      <td>No llega <code>/joy</code> o no se presiona deadman.</td>
+      <td><code>ros2 topic echo /joy</code> y <code>/xbox/deadman</code>.</td>
+    </tr>
+    <tr>
+      <td>La Jetson no ve los nodos de la GPU.</td>
+      <td>Dominio ROS distinto, red bloqueada o multicast DDS limitado.</td>
+      <td><code>ROS_DOMAIN_ID</code>, misma red, firewall, <code>ros2 node list</code>.</td>
+    </tr>
+    <tr>
+      <td>EGM no conecta.</td>
+      <td>RAPID no esta corriendo o UC_DEVICE apunta a otra IP.</td>
+      <td>IP de Jetson, puerto 6511, logs de <code>egm_bridge</code>.</td>
+    </tr>
+    <tr>
+      <td>MoveIt espera action server.</td>
+      <td>No esta <code>egm_moveit_executor</code> o el controlador no coincide.</td>
+      <td><code>ros2 action list</code> y launch de Jetson/ABB.</td>
+    </tr>
+  </table>
+
+  <h2>16. Checklist de presentacion</h2>
+  <ol>
+    <li>Explicar que el behavior tree es el cerebro y punto unico de seguridad.</li>
+    <li>Mostrar que web, voz y gamepad se convierten a <code>RobotCommand</code>.</li>
+    <li>Mostrar que el BT publica <code>RobotStatus</code> para el frontend.</li>
+    <li>Explicar la diferencia entre simulacion en laptop y ejecucion real en Jetson.</li>
+    <li>Explicar por que vision/voz van en la computadora con GPU.</li>
+    <li>Explicar EGM: feedback por <code>/joint_states</code>, comandos por <code>/joint_command</code>, UDP hacia ABB.</li>
+    <li>Demostrar ESTOP y RESUME desde el frontend.</li>
+    <li>Demostrar deadman del gamepad con <code>/xbox/deadman</code>.</li>
+    <li>Mostrar una secuencia y la barra de progreso leyendo <code>/robot_task/status</code>.</li>
+  </ol>
+
+  <h2>17. Resumen final</h2>
+  <p>
+    Este proyecto esta organizado para que la logica critica viva en ROS 2 y
+    no en la interfaz. El frontend es la cara visual; el backend es el puente
+    HTTP/WebSocket a ROS; el behavior tree es el cerebro; MoveIt/Gazebo o
+    EGM son los backends de movimiento; vision y voz son fuentes de comandos o
+    percepcion; el gamepad es teleop de baja latencia con deadman.
+  </p>
+  <p>
+    La separacion laptop/Jetson/GPU permite desarrollar con simulacion completa
+    en una computadora, y despues desplegar el lazo critico en la Jetson para
+    el robot real sin cargarla con vision ni voz.
+  </p>
+</body>
+</html>
