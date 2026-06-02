@@ -36,15 +36,8 @@ El desarrollo se dividió en etapas incrementales de autonomía:
 *(Nota: Asegúrate de tener instalado ROS2 Jazzy antes de comenzar)*.
 
 ```bash
-# Clonar el repositorio
+# Clonar el repositorio en $HOME. La compilación de paquetes se explica posteriormente
 git clone [URL-del-repositorio]
-
-# Compilar el workspace
-colcon build 
-
-# Lanzamiento del sistema maestro
-source install/setup.bash
-//////////////////////////////////
 ```
 
 ## 6. Rama De Integración Behavior Tree + Web
@@ -101,6 +94,12 @@ rosdep install --from-paths src -y --ignore-src --skip-keys warehouse_ros_mongo
 colcon build --symlink-install
 source install/setup.bash
 ```
+
+**Notas:**
+
++ El comando `rosdep install --from-paths src -y --ignore-src --skip-keys warehouse_ros_mongo` revisa todas las dependencias establecidas en los paquetes del workspace, sí faltan dependencias que se pueden obtener mediante apt, entonces las instala de forma automática. Algunas de las dependencias son: `ros-jazzy-py*` y `ros-jazzy-moveit*`.
++ Para que todos los paquetes de este workspace sean visto en cada nueva terminal, se necesitan ejecutar los comandos: `cd ~/Brazo-Robotico/irb14050_ws && source /opt/ros/jazzy/setup.bash`. Para evitar esto, se puede agregar la línea: `source ~/Brazo-Robotico/irb14050_ws/install/setup.bash`, al archivo `~/.bashrc`.
+
 
 En esta computadora el repo local usado durante integración está en:
 
