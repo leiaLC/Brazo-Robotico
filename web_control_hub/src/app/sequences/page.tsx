@@ -23,12 +23,16 @@ function getDefaultBackendUrl() {
   return `${window.location.protocol}//${window.location.hostname}:8000`;
 }
 
-function getBackendWebSocketUrl(backendUrl: string) {
-  const url = new URL(backendUrl);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = "/ws/task-status";
-  url.search = "";
-  return url.toString();
+function getBackendWebSocketUrl(backendUrl: string): string | null {
+  try {
+    const url = new URL(backendUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws/task-status";
+    url.search = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 function clampProgress(value: number) {
@@ -41,8 +45,11 @@ function sequenceIdFromTask(task: string) {
 }
 
 export default function SequencesPage() {
+  // SSR-stable initial value: no llamamos a window aqui para que el primer
+  // render del servidor y del cliente coincidan (evita el hydration mismatch).
+  // El valor basado en window.location se aplica tras montar, en un useEffect.
   const [backendUrl, setBackendUrl] = useState(
-    () => process.env.NEXT_PUBLIC_BACKEND_URL ?? getDefaultBackendUrl(),
+    () => process.env.NEXT_PUBLIC_BACKEND_URL ?? "",
   );
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
@@ -57,13 +64,31 @@ export default function SequencesPage() {
   );
   const ActiveIcon = active?.icon;
   const connected = connectionState === "connected" && requestState !== "error";
+  const isPaused = useMemo(() => {
+  const msg = taskStatus?.message?.toLowerCase() ?? "";
+  return msg.startsWith("paused") || msg.startsWith("resuming");
+}, [taskStatus]);
 
   useEffect(() => {
     activeSequenceRef.current = activeSequenceId;
   }, [activeSequenceId]);
 
+  // Tras montar en el cliente, si no hay URL fijada por env, derivarla de
+  // window.location. Esto ocurre despues de la hidratacion, por lo que no
+  // provoca mismatch entre servidor y cliente.
   useEffect(() => {
-    const socket = new WebSocket(getBackendWebSocketUrl(backendUrl));
+    if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
+      setBackendUrl((current) => current || getDefaultBackendUrl());
+    }
+  }, []);
+
+  useEffect(() => {
+    const wsUrl = backendUrl ? getBackendWebSocketUrl(backendUrl) : null;
+    if (!wsUrl) {
+      return;
+    }
+
+    const socket = new WebSocket(wsUrl);
 
     socket.addEventListener("open", () => setConnectionState("connected"));
     socket.addEventListener("error", () => setConnectionState("error"));
@@ -135,6 +160,30 @@ export default function SequencesPage() {
     setSequenceProgress(0);
     setRequestState(response.ok ? "ok" : "error");
     setMessage(response.ok ? "Cancel sent" : "Cancel failed");
+  }
+
+  async function pauseTask() {
+    setRequestState("running");
+    try {
+      const response = await fetch(`${backendUrl}/task/pause`, { method: "POST" });
+      setRequestState(response.ok ? "ok" : "error");
+      setMessage(response.ok ? "Pause sent" : "Pause failed");
+    } catch (error) {
+      setRequestState("error");
+      setMessage("Pause request failed");
+    }
+  }
+
+  async function resumeTask() {
+    setRequestState("running");
+    try {
+      const response = await fetch(`${backendUrl}/task/resume`, { method: "POST" });
+      setRequestState(response.ok ? "ok" : "error");
+      setMessage(response.ok ? "Resume sent" : "Resume failed");
+    } catch (error) {
+      setRequestState("error");
+      setMessage("Resume request failed");
+    }
   }
 
   return (
@@ -220,10 +269,25 @@ export default function SequencesPage() {
             <ProgressBar value={active ? sequenceProgress : 0} />
           </div>
           <div className="flex gap-5 lg:justify-end">
-            <IndustrialButton className="min-w-40" disabled tone="secondary">
-              <Pause className="h-5 w-5" /> Pause
-            </IndustrialButton>
-            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} tone="danger">
+            {isPaused ? (
+              <IndustrialButton
+                className="min-w-40"
+                onClick={() => void resumeTask()}
+                tone="primary"
+              >
+                <Play className="h-5 w-5" /> Resume
+              </IndustrialButton>
+            ) : (
+              <IndustrialButton
+                className="min-w-40"
+                onClick={() => void pauseTask()}
+                disabled={!activeSequenceId}
+                tone="secondary"
+              >
+                <Pause className="h-5 w-5" /> Pause
+              </IndustrialButton>
+            )}
+            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} disabled={!activeSequenceId && !isPaused} tone="danger">
               <Square className="h-5 w-5" /> Abort
             </IndustrialButton>
           </div>

@@ -170,6 +170,14 @@ export const jointControls: JointControl[] = [
 
 export const sequences: Sequence[] = [
   {
+    id: "pick_place_completo",
+    title: "Pick & Place Completo",
+    description: "Rutina completa de toma y colocacion con poses enseñadas y control de gripper.",
+    estimate: "02:45",
+    status: "idle",
+    icon: Route,
+  },
+  {
     id: "demo_pick_blue_cube",
     title: "Pick Blue Cube",
     description: "Runs the behavior-tree pick sequence for the blue cube demo.",
@@ -186,10 +194,18 @@ export const sequences: Sequence[] = [
     icon: SquareStack,
   },
   {
-    id: "perception",
-    title: "Perception Pose",
+    id: "perception1",
+    title: "Diagonal Perception Pose",
     description: "Moves the arm to the configured camera/perception pose.",
-    estimate: "00:20",
+    estimate: "00:50",
+    status: "idle",
+    icon: ScanLine,
+  },
+  {
+    id: "perception2",
+    title: "Upward Perception Pose",
+    description: "Moves the arm to the configured camera/perception pose.",
+    estimate: "00:50",
     status: "idle",
     icon: ScanLine,
   },
