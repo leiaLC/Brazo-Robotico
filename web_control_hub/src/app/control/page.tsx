@@ -1,5 +1,6 @@
 import { ArrowRight, Bot, Database, Microchip, Wrench, Zap } from "lucide-react";
 import { RobotHeroPanel } from "@/components/robot-visuals";
+import { RosNodeHealthPanel } from "@/components/ros-node-health-panel";
 import { Card, MetricCard, PageTitle } from "@/components/ui";
 import { controlCards, quickStart, systemStatus } from "@/lib/mock-data";
 
@@ -7,6 +8,8 @@ export default function ControlPage() {
   return (
     <div className="space-y-7">
       <PageTitle centered title="Control Panel" />
+
+      <RosNodeHealthPanel />
 
       <section className="grid gap-6 xl:grid-cols-[1fr_390px]">
         <RobotHeroPanel />

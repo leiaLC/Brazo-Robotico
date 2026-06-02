@@ -8,7 +8,7 @@ Key finding (verified from RobotStudio behavior):
   open() and close() now handle this transition automatically.
 
 Sequence:
-    cmd != 10  -->  write 10 (standby)  -->  dwell  -->  write target cmd
+    write 10 (ready/standby)  -->  dwell  -->  write target cmd
 
 Without this dance, going OPEN -> CLOSE directly is silently rejected by
 the gripper firmware (which is why earlier tests saw OPEN move the jaws
@@ -27,10 +27,12 @@ class SmartGripperIO:
     # Command codes for hand_CmdGripper
     CMD_OPEN = 1
     CMD_CLOSE = 2
-    CMD_STANDBY = 10
+    CMD_READY = 10
+    CMD_STANDBY = CMD_READY
 
-    # Time to dwell in standby before issuing the next motion command (s)
-    STANDBY_DWELL = 0.4
+    # Time to dwell in ready/standby before issuing the next motion command (s)
+    READY_DWELL = 0.4
+    STANDBY_DWELL = READY_DWELL
 
     # Signal names
     SIG_CMD       = "hand_CmdGripper"        # GO  - command
@@ -99,31 +101,32 @@ class SmartGripperIO:
         return False
 
     # ----------------------------------------------------------------
-    # High-level API (with standby-transition pattern)
+    # High-level API (with ready-transition pattern)
     # ----------------------------------------------------------------
 
-    def _via_standby(self, target: int) -> bool:
-        """Transition through STANDBY before sending a motion command.
+    def _via_ready(self, target: int) -> bool:
+        """Transition through READY/STANDBY before sending a motion command.
 
         Required by the gripper firmware: jumping directly from one motion
-        cmd to another (e.g. 1 -> 2) is silently rejected. Going through
-        10 'rearms' the state machine.
+        cmd to another (e.g. 1 -> 2) is silently rejected. Sending command
+        10 first rearms the state machine.
         """
-        current = self.get_value(self.SIG_CMD)
-        if current != self.CMD_STANDBY:
-            if not self.set_signal(self.SIG_CMD, self.CMD_STANDBY):
-                return False
-            time.sleep(self.STANDBY_DWELL)
+        if not self.ready():
+            return False
+        time.sleep(self.READY_DWELL)
         return self.set_signal(self.SIG_CMD, target)
 
     def open(self) -> bool:
-        return self._via_standby(self.CMD_OPEN)
+        return self._via_ready(self.CMD_OPEN)
 
     def close(self) -> bool:
-        return self._via_standby(self.CMD_CLOSE)
+        return self._via_ready(self.CMD_CLOSE)
+
+    def ready(self) -> bool:
+        return self.set_signal(self.SIG_CMD, self.CMD_READY)
 
     def standby(self) -> bool:
-        return self.set_signal(self.SIG_CMD, self.CMD_STANDBY)
+        return self.ready()
 
     def status(self) -> Dict[str, Optional[int]]:
         return {

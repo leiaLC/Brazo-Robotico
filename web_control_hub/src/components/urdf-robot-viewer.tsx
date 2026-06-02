@@ -1,6 +1,6 @@
 "use client";
 
-import { type MutableRefObject, useEffect, useRef } from "react";
+import { type MutableRefObject, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import URDFLoader, { type URDFRobot } from "urdf-loader";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
@@ -44,6 +44,7 @@ export function UrdfRobotViewer({
   const mountRef = useRef<HTMLDivElement | null>(null);
   const robotRef = useRef<URDFRobot | null>(null);
   const latestJointsRef = useRef<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   useEffect(() => {
     latestJointsRef.current = jointPositions ?? [0, 0, 0, 0, 0, 0, 0];
@@ -66,7 +67,16 @@ export function UrdfRobotViewer({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xb7c1c8);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+    } catch {
+      const errorTimer = window.setTimeout(() => {
+        setRenderError("WebGL is not available in this browser session.");
+      }, 0);
+      controlsRef.current = null;
+      return () => window.clearTimeout(errorTimer);
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -246,5 +256,17 @@ export function UrdfRobotViewer({
     };
   }, [controlsRef]);
 
-  return <div ref={mountRef} className="absolute inset-0" />;
+  return (
+    <div ref={mountRef} className="absolute inset-0">
+      {renderError ? (
+        <div className="absolute inset-0 grid place-items-center px-8 text-center">
+          <div className="max-w-sm rounded-lg border border-[#C1C9D3] bg-white/94 px-6 py-5 shadow-lg">
+            <p className="font-mono text-sm font-bold uppercase tracking-[0.12em] text-[#29303A]">
+              {renderError}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }

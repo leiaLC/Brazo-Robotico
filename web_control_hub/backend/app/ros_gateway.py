@@ -113,6 +113,23 @@ class RosGateway:
         with self._lock:
             return self._latest_task_status
 
+    def get_required_node_statuses(self) -> list[dict]:
+        if self.node is None:
+            raise RuntimeError("ROS gateway is not started")
+
+        discovered_nodes = {
+            self._fully_qualified_node_name(name, namespace)
+            for name, namespace in self.node.get_node_names_and_namespaces()
+        }
+
+        return [
+            {
+                "name": configured_name,
+                "active": self._is_node_active(configured_name, discovered_nodes),
+            }
+            for configured_name in self.settings.required_ros_nodes
+        ]
+
     def add_state_callback(self, callback: Callable[[JointSnapshot], None]) -> None:
         self._state_callbacks.append(callback)
 
@@ -210,6 +227,21 @@ class RosGateway:
                 raise ValueError(
                     f"joint {index + 1} out of limits: {value:.2f} deg not in [{lower}, {upper}]"
                 )
+
+    @staticmethod
+    def _fully_qualified_node_name(name: str, namespace: str) -> str:
+        return f"/{namespace.strip('/')}/{name}".replace("//", "/")
+
+    @staticmethod
+    def _is_node_active(configured_name: str, discovered_nodes: set[str]) -> bool:
+        normalized_name = f"/{configured_name.strip('/')}"
+        if configured_name.startswith("/"):
+            return normalized_name in discovered_nodes
+
+        return any(
+            node_name.rsplit("/", maxsplit=1)[-1] == configured_name
+            for node_name in discovered_nodes
+        )
 
     def _base_robot_command(self):
         command = RobotCommand()
