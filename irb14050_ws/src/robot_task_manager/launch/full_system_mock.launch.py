@@ -58,9 +58,9 @@ def generate_launch_description():
                 ],
             ),
             Node(
-                package="robot_voice_interface",
-                executable="voice_command_parser",
-                name="voice_command_parser",
+                package="robot_speech",
+                executable="voice_pipeline_node",
+                name="voice_pipeline_node",
                 output="screen",
             ),
             Node(

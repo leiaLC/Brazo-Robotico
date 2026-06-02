@@ -30,6 +30,9 @@ class Settings(BaseModel):
     sequence_topic: str = getenv("ROS_SEQUENCE_TOPIC", "/web/sequence_id")
     teleop_twist_topic: str = getenv("ROS_TELEOP_TWIST_TOPIC", "/web/teleop_twist")
     voice_text_topic: str = getenv("ROS_VOICE_TEXT_TOPIC", "/voice/text")
+    voice_start_topic: str = getenv("ROS_VOICE_START_TOPIC", "/voice/start_listening")
+    voice_status_topic: str = getenv("ROS_VOICE_STATUS_TOPIC", "/voice/status")
+    voice_events_topic: str = getenv("ROS_VOICE_EVENTS_TOPIC", "/voice/events")
     image_topic: str = getenv("ROS_IMAGE_TOPIC", "/image_raw")
     image_is_compressed: bool = getenv("ROS_IMAGE_IS_COMPRESSED", "false").lower() == "true"
     backend_host: str = getenv("BACKEND_HOST", "0.0.0.0")
