@@ -21,12 +21,16 @@ function getDefaultBackendUrl() {
   return `${window.location.protocol}//${window.location.hostname}:8000`;
 }
 
-function getBackendWebSocketUrl(backendUrl: string) {
-  const url = new URL(backendUrl);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = "/ws/robot-state";
-  url.search = "";
-  return url.toString();
+function getBackendWebSocketUrl(backendUrl: string): string | null {
+  try {
+    const url = new URL(backendUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws/robot-state";
+    url.search = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 export function TeleopControlPanel({
@@ -45,8 +49,10 @@ export function TeleopControlPanel({
   const [lastPublish, setLastPublish] = useState("No commands sent");
   const [feedbackPositions, setFeedbackPositions] = useState<number[] | null>(null);
   const [feedbackCount, setFeedbackCount] = useState(0);
+  // SSR-stable: sin window aqui; el valor basado en window.location se aplica
+  // tras montar (ver useEffect mas abajo) para evitar el hydration mismatch.
   const [backendUrl, setBackendUrl] = useState(
-    () => process.env.NEXT_PUBLIC_BACKEND_URL ?? getDefaultBackendUrl(),
+    () => process.env.NEXT_PUBLIC_BACKEND_URL ?? "",
   );
   const lastPublishRef = useRef(0);
   const publishCountRef = useRef(0);
@@ -60,8 +66,20 @@ export function TeleopControlPanel({
     onTeleopEnabledChange?.(enabled && connectionState === "connected");
   }, [connectionState, enabled, onTeleopEnabledChange]);
 
+  // Aplica la URL basada en window.location despues de montar (post-hidratacion).
   useEffect(() => {
-    const socket = new WebSocket(getBackendWebSocketUrl(backendUrl));
+    if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
+      setBackendUrl((current) => current || getDefaultBackendUrl());
+    }
+  }, []);
+
+  useEffect(() => {
+    const wsUrl = backendUrl ? getBackendWebSocketUrl(backendUrl) : null;
+    if (!wsUrl) {
+      return;
+    }
+
+    const socket = new WebSocket(wsUrl);
 
     socket.addEventListener("open", () => setConnectionState("connected"));
     socket.addEventListener("error", () => setConnectionState("error"));

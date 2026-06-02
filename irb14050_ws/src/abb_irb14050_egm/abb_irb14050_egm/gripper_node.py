@@ -25,7 +25,7 @@ from std_msgs.msg import String
 
 # Same package — gripper_rws.py lives alongside this file under
 # src/abb_irb14050_egm/abb_irb14050_egm/
-from .gripper_rws import SmartGripperIO
+from abb_irb14050_egm.gripper_rws import SmartGripperIO
 
 
 class GripperNode(Node):

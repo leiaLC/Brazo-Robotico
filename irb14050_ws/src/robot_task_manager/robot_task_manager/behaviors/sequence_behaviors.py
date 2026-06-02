@@ -117,7 +117,15 @@ class ExecuteSequence(BlackboardBehavior):
             self._action_client = ActionClient(self.node, MoveJoint, self.node.arm_action_name)
 
     def initialise(self) -> None:
-        self._index = 0
+        # Si hay un step de "resume", arrancar desde ahí. Si no, desde 0.
+        resume_step = self.bb_get(bb_keys.PAUSED_SEQUENCE_STEP, 0)
+        self._index = int(resume_step or 0)
+        if self._index > 0:
+            self.node.get_logger().info(
+                f"Resuming sequence from step {self._index}"
+            )
+        # Limpiamos el step pausado ahora que ya lo consumimos.
+        self.bb_set(bb_keys.PAUSED_SEQUENCE_STEP, 0)
         self._step_start = self.now()
         self._published_step = -1
         self._reset_motion_state()
@@ -132,10 +140,15 @@ class ExecuteSequence(BlackboardBehavior):
 
         if self._index >= len(steps):
             self.bb_set(bb_keys.ARM_BUSY, False)
+            # Secuencia terminada: limpiamos el paso pausado para que no quede
+            # un valor obsoleto que afecte una corrida futura.
+            self.bb_set(bb_keys.PAUSED_SEQUENCE_STEP, 0)
             self.set_status(mode="WEB_SEQUENCE", message="Sequence complete", progress=1.0, error_code="")
             return py_trees.common.Status.SUCCESS
 
         step = steps[self._index]
+        # Publicamos el step actual al blackboard para que un PAUSE pueda capturarlo
+        self.bb_set(bb_keys.PAUSED_SEQUENCE_STEP, self._index)
         self._publish_step_start(step)
 
         if self._uses_real_moveit(step):

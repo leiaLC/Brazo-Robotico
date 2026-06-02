@@ -44,6 +44,15 @@
         <joint name="joint_6" value="0"/>
         <joint name="joint_7" value="0"/>
     </group_state>
+    <group_state name="vision" group="irb14050_arm">
+        <joint name="joint_1" value="-2.7925"/>
+        <joint name="joint_2" value="-0.8028"/>
+        <joint name="joint_3" value="-0.1222"/>
+        <joint name="joint_4" value="0.9948"/>
+        <joint name="joint_5" value="-3.5081"/>
+        <joint name="joint_6" value="-0.8028"/>
+        <joint name="joint_7" value="1.7628"/>
+    </group_state>
     <group_state name="close" group="gripper">
         <joint name="gripper_joint_l" value="0"/>
         <joint name="gripper_joint_r" value="0"/>
