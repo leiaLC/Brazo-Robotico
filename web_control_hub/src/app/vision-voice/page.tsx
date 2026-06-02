@@ -12,12 +12,15 @@ type VoiceStatus =
   | "listening_password"
   | "password_rejected"
   | "listening_command"
+  | "clarification_needed"
+  | "transcribing"
+  | "interpreting"
   | "processing"
   | "published"
   | "done"
   | "error";
 type VoiceEvent = {
-  type: "cycle_started" | "heard" | "published" | "rejected" | "message";
+  type: "cycle_started" | "heard" | "published" | "rejected" | "clarification" | "message";
   text: string;
   confidence?: number | null;
   stamp?: number;
@@ -48,7 +51,14 @@ function getVoiceEventsWebSocketUrl(backendUrl: string) {
 }
 
 function isVoiceActive(status: VoiceStatus) {
-  return ["listening_password", "listening_command", "processing", "published"].includes(status);
+  return [
+    "listening_password",
+    "listening_command",
+    "transcribing",
+    "interpreting",
+    "processing",
+    "published",
+  ].includes(status);
 }
 
 function messageForVoiceStatus(status: VoiceStatus) {
@@ -58,9 +68,12 @@ function messageForVoiceStatus(status: VoiceStatus) {
     listening_password: "Listening for password...",
     password_rejected: "Password rejected.",
     listening_command: "Listening for command...",
-    processing: "Processing voice command...",
-    published: "Command published.",
-    done: "Voice cycle finished.",
+    clarification_needed: "I need one more detail. Try one of the suggested commands.",
+    transcribing: "Transcribing what you said...",
+    interpreting: "Interpreting command. CPU mode can take a few seconds...",
+    processing: "Preparing command for ROS...",
+    published: "Command sent.",
+    done: "Voice cycle complete.",
     error: "Voice cycle ended with an error.",
   };
   return messages[status];
@@ -90,6 +103,7 @@ function labelForVoiceEvent(event: VoiceEvent) {
     heard: "Heard",
     published: "Published",
     rejected: "Rejected",
+    clarification: "Clarify",
     message: "Message",
   };
   return labels[event.type] ?? "Message";
@@ -280,7 +294,7 @@ export default function VisionVoicePage() {
               <VoiceIcon className="h-12 w-12 text-[#29303A]" />
             </span>
             <h3 className="mt-8 text-2xl font-black">
-              {voiceRequested ? "Voice Requested" : voiceError ? "Voice Request Failed" : "Voice Disabled"}
+              {voiceRequested ? "Voice Active" : voiceError ? "Voice Request Failed" : "Voice Ready"}
             </h3>
             <p className="mt-3 text-lg text-[#29303A]">{voiceMessage}</p>
             <IndustrialButton
@@ -289,7 +303,7 @@ export default function VisionVoicePage() {
               onClick={startVoiceListening}
               tone={voiceRequested ? "success" : "secondary"}
             >
-              <Mic className="h-5 w-5" /> {voiceBusy ? "Requesting..." : "Enable Voice Commands"}
+              <Mic className="h-5 w-5" /> {voiceBusy ? "Requesting..." : "Start Voice Command"}
             </IndustrialButton>
           </Card>
 
@@ -332,7 +346,7 @@ export default function VisionVoicePage() {
               ) : (
                 suggestedCommands.map((command) => (
                   <button
-                    className="rounded border border-[#D0D6DE] bg-[#F8F9FA] px-4 py-2 font-mono text-sm"
+                    className="rounded border border-[#D0D6DE] bg-[#F8F9FA] px-4 py-2 font-mono text-sm transition hover:border-[#003C69] hover:bg-[#EEF5FB]"
                     key={command}
                     type="button"
                   >

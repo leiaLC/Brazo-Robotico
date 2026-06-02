@@ -6,7 +6,7 @@ Merges transcription text into a unified prompt context.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ class PipelineContext:
     parsed_command: object = None
     parse_error: Optional[str] = None
     cycle_id: int = 0
+    timings_sec: dict[str, float] = field(default_factory=dict)
 
     @property
     def success(self) -> bool:

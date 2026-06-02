@@ -130,6 +130,7 @@ class VoiceCommanderNode(Node):
             llm_client=LlamaCppClient(cfg["llama_cpp"], cfg["robot"]),
             action_parser=ActionParser(),
             context_builder=ContextBuilder(),
+            status_callback=self._publish_status,
         )
 
         self.timer = None
@@ -175,6 +176,7 @@ class VoiceCommanderNode(Node):
         self.get_logger().info("[robot_speech] Listening for command...")
 
         ctx = self.pipeline.run_cycle()
+        self._log_pipeline_timings(ctx)
         if ctx.transcription:
             if self.publish_voice_text:
                 self._publish_text(ctx.transcription)
@@ -189,6 +191,13 @@ class VoiceCommanderNode(Node):
             self.get_logger().warn(f"[robot_speech] Parser error: {ctx.parse_error}")
 
         if not ctx.success:
+            clarification = self._clarification_for_text(ctx.transcription)
+            if clarification:
+                self.get_logger().warn(f"[robot_speech] Clarification needed: {clarification}")
+                self._publish_event("clarification", clarification, ctx.transcription_confidence)
+                self._finish_cycle("clarification_needed")
+                return
+
             fallback = self._fallback_task_command_from_text(ctx.transcription)
             if fallback is None:
                 self.get_logger().warn("[robot_speech] No valid command was produced.")
@@ -208,12 +217,20 @@ class VoiceCommanderNode(Node):
             self._finish_cycle("done")
             return
 
+        clarification = self._clarification_for_text(ctx.transcription)
+        if clarification:
+            self.get_logger().warn(f"[robot_speech] Clarification needed: {clarification}")
+            self._publish_event("clarification", clarification, ctx.transcription_confidence)
+            self._finish_cycle("clarification_needed")
+            return
+
         self._publish_status("processing")
         try:
             command = self._to_task_command(ctx.parsed_command)
         except UnsupportedVoiceCommand as exc:
             self.get_logger().warn(str(exc))
-            self._finish_cycle("error")
+            self._publish_event("clarification", str(exc), getattr(ctx.parsed_command, "confidence", None))
+            self._finish_cycle("clarification_needed")
             return
 
         self.command_pub.publish(command)
@@ -239,6 +256,21 @@ class VoiceCommanderNode(Node):
         if self.timer is not None:
             self.timer.reset()
         self.get_logger().info("[robot_speech] Voice cycle finished. Returning to idle.")
+
+    def _log_pipeline_timings(self, ctx) -> None:
+        timings = getattr(ctx, "timings_sec", {}) or {}
+        if not timings:
+            return
+
+        self.get_logger().info(
+            "[robot_speech] Timing: "
+            f"audio={timings.get('audio', 0.0):.2f}s "
+            f"stt={timings.get('stt', 0.0):.2f}s "
+            f"context={timings.get('context', 0.0):.2f}s "
+            f"llm={timings.get('llm', 0.0):.2f}s "
+            f"parse={timings.get('parse', 0.0):.2f}s "
+            f"total={timings.get('total', 0.0):.2f}s"
+        )
 
     def _publish_status(self, status: str) -> None:
         msg = String()
@@ -464,6 +496,28 @@ class VoiceCommanderNode(Node):
             )
 
         return None
+
+    def _clarification_for_text(self, text: str) -> str:
+        normalized = self._normalize_token(text)
+        if not normalized:
+            return "I did not hear a command. Please try again."
+
+        if ("joint" in normalized or "articulacion" in normalized) and "grado" not in normalized:
+            return "Please include the angle, for example: move joint 1 to 30 degrees."
+
+        if re.search(r"\b(?:mueve|move|gira|rota|rotate)\b", normalized):
+            mentions_joint = "joint" in normalized or "articulacion" in normalized
+            mentions_object = bool(self._find_object_class(normalized))
+            if not mentions_joint and not mentions_object:
+                return "Please include what should move, for example: move joint 1 to 30 degrees."
+
+        if self._has_object_action_word(normalized) and not self._find_object_class(normalized):
+            return "Please include the object, for example: pick the cube or grab the cylinder."
+
+        if "agrupa" in normalized or "agrupar" in normalized:
+            return "Grouping figures is not connected yet. Try: pick the cube or go home."
+
+        return ""
 
     @staticmethod
     def _describe_robot_command(command: RobotCommand) -> str:

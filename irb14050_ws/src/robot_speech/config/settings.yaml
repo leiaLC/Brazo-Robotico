@@ -9,8 +9,8 @@ audio:
 
 speaker_verification:
   enabled: true
-  password: "arroz"
-  accepted_variants: ["arros"]
+  password: "robótica"
+  accepted_variants: ["robotica"]
   session_timeout_sec: 60.0
 
 whisper:

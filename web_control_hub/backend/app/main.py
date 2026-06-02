@@ -31,11 +31,7 @@ pcs: set[RTCPeerConnection] = set()
 
 VOICE_SUGGESTIONS = [
     "toma el cubo",
-    "mueve el cubo azul",
     "agarra el cilindro",
-    "toma el hexagono",
-    "agarra el toroide",
-    "dame la manzana",
     "regresa a home",
     "abre el gripper",
     "cierra el gripper",
