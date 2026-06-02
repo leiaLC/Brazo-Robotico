@@ -49,11 +49,11 @@ export type Sequence = {
 };
 
 export const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/" },
   { label: "Control", href: "/control" },
   { label: "Teleoperation", href: "/teleoperation" },
   { label: "Sequences", href: "/sequences" },
   { label: "Vision/Voice", href: "/vision-voice" },
+  { label: "Dashboard", href: "/dashboard" },
 ];
 
 export const systemStatus = {

@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 import cv2
 import numpy as np
@@ -139,6 +140,19 @@ def robot_task_status():
     return gateway.get_latest_task_status() or {
         "mode": "UNKNOWN",
         "message": "No /robot_task/status received yet",
+    }
+
+
+@app.get("/robot/nodes")
+def robot_nodes():
+    nodes = gateway.get_required_node_statuses()
+    active_count = sum(node["active"] for node in nodes)
+    return {
+        "checked_at": datetime.now(UTC).isoformat(),
+        "all_required_active": bool(nodes) and active_count == len(nodes),
+        "active_count": active_count,
+        "required_count": len(nodes),
+        "nodes": nodes,
     }
 
 
