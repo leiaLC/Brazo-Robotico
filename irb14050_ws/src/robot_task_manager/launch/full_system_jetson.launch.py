@@ -32,6 +32,7 @@ def generate_launch_description():
     launch_gripper_joint_states = LaunchConfiguration("launch_gripper_joint_states")
     launch_web_bridge = LaunchConfiguration("launch_web_bridge")
     launch_object_cloud_bridge = LaunchConfiguration("launch_object_cloud_bridge")
+    launch_tool_camera_tf = LaunchConfiguration("launch_tool_camera_tf")
     launch_gamepad_bridge = LaunchConfiguration("launch_gamepad_bridge")
     launch_gamepad_joy = LaunchConfiguration("launch_gamepad_joy")
     gamepad_config = LaunchConfiguration("gamepad_config")
@@ -175,6 +176,11 @@ def generate_launch_description():
                 description="Launch object_cloud_bridge here if the GPU PC does not publish /perception/detections_3d.",
             ),
             DeclareLaunchArgument(
+                "launch_tool_camera_tf",
+                default_value="true",
+                description="Publish the calibrated static transform tool0 -> camera_link.",
+            ),
+            DeclareLaunchArgument(
                 "launch_gamepad_bridge",
                 default_value="true",
                 description="Launch the gamepad command bridge on the Jetson.",
@@ -246,6 +252,23 @@ def generate_launch_description():
                 name="egm_moveit_executor",
                 output="screen",
                 condition=IfCondition(launch_egm_moveit_executor),
+            ),
+            Node(
+                package="tf2_ros",
+                executable="static_transform_publisher",
+                name="tool0_to_camera_link_tf",
+                output="screen",
+                arguments=[
+                    "0.0",
+                    "0.05",
+                    "0.09",
+                    "-1.57",
+                    "-1.57",
+                    "0",
+                    "tool0",
+                    "camera_link",
+                ],
+                condition=IfCondition(launch_tool_camera_tf),
             ),
             Node(
                 package="abb_irb14050_egm",

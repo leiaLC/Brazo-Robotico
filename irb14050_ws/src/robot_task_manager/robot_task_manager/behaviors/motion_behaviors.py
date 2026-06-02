@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import math
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import py_trees
 from geometry_msgs.msg import Pose
 from rclpy.action import ActionClient
 
 from robot_task_manager import blackboard_keys as bb_keys
-from robot_task_manager.behaviors.common import BlackboardBehavior, TimedSimulationBehavior
+from robot_task_manager.behaviors.common import BlackboardBehavior
 from robot_task_manager.utils.command_utils import describe_command
 from robot_task_msgs.action import MoveJoint
 
@@ -253,6 +255,8 @@ class ExecuteJointGoal(BlackboardBehavior):
         goal_msg.planning_options.plan_only = False
         goal_msg.planning_options.replan = True
         goal_msg.planning_options.replan_attempts = 3
+        goal_msg.planning_options.planning_scene_diff.is_diff = True
+        goal_msg.planning_options.planning_scene_diff.robot_state.is_diff = True
         return goal_msg
 
     def _base_motion_plan_request(self):
@@ -269,6 +273,7 @@ class ExecuteJointGoal(BlackboardBehavior):
         request.workspace_parameters.max_corner.x = self.node.workspace_max_x
         request.workspace_parameters.max_corner.y = self.node.workspace_max_y
         request.workspace_parameters.max_corner.z = self.node.workspace_max_z
+        request.start_state.is_diff = True
         return request
 
     def _finish_move_group_result(self, goal: list[float]) -> py_trees.common.Status:
@@ -414,6 +419,15 @@ class _MoveItPoseBehavior(BlackboardBehavior):
                 if self._wait_error is not None:
                     return self._fail(*self._wait_error)
                 return py_trees.common.Status.RUNNING
+            p = pose.pose.position
+            q = pose.pose.orientation
+            self.node.get_logger().info(
+                f"{self.name} target in {pose.header.frame_id}: "
+                f"p=({p.x:.3f}, {p.y:.3f}, {p.z:.3f}), "
+                f"q=({q.x:.3f}, {q.y:.3f}, {q.z:.3f}, {q.w:.3f}), "
+                f"pos_tol={self.node.pose_position_tolerance_m:.3f} m, "
+                f"ori_tol={self.node.pose_orientation_tolerance_rad:.3f} rad"
+            )
             self._send_future = self._move_group_client.send_goal_async(
                 self._build_move_group_pose_goal(pose)
             )
@@ -517,7 +531,7 @@ class _MoveItPoseBehavior(BlackboardBehavior):
         position_constraint.weight = 1.0
         sphere = SolidPrimitive()
         sphere.type = SolidPrimitive.SPHERE
-        sphere.dimensions = [0.01]
+        sphere.dimensions = [float(self.node.pose_position_tolerance_m)]
         sphere_pose = Pose()
         sphere_pose.position = target_pose.pose.position
         sphere_pose.orientation.w = 1.0
@@ -531,9 +545,10 @@ class _MoveItPoseBehavior(BlackboardBehavior):
         orientation_constraint.header = target_pose.header
         orientation_constraint.link_name = self.node.ee_frame
         orientation_constraint.orientation = target_pose.pose.orientation
-        orientation_constraint.absolute_x_axis_tolerance = 0.1
-        orientation_constraint.absolute_y_axis_tolerance = 0.1
-        orientation_constraint.absolute_z_axis_tolerance = 0.1
+        orientation_tolerance = float(self.node.pose_orientation_tolerance_rad)
+        orientation_constraint.absolute_x_axis_tolerance = orientation_tolerance
+        orientation_constraint.absolute_y_axis_tolerance = orientation_tolerance
+        orientation_constraint.absolute_z_axis_tolerance = orientation_tolerance
         orientation_constraint.weight = 1.0
         constraints.orientation_constraints.append(orientation_constraint)
 
@@ -563,6 +578,9 @@ class _MoveItPoseBehavior(BlackboardBehavior):
             self.bb_set(bb_keys.ARM_BUSY, False)
             self.set_status(mode="VOICE_PICK", message=f"{self.status_message} complete", progress=self.progress_end)
             return py_trees.common.Status.SUCCESS
+        self.node.get_logger().error(
+            f"{self.name} MoveGroup failed with error_code={result.error_code.val}"
+        )
         return self._fail(f"MoveGroup failed: {result.error_code.val}", "MOVE_GROUP_FAILED")
 
     def _wait_for_action_server(self, client: ActionClient, label: str) -> bool:
@@ -599,32 +617,98 @@ class _MoveItPoseBehavior(BlackboardBehavior):
             self.bb_set(bb_keys.ARM_BUSY, False)
 
 
-class MoveToPerceptionPose(BlackboardBehavior):
-    """Move to a perception pose in simulation; no-op for ABB real execution."""
+class MoveToPerceptionPose(ExecuteJointGoal):
+    """Move to the SRDF group_state used for perception before detecting objects."""
 
     def __init__(self, name: str, node):
         super().__init__(name, node)
-        self._simulation = TimedSimulationBehavior(
-            name,
-            node,
-            duration_s=0.8,
-            mode="VOICE_PICK",
-            message="Moving to perception pose",
-        )
+        self._goal_error: tuple[str, str] | None = None
 
     def initialise(self) -> None:
-        if self.node.simulation_mode:
-            self._simulation.initialise()
+        self._goal_error = None
+        goal = self._load_perception_group_state()
+        if goal is None:
+            return
+
+        valid, message = self.node.joint_limits.validate(goal)
+        if not valid:
+            self._goal_error = (message, "PERCEPTION_JOINT_LIMIT")
+            return
+
+        self.bb_set(bb_keys.JOINT_GOAL, goal)
+        super().initialise()
+        self.set_status(
+            mode="VOICE_PICK",
+            message=f"Moving to perception pose '{self.node.perception_group_state_name}'",
+            progress=0.02,
+        )
 
     def update(self) -> py_trees.common.Status:
-        if self.node.simulation_mode:
-            return self._simulation.update()
-        self.set_status(mode="VOICE_PICK", message="Using current pose for perception", progress=0.12)
-        return py_trees.common.Status.SUCCESS
+        if self._goal_error is not None:
+            message, code = self._goal_error
+            self.set_status(mode="ERROR", message=message, error_code=code)
+            return py_trees.common.Status.FAILURE
+
+        result = super().update()
+        if result == py_trees.common.Status.RUNNING:
+            self.set_status(
+                mode="VOICE_PICK",
+                message=f"Moving to perception pose '{self.node.perception_group_state_name}'",
+                progress=0.12,
+            )
+        elif result == py_trees.common.Status.SUCCESS:
+            self.set_status(
+                mode="VOICE_PICK",
+                message=f"Reached perception pose '{self.node.perception_group_state_name}'",
+                progress=0.15,
+                error_code="",
+            )
+        return result
+
+    def _load_perception_group_state(self) -> list[float] | None:
+        srdf_path = Path(self.node.srdf_file)
+        state_name = self.node.perception_group_state_name
+        group_name = self.node.planning_group
+        if not srdf_path.exists():
+            self._goal_error = (f"SRDF file not found: {srdf_path}", "SRDF_NOT_FOUND")
+            return None
+
+        try:
+            root = ET.parse(srdf_path).getroot()
+        except ET.ParseError as exc:
+            self._goal_error = (f"Could not parse SRDF: {exc}", "SRDF_PARSE_ERROR")
+            return None
+
+        group_state = None
+        for candidate in root.findall("group_state"):
+            if candidate.get("name") == state_name and candidate.get("group") == group_name:
+                group_state = candidate
+                break
+
+        if group_state is None:
+            self._goal_error = (
+                f"SRDF group_state '{state_name}' for group '{group_name}' not found",
+                "GROUP_STATE_NOT_FOUND",
+            )
+            return None
+
+        values_rad = {
+            joint.get("name"): float(joint.get("value", "nan"))
+            for joint in group_state.findall("joint")
+            if joint.get("name")
+        }
+        missing = [joint_name for joint_name in self.node.joint_names if joint_name not in values_rad]
+        if missing:
+            self._goal_error = (
+                f"SRDF group_state '{state_name}' missing joints: {missing}",
+                "GROUP_STATE_INCOMPLETE",
+            )
+            return None
+
+        return [math.degrees(values_rad[joint_name]) for joint_name in self.node.joint_names]
 
     def terminate(self, new_status: py_trees.common.Status) -> None:
-        if self.node.simulation_mode:
-            self._simulation.terminate(new_status)
+        super().terminate(new_status)
 
 
 class MoveToPreGrasp(_MoveItPoseBehavior):

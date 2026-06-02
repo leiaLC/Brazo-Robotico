@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import math
 
 import py_trees
 from geometry_msgs.msg import PoseStamped
@@ -87,7 +88,11 @@ class DetectObjectsYOLO(BlackboardBehavior):
 
 
 class SelectObjectByClassAndColor(BlackboardBehavior):
-    """Select the best detection matching the command class and color."""
+    """Filter detections matching the command class/color.
+
+    The final target is selected after TF, matching the working task2.py
+    behaviour that picks the closest object in base_link XY.
+    """
 
     def update(self) -> py_trees.common.Status:
         command = self.bb_get(bb_keys.CURRENT_COMMAND)
@@ -115,11 +120,12 @@ class SelectObjectByClassAndColor(BlackboardBehavior):
             )
             return py_trees.common.Status.FAILURE
 
+        self.bb_set(bb_keys.CANDIDATE_OBJECTS, candidates)
         selected = max(candidates, key=lambda detection: detection.confidence)
         self.bb_set(bb_keys.SELECTED_OBJECT, selected)
         self.set_status(
             mode="VOICE_PICK",
-            message=f"Selected {selected.color} {selected.class_name}",
+            message=f"Found {len(candidates)} matching object(s)",
             progress=0.30,
             error_code="",
         )
@@ -148,33 +154,64 @@ class EstimateObject3DPose(BlackboardBehavior):
 
 
 class TransformPoseToRobotBase(BlackboardBehavior):
-    """Use a base-frame pose when available, otherwise transform with TF2."""
+    """Transform candidates to base_link and select the nearest XY target."""
 
     def update(self) -> py_trees.common.Status:
-        selected = self.bb_get(bb_keys.SELECTED_OBJECT)
-        if selected is None:
-            self.set_status(mode="VOICE_PICK", message="No selected object", error_code="NO_SELECTED_OBJECT")
+        candidates = list(self.bb_get(bb_keys.CANDIDATE_OBJECTS, []))
+        if not candidates:
+            selected = self.bb_get(bb_keys.SELECTED_OBJECT)
+            candidates = [selected] if selected is not None else []
+
+        if not candidates:
+            self.set_status(mode="VOICE_PICK", message="No target candidates", error_code="NO_SELECTED_OBJECT")
             return py_trees.common.Status.FAILURE
 
-        pose_base = copy.deepcopy(selected.pose_base)
-        if not pose_base.header.frame_id:
-            pose_camera = self.bb_get(bb_keys.SELECTED_OBJECT_POSE_CAMERA)
-            if self.node.simulation_mode:
-                pose_base = copy.deepcopy(pose_camera)
-                pose_base.header.frame_id = self.node.base_frame
-            else:
-                pose_base = self._tf_to_base(pose_camera)
-                if pose_base is None:
-                    self.set_status(
-                        mode="ERROR",
-                        message="No TF/base pose available",
-                        error_code="TF_UNAVAILABLE",
-                    )
-                    return py_trees.common.Status.FAILURE
+        transformed = []
+        for detection in candidates:
+            pose_base = self._base_pose_for_detection(detection)
+            if pose_base is not None:
+                transformed.append((detection, pose_base))
 
+        if not transformed:
+            self.set_status(
+                mode="ERROR",
+                message="No TF/base pose available",
+                error_code="TF_UNAVAILABLE",
+            )
+            return py_trees.common.Status.FAILURE
+
+        selected, pose_base = min(
+            transformed,
+            key=lambda item: math.hypot(item[1].pose.position.x, item[1].pose.position.y),
+        )
+
+        self.bb_set(bb_keys.SELECTED_OBJECT, selected)
         self.bb_set(bb_keys.SELECTED_OBJECT_POSE_BASE, pose_base)
-        self.set_status(mode="VOICE_PICK", message="Object pose in robot base", progress=0.50, error_code="")
+        p = pose_base.pose.position
+        self.set_status(
+            mode="VOICE_PICK",
+            message=f"Selected {selected.color} {selected.class_name} at ({p.x:.3f}, {p.y:.3f}, {p.z:.3f})",
+            progress=0.50,
+            error_code="",
+        )
         return py_trees.common.Status.SUCCESS
+
+    def _base_pose_for_detection(self, detection: Detection3D) -> PoseStamped | None:
+        pose_base = copy.deepcopy(detection.pose_base)
+        if pose_base.header.frame_id:
+            pose_base.header.frame_id = self.node.base_frame
+            return pose_base
+
+        pose_camera = copy.deepcopy(detection.pose_camera)
+        if not pose_camera.header.frame_id:
+            return None
+
+        if self.node.simulation_mode:
+            pose_base = copy.deepcopy(pose_camera)
+            pose_base.header.frame_id = self.node.base_frame
+            return pose_base
+
+        return self._tf_to_base(pose_camera)
 
     def _tf_to_base(self, pose_camera: PoseStamped | None) -> PoseStamped | None:
         if pose_camera is None or not pose_camera.header.frame_id:
@@ -182,17 +219,20 @@ class TransformPoseToRobotBase(BlackboardBehavior):
         if getattr(self.node, "tf_buffer", None) is None:
             return None
         try:
+            stamp = Time()
+            if pose_camera.header.stamp.sec != 0 or pose_camera.header.stamp.nanosec != 0:
+                stamp = Time.from_msg(pose_camera.header.stamp)
             transform = self.node.tf_buffer.lookup_transform(
                 self.node.base_frame,
                 pose_camera.header.frame_id,
-                Time(),
+                stamp,
                 timeout=Duration(seconds=float(self.node.tf_timeout_s)),
             )
             from tf2_geometry_msgs import do_transform_pose
 
             pose_base = PoseStamped()
             pose_base.header.frame_id = self.node.base_frame
-            pose_base.header.stamp = self.node.get_clock().now().to_msg()
+            pose_base.header.stamp = pose_camera.header.stamp
             pose_base.pose = do_transform_pose(pose_camera.pose, transform)
             return pose_base
         except Exception as exc:  # noqa: BLE001 - TF failures are surfaced as status.

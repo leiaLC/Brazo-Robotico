@@ -35,6 +35,15 @@
         <joint name="joint_6" value="1.2"/>
         <joint name="joint_7" value="0"/>
     </group_state>
+    <group_state name="vision" group="irb14050_arm">
+        <joint name="joint_1" value="0.1396"/>
+        <joint name="joint_2" value="-0.06"/>
+        <joint name="joint_3" value="2.75"/>
+        <joint name="joint_4" value="-0.41"/>
+        <joint name="joint_5" value="0.01"/>
+        <joint name="joint_6" value="2.02"/>
+        <joint name="joint_7" value="2.79"/>
+    </group_state>
     <group_state name="extended" group="irb14050_arm">
         <joint name="joint_1" value="0"/>
         <joint name="joint_2" value="-1.5"/>

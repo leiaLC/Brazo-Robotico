@@ -128,6 +128,8 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("joint_states_topic", "/joint_states")
         self.declare_parameter("joint_limits_file", "")
         self.declare_parameter("sequences_file", "")
+        self.declare_parameter("srdf_file", "")
+        self.declare_parameter("perception_group_state_name", "vision")
         self.declare_parameter("web_heartbeat_timeout_s", 1.0)
         self.declare_parameter("xbox_deadman_timeout_s", 0.5)
         self.declare_parameter("detection_timeout_s", 2.0)
@@ -147,7 +149,9 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("base_frame", "base_link")
         self.declare_parameter("ee_frame", "tool0")
         self.declare_parameter("planning_time", 5.0)
-        self.declare_parameter("velocity_scale", 0.15)
+        self.declare_parameter("velocity_scale", 0.4)
+        self.declare_parameter("pose_position_tolerance_m", 0.03)
+        self.declare_parameter("pose_orientation_tolerance_rad", 0.35)
         self.declare_parameter("cartesian_max_step", 0.005)
         self.declare_parameter("cartesian_min_fraction", 0.90)
         self.declare_parameter("action_server_timeout_s", 10.0)
@@ -159,8 +163,8 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("workspace_max_y", 0.45)
         self.declare_parameter("workspace_min_z", 0.02)
         self.declare_parameter("workspace_max_z", 0.75)
-        self.declare_parameter("pregrasp_offset_z", 0.10)
-        self.declare_parameter("grasp_offset_z", 0.01)
+        self.declare_parameter("pregrasp_offset_z", 0.18)
+        self.declare_parameter("grasp_offset_z", 0.14)
         self.declare_parameter("retreat_offset_z", 0.12)
         self.declare_parameter("default_place_x", 0.35)
         self.declare_parameter("default_place_y", -0.30)
@@ -183,6 +187,10 @@ class RobotTaskTreeNode(Node):
         self.joint_states_topic = str(self.get_parameter("joint_states_topic").value)
         self.joint_limits_file = str(self.get_parameter("joint_limits_file").value)
         self.sequences_file = str(self.get_parameter("sequences_file").value)
+        self.srdf_file = str(self.get_parameter("srdf_file").value)
+        self.perception_group_state_name = str(
+            self.get_parameter("perception_group_state_name").value
+        )
         self.web_heartbeat_timeout_s = float(self.get_parameter("web_heartbeat_timeout_s").value)
         self.xbox_deadman_timeout_s = float(self.get_parameter("xbox_deadman_timeout_s").value)
         self.detection_timeout_s = float(self.get_parameter("detection_timeout_s").value)
@@ -203,6 +211,12 @@ class RobotTaskTreeNode(Node):
         self.ee_frame = str(self.get_parameter("ee_frame").value)
         self.planning_time = float(self.get_parameter("planning_time").value)
         self.velocity_scale = float(self.get_parameter("velocity_scale").value)
+        self.pose_position_tolerance_m = float(
+            self.get_parameter("pose_position_tolerance_m").value
+        )
+        self.pose_orientation_tolerance_rad = float(
+            self.get_parameter("pose_orientation_tolerance_rad").value
+        )
         self.cartesian_max_step = float(self.get_parameter("cartesian_max_step").value)
         self.cartesian_min_fraction = float(self.get_parameter("cartesian_min_fraction").value)
         self.action_server_timeout_s = float(self.get_parameter("action_server_timeout_s").value)
@@ -237,6 +251,8 @@ class RobotTaskTreeNode(Node):
             self.joint_limits_file = self._default_config_path("joint_limits.yaml")
         if not self.sequences_file:
             self.sequences_file = self._default_config_path("sequences.yaml")
+        if not self.srdf_file:
+            self.srdf_file = self._default_moveit_config_path("abb_irb14050.srdf")
 
     def _default_config_path(self, filename: str) -> str:
         try:
@@ -244,6 +260,18 @@ class RobotTaskTreeNode(Node):
             return str(share_dir / "config" / filename)
         except PackageNotFoundError:
             return str(Path(__file__).resolve().parents[1] / "config" / filename)
+
+    def _default_moveit_config_path(self, filename: str) -> str:
+        try:
+            share_dir = Path(get_package_share_directory("abb_irb14050_moveit_config"))
+            return str(share_dir / "config" / filename)
+        except PackageNotFoundError:
+            return str(
+                Path(__file__).resolve().parents[2]
+                / "abb_irb14050_moveit_config"
+                / "config"
+                / filename
+            )
 
     def _initialise_blackboard(self) -> None:
         self.blackboard.set(bb_keys.CURRENT_COMMAND, None)
@@ -253,6 +281,7 @@ class RobotTaskTreeNode(Node):
         self.blackboard.set(bb_keys.ARM_BUSY, False)
         self.blackboard.set(bb_keys.TELEOP_ACTIVE, False)
         self.blackboard.set(bb_keys.YOLO_DETECTIONS, [])
+        self.blackboard.set(bb_keys.CANDIDATE_OBJECTS, [])
         self.blackboard.set(bb_keys.JOINT_STATE_DEG, [0.0] * int(self.joint_count))
         self.blackboard.set(bb_keys.STATUS_TEXT, "Idle")
         self.blackboard.set(bb_keys.ERROR_CODE, "")
