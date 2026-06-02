@@ -9,6 +9,7 @@ try:
     import rclpy
     from cv_bridge import CvBridge
     from geometry_msgs.msg import Twist
+    from rclpy.executors import ExternalShutdownException
     from rclpy.node import Node
     from sensor_msgs.msg import CompressedImage, Image, JointState
     from std_msgs.msg import String
@@ -26,6 +27,7 @@ except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2
     String = None
     RobotCommand = None
     RobotStatus = None
+    ExternalShutdownException = Exception
     ROS_IMPORT_ERROR = exc
 else:
     ROS_IMPORT_ERROR = None
@@ -79,7 +81,7 @@ class RosGateway:
         image_msg_type = CompressedImage if self.settings.image_is_compressed else Image
         self.node.create_subscription(image_msg_type, self.settings.image_topic, self._on_image, 10)
 
-        self._spin_thread = threading.Thread(target=rclpy.spin, args=(self.node,), daemon=True)
+        self._spin_thread = threading.Thread(target=self._spin, args=(self.node,), daemon=True)
         self._spin_thread.start()
 
     def stop(self) -> None:
@@ -88,6 +90,15 @@ class RosGateway:
             self.node = None
         if rclpy.ok():
             rclpy.shutdown()
+        if self._spin_thread is not None:
+            self._spin_thread.join(timeout=2.0)
+            self._spin_thread = None
+
+    def _spin(self, node: Node) -> None:
+        try:
+            rclpy.spin(node)
+        except ExternalShutdownException:
+            pass
 
     def enable_teleop(self) -> None:
         with self._lock:
