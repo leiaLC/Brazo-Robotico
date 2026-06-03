@@ -16,7 +16,7 @@ DEFAULT_REQUIRED_ROS_NODES = ",".join(
         "gripper_node",
         "gripper_joint_state_publisher",
         "robot_task_tree",
-        "voice_command_parser",
+        "voice_pipeline_node",
         "web_command_bridge",
         "gamepad_command_bridge",
     ]

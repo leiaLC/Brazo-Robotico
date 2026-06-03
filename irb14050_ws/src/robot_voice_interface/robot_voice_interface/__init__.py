@@ -1,1 +1,0 @@
-"""Voice command interface package."""

@@ -214,8 +214,8 @@ Usuario
       <td>Puente ROS que convierte topicos web como <code>/web/teleop_twist</code> y <code>/web/sequence_id</code> en <code>RobotCommand</code>.</td>
     </tr>
     <tr>
-      <td><code>robot_voice_interface</code></td>
-      <td>Parser de comandos de voz/texto. Publica <code>RobotCommand</code> a partir de frases como "agarra el cubo azul" o "paro de emergencia".</td>
+      <td><code>robot_speech</code></td>
+      <td>Pipeline de voz/texto. Publica <code>RobotCommand</code> a partir de frases como "agarra el cubo azul" o "paro de emergencia".</td>
     </tr>
     <tr>
       <td><code>robot_xbox_teleop</code></td>
@@ -327,7 +327,7 @@ Usuario
     </tr>
     <tr>
       <td>Voz a BT</td>
-      <td><code>voice_command_parser</code></td>
+      <td><code>voice_pipeline_node</code></td>
       <td><code>/robot_task/command</code></td>
       <td><code>robot_task_tree</code></td>
       <td>Frases parseadas se vuelven comandos de movimiento, pick, cancel, ESTOP o RESUME.</td>
@@ -417,7 +417,7 @@ ROS graph
   |
   | /web/teleop_twist, /web/sequence_id, /voice/text
   v
-web_command_bridge / voice_command_parser
+web_command_bridge / voice_pipeline_node
   |
   | /robot_task/command
   v
@@ -438,7 +438,7 @@ Gazebo + MoveIt + controllers
     <li>MoveIt para planificar y ejecutar trayectorias.</li>
     <li><code>robot_task_tree</code> como cerebro.</li>
     <li><code>web_command_bridge</code>.</li>
-    <li><code>voice_command_parser</code>.</li>
+    <li><code>voice_pipeline_node</code>.</li>
     <li>Opcionalmente el puente de gamepad.</li>
   </ul>
 
@@ -458,7 +458,7 @@ Computadora GPU                              Jetson Orin NX
 RealSense D415                               robot_task_tree
 yolo_node                                    egm_bridge
 pointcloud_node                              egm_moveit_executor o egm_direct
-voice_command_parser                         egm_joint_jog_servo
+voice_pipeline_node                          egm_joint_jog_servo
 object_cloud_bridge                          gamepad_command_bridge + joy_node
         |                                             |
         | ROS_DOMAIN_ID compartido                    | EGM UDP/RWS
@@ -807,7 +807,7 @@ RealSense D415
   <pre>
 Texto de voz o input manual
   -> /voice/text
-  -> voice_command_parser
+  -> voice_pipeline_node
   -> /robot_task/command
   -> robot_task_tree
   </pre>

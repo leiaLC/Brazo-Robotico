@@ -62,9 +62,8 @@ ros2 topic pub --once /web/sequence_id std_msgs/msg/String "{data: 'close_grippe
 ```
 
 Para pruebas sin microfono, se puede publicar directamente un
-`robot_task_msgs/msg/RobotCommand` en `/robot_task/command`. El paquete
-historico `robot_voice_interface` no se lanza por defecto para evitar doble
-publicacion de comandos de voz.
+`robot_task_msgs/msg/RobotCommand` en `/robot_task/command`. El paquete de voz
+activo es `robot_speech`, que centraliza la publicacion de comandos de voz.
 
 ## Hub Web
 
