@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import json
 import re
+import shutil
+import subprocess
 import time
 import unicodedata
 from pathlib import Path
@@ -33,6 +35,35 @@ TEXT_TOPIC = "/voice/text"
 START_TOPIC = "/voice/start_listening"
 STATUS_TOPIC = "/voice/status"
 EVENT_TOPIC = "/voice/events"
+
+SEQUENCE_PHRASES = {
+    "perception_pose": [
+        "ve a perception pose",
+        "ve a la pose de percepcion",
+        "ve a la pose de percepción",
+        "go to perception pose",
+        "perception pose",
+        "pose de percepcion",
+    ],
+    "classify_objects": [
+        "clasifica los objetos",
+        "clasificar objetos",
+        "classify objects",
+        "detecta y clasifica los objetos",
+        "detecta objetos",
+        "detect objects",
+    ],
+}
+
+STATUS_SPEECH = {
+    "listening_command": "Escuchando",
+    "processing": "Interpretando comando",
+    "accepted": "Comando aceptado",
+    "published": "Comando enviado",
+    "password_rejected": "Contrasena incorrecta",
+    "error": "Comando rechazado",
+    "clarification_needed": "Comando rechazado",
+}
 
 OBJECT_CLASS_ALIASES = {
     "cubo": "cube",
@@ -86,6 +117,32 @@ class UnsupportedVoiceCommand(ValueError):
     """Raised when a parsed LLM action cannot be represented in RobotCommand."""
 
 
+class SpeechFeedback:
+    """Optional text-to-speech feedback that never blocks node startup."""
+
+    def __init__(self, node: Node, enabled: bool) -> None:
+        self.node = node
+        self.enabled = enabled
+        self.spd_say = shutil.which("spd-say")
+        if self.enabled and self.spd_say is None:
+            self.node.get_logger().warn(
+                "[robot_speech] TTS enabled but spd-say was not found; voice feedback disabled."
+            )
+            self.enabled = False
+
+    def say(self, text: str) -> None:
+        if not self.enabled or not text:
+            return
+        try:
+            subprocess.Popen(
+                [self.spd_say, text],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc:  # noqa: BLE001 - TTS must never break command handling.
+            self.node.get_logger().warn(f"[robot_speech] TTS feedback failed: {exc}")
+
+
 class VoiceCommanderNode(Node):
     """Run STT -> LLM -> parser and publish robot_task_msgs/RobotCommand."""
 
@@ -95,9 +152,15 @@ class VoiceCommanderNode(Node):
         self.declare_parameter("publish_voice_text", False)
         self.declare_parameter("triggered_mode", False)
         self.declare_parameter("password_attempts", 2)
+        self.declare_parameter("require_password", True)
+        self.declare_parameter("enable_tts", False)
+        self.declare_parameter("subscribe_voice_text", True)
         self.publish_voice_text = bool(self.get_parameter("publish_voice_text").value)
         self.triggered_mode = bool(self.get_parameter("triggered_mode").value)
         self.password_attempts = int(self.get_parameter("password_attempts").value)
+        self.require_password = bool(self.get_parameter("require_password").value)
+        enable_tts = bool(self.get_parameter("enable_tts").value)
+        self.subscribe_voice_text = bool(self.get_parameter("subscribe_voice_text").value)
         self.cycle_active = False
         self.command_pub = self.create_publisher(RobotCommand, COMMAND_TOPIC, 10)
         self.status_pub = self.create_publisher(String, STATUS_TOPIC, 10)
@@ -113,12 +176,26 @@ class VoiceCommanderNode(Node):
             self._start_listening_callback,
             10,
         )
+        self.text_sub = None
+        if self.subscribe_voice_text and self.publish_voice_text:
+            self.get_logger().warn(
+                "[robot_speech] subscribe_voice_text disabled because publish_voice_text is enabled."
+            )
+            self.subscribe_voice_text = False
+        if self.subscribe_voice_text:
+            self.text_sub = self.create_subscription(
+                String,
+                TEXT_TOPIC,
+                self._text_callback,
+                10,
+            )
 
         cfg = get_hardware_config(self._load_config())
         cuda = cfg["hardware"]["cuda"]
         device = "CUDA" if cuda else "CPU"
         self.get_logger().info(f"Voice pipeline starting on {device}")
         self.password_verifier = PasswordVerifier(cfg["speaker_verification"])
+        self.speech_feedback = SpeechFeedback(self, enable_tts)
         self.auth_session_timeout_sec = float(
             cfg["speaker_verification"].get("session_timeout_sec", 60.0)
         )
@@ -140,6 +217,10 @@ class VoiceCommanderNode(Node):
         self.get_logger().info(
             f"voice_pipeline_node ready: publishing RobotCommand on {COMMAND_TOPIC}"
         )
+        if self.subscribe_voice_text:
+            self.get_logger().info(
+                f"Text command input enabled: listening on {TEXT_TOPIC}"
+            )
         if self.triggered_mode:
             self.get_logger().info(
                 f"Triggered mode enabled: waiting for {START_TOPIC}"
@@ -206,6 +287,7 @@ class VoiceCommanderNode(Node):
                 return
 
             self._publish_status("processing")
+            self._publish_status("accepted")
             self.command_pub.publish(fallback)
             self._publish_status("published")
             self._publish_event(
@@ -233,6 +315,7 @@ class VoiceCommanderNode(Node):
             self._finish_cycle("clarification_needed")
             return
 
+        self._publish_status("accepted")
         self.command_pub.publish(command)
         self._publish_status("published")
         self._publish_event(
@@ -249,6 +332,50 @@ class VoiceCommanderNode(Node):
     def _start_listening_callback(self, _msg: Empty) -> None:
         self.get_logger().info(f"Received voice start request on {START_TOPIC}")
         self.run_cycle()
+
+    def _text_callback(self, msg: String) -> None:
+        text = msg.data.strip()
+        if not text:
+            self.get_logger().warn("[robot_speech] Empty text command ignored.")
+            return
+
+        self.get_logger().info(f"[robot_speech] Received text command: {text!r}")
+        self._publish_event("heard_text", text)
+
+        if not self._has_active_authorization():
+            self.get_logger().warn(
+                "[robot_speech] Text command rejected: password required."
+            )
+            self._publish_status("password_rejected")
+            self._publish_event("rejected", "password required")
+            return
+
+        clarification = self._clarification_for_text(text)
+        if clarification:
+            self.get_logger().warn(
+                f"[robot_speech] Text command needs clarification: {clarification}"
+            )
+            self._publish_event("clarification", clarification)
+            self._publish_status("clarification_needed")
+            return
+
+        command = self._fallback_task_command_from_text(text)
+        if command is None:
+            self.get_logger().warn(
+                f"[robot_speech] Unsupported text command: {text!r}"
+            )
+            self._publish_event("rejected", text)
+            self._publish_status("error")
+            return
+
+        self._publish_status("processing")
+        self._publish_status("accepted")
+        self.command_pub.publish(command)
+        self._publish_status("published")
+        self._publish_event("published", self._describe_robot_command(command))
+        self.get_logger().info(
+            "[robot_speech] Published text command to /robot_task/command."
+        )
 
     def _finish_cycle(self, status: str = "done") -> None:
         self._publish_status(status)
@@ -276,6 +403,7 @@ class VoiceCommanderNode(Node):
         msg = String()
         msg.data = status
         self.status_pub.publish(msg)
+        self.speech_feedback.say(STATUS_SPEECH.get(status, ""))
         self.get_logger().info(f"[robot_speech] status={status}")
 
     def _publish_event(self, event_type: str, text: str, confidence: float | None = None) -> None:
@@ -291,6 +419,8 @@ class VoiceCommanderNode(Node):
         self.event_pub.publish(msg)
 
     def _has_active_authorization(self) -> bool:
+        if not self.require_password:
+            return True
         if not self.password_verifier.is_enabled():
             return True
         return time.monotonic() < self.authorized_until
@@ -415,6 +545,18 @@ class VoiceCommanderNode(Node):
             self.get_logger().info("[robot_speech] Parsed command: sequence_id=home")
             return command
 
+        if action.action == ActionType.RUN_SEQUENCE:
+            sequence_id = str(params.get("sequence_id", "")).strip()
+            if not sequence_id:
+                raise UnsupportedVoiceCommand("RUN_SEQUENCE requires sequence_id")
+            command.command_type = "RUN_SEQUENCE"
+            command.sequence_id = sequence_id
+            command.priority = 95.0
+            self.get_logger().info(
+                f"[robot_speech] Parsed command: sequence_id={sequence_id}"
+            )
+            return command
+
         if action.action == ActionType.OPEN_GRIPPER:
             command.command_type = "RUN_SEQUENCE"
             command.sequence_id = "open_gripper"
@@ -461,6 +603,10 @@ class VoiceCommanderNode(Node):
         if not normalized:
             return None
 
+        control = self._fallback_control_command(normalized)
+        if control is not None:
+            return control
+
         sequence = self._fallback_sequence(normalized)
         if sequence:
             command = self._base_command()
@@ -497,10 +643,56 @@ class VoiceCommanderNode(Node):
 
         return None
 
+    def _fallback_control_command(self, normalized: str) -> RobotCommand | None:
+        command = self._base_command()
+        if self._contains_phrase(
+            normalized,
+            [
+                "emergencia",
+                "paro de emergencia",
+                "parada de emergencia",
+                "estop",
+                "e stop",
+                "para todo",
+            ],
+        ):
+            command.command_type = "ESTOP"
+            command.priority = 100.0
+            return command
+
+        if self._contains_phrase(
+            normalized,
+            ["reanudar", "reanuda", "continua", "continuar", "resume"],
+        ):
+            command.command_type = "RESUME"
+            command.priority = 100.0
+            return command
+
+        if self._contains_phrase(
+            normalized,
+            [
+                "detente",
+                "alto",
+                "para",
+                "parar",
+                "cancelar",
+                "cancela",
+                "cancelo",
+            ],
+        ):
+            command.command_type = "CANCEL"
+            command.priority = 100.0
+            return command
+
+        return None
+
     def _clarification_for_text(self, text: str) -> str:
         normalized = self._normalize_token(text)
         if not normalized:
             return "I did not hear a command. Please try again."
+
+        if self._fallback_sequence(normalized):
+            return ""
 
         if ("joint" in normalized or "articulacion" in normalized) and "grado" not in normalized:
             return "Please include the angle, for example: move joint 1 to 30 degrees."
@@ -541,6 +733,9 @@ class VoiceCommanderNode(Node):
 
     @staticmethod
     def _fallback_sequence(normalized: str) -> str:
+        for sequence_id, phrases in SEQUENCE_PHRASES.items():
+            if VoiceCommanderNode._contains_phrase(normalized, phrases):
+                return sequence_id
         if "home" in normalized or "casa" in normalized or "inicio" in normalized:
             return "home"
         if "abre" in normalized and "gripper" in normalized:
@@ -548,6 +743,13 @@ class VoiceCommanderNode(Node):
         if "cierra" in normalized and "gripper" in normalized:
             return "close_gripper"
         return ""
+
+    @staticmethod
+    def _contains_phrase(normalized: str, phrases: list[str]) -> bool:
+        return any(
+            re.search(rf"\b{re.escape(phrase)}\b", normalized)
+            for phrase in phrases
+        )
 
     def _fallback_joint(self, normalized: str) -> RobotCommand | None:
         if "joint" not in normalized and "articulacion" not in normalized:

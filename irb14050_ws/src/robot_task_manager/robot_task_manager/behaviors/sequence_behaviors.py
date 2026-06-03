@@ -65,7 +65,7 @@ class LoadSequence(BlackboardBehavior):
 class ValidateSequence(BlackboardBehavior):
     """Validate step types and joint values before execution."""
 
-    VALID_STEP_TYPES = {"move_joints", "gripper", "pick_object"}
+    VALID_STEP_TYPES = {"move_joints", "gripper", "pick_object", "detect_objects"}
 
     def update(self) -> py_trees.common.Status:
         steps = list(self.bb_get(bb_keys.SEQUENCE_STEPS, []))
@@ -91,6 +91,17 @@ class ValidateSequence(BlackboardBehavior):
 
             if step_type == "gripper" and step.get("command") not in {"open", "close"}:
                 self.set_status(mode="ERROR", message="Invalid gripper command", error_code="INVALID_GRIPPER")
+                return py_trees.common.Status.FAILURE
+
+            if (
+                step_type == "detect_objects"
+                and float(step.get("timeout_s", 0.0)) < 0.0
+            ):
+                self.set_status(
+                    mode="ERROR",
+                    message="Invalid detection timeout",
+                    error_code="INVALID_DETECTION_TIMEOUT",
+                )
                 return py_trees.common.Status.FAILURE
 
         self.set_status(mode="WEB_SEQUENCE", message="Sequence validated", progress=0.10, error_code="")
@@ -155,6 +166,8 @@ class ExecuteSequence(BlackboardBehavior):
             return self._update_real_move_joints(step, len(steps))
         if self._uses_real_action(step):
             return self._update_action_move_joints(step, len(steps))
+        if step.get("type") == "detect_objects":
+            return self._update_detect_objects(step, len(steps))
 
         duration = self._step_duration(step)
         elapsed = self.now() - (self._step_start or self.now())
@@ -329,8 +342,49 @@ class ExecuteSequence(BlackboardBehavior):
             progress=progress,
         )
 
+    def _update_detect_objects(self, step: dict, total_steps: int) -> py_trees.common.Status:
+        detections = list(self.bb_get(bb_keys.YOLO_DETECTIONS, []))
+        if detections:
+            self._index += 1
+            self._step_start = self.now()
+            progress = self._index / max(1, total_steps)
+            self.set_status(
+                mode="WEB_SEQUENCE",
+                message=f"Detected/classified {len(detections)} object(s)",
+                progress=progress,
+                error_code="",
+            )
+            return py_trees.common.Status.RUNNING
+
+        timeout_s = float(
+            step.get("timeout_s", getattr(self.node, "detection_timeout_s", 2.0))
+        )
+        elapsed = self.now() - (self._step_start or self.now())
+        progress = (self._index + min(0.95, elapsed / max(timeout_s, 0.1))) / max(
+            1,
+            total_steps,
+        )
+        if elapsed < timeout_s:
+            self.set_status(
+                mode="WEB_SEQUENCE",
+                message="Waiting for object detections",
+                progress=progress,
+                error_code="",
+            )
+            return py_trees.common.Status.RUNNING
+
+        self.bb_set(bb_keys.ARM_BUSY, False)
+        self.set_status(
+            mode="ERROR",
+            message="No object detections available",
+            error_code="NO_DETECTIONS",
+        )
+        return py_trees.common.Status.FAILURE
+
     def _step_duration(self, step: dict) -> float:
         step_type = step.get("type")
+        if step_type == "detect_objects":
+            return 0.0
         if step_type == "gripper":
             return float(self.node.gripper_motion_duration_s)
         if step_type == "pick_object":
@@ -353,6 +407,10 @@ class ExecuteSequence(BlackboardBehavior):
             self.node.get_logger().info(
                 "Sequence pick_object: "
                 f"{step.get('object_color', '')} {step.get('object_class', '')}"
+            )
+        elif step_type == "detect_objects":
+            self.node.get_logger().info(
+                "Sequence detect_objects: waiting for classified detections"
             )
 
     def _finish_step(self, step: dict) -> None:

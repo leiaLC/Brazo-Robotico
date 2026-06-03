@@ -183,6 +183,20 @@ Alias equivalente:
 ros2 run robot_speech voice_command_node
 ```
 
+Para pruebas sin contraseña, mantener el mismo nodo pero desactivar la verificacion por parametro ROS:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p require_password:=false
+```
+
+Por defecto `require_password` queda en `true`, asi que la contrasena sigue activada si no se pasa el parametro.
+
+La retroalimentacion por voz es opcional y esta apagada por defecto. En Linux usa `spd-say` si esta instalado:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=true
+```
+
 Ver comandos publicados en otra terminal:
 
 ```bash
@@ -214,12 +228,26 @@ ros2 run robot_speech voice_pipeline_node --ros-args -p publish_voice_text:=true
 
 No correr al mismo tiempo otro parser de voz que escuche `/voice/text` y tambien publique en `/robot_task/command`, porque puede duplicar comandos.
 
+Para probar entrada de texto por `/voice/text` usando solo `robot_speech`:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p triggered_mode:=true -p require_password:=false
+ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 've a la pose de percepcion'}"
+ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 'clasifica los objetos'}"
+```
+
 ## Comandos De Voz De Ejemplo
 
 ```text
 abre el gripper
 cierra el gripper
 ve a home
+ve a perception pose
+ve a la pose de percepcion
+go to perception pose
+clasifica los objetos
+classify objects
+detecta y clasifica los objetos
 mueve joint 1 a 45 grados
 gira joint 2 treinta grados
 agarra el cubo azul
