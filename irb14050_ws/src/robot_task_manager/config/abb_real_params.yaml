@@ -23,7 +23,7 @@ robot_task_tree:
     execute_trajectory_action_name: "/execute_trajectory"
     cartesian_path_service_name: "/compute_cartesian_path"
     planning_time: 5.0
-    velocity_scale: 0.15
+    velocity_scale: 0.4
     pose_position_tolerance_m: 0.01
     pose_orientation_tolerance_rad: 0.1
     cartesian_max_step: 0.005
