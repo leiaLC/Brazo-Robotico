@@ -16,9 +16,12 @@ from fastapi.responses import StreamingResponse
 
 from app.config import get_settings
 from app.models import (
+    DetectionBatchRequest,
+    DetectionRequest,
     GripperRequest,
     JointTargetRequest,
     RobotState,
+    RobotCommandRequest,
     SequenceRequest,
     TeleopState,
     TeleopTwistRequest,
@@ -163,6 +166,7 @@ def health():
         "voice_status_topic": settings.voice_status_topic,
         "voice_events_topic": settings.voice_events_topic,
         "voice_status": gateway.get_latest_voice_status(),
+        "detection_topic": settings.detection_topic,
         "image_topic": settings.image_topic,
         "teleop_enabled": gateway.is_teleop_enabled(),
         "task_status": gateway.get_latest_task_status(),
@@ -284,6 +288,28 @@ def voice_start():
     return {"ok": True}
 
 
+@app.post("/robot/command")
+def robot_command(request: RobotCommandRequest):
+    try:
+        gateway.publish_robot_command(request.model_dump())
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"ok": True, "command_type": request.command_type}
+
+
+@app.post("/perception/detection")
+def perception_detection(request: DetectionRequest):
+    try:
+        gateway.publish_detection(request.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"ok": True}
+
+
 @app.get("/voice/status")
 def voice_status():
     return gateway.get_latest_voice_status()
@@ -297,6 +323,19 @@ def voice_log():
 @app.get("/voice/suggestions")
 def voice_suggestions():
     return {"commands": VOICE_SUGGESTIONS}
+
+
+@app.post("/perception/detections")
+def perception_detections(request: DetectionBatchRequest):
+    try:
+        for detection in request.detections:
+            gateway.publish_detection(detection.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"ok": True, "count": len(request.detections)}
 
 
 @app.post("/task/cancel")

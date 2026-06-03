@@ -9,17 +9,18 @@ try:
     import numpy as np
     import rclpy
     from cv_bridge import CvBridge
-    from geometry_msgs.msg import Twist
+    from geometry_msgs.msg import PoseStamped, Twist
     from rclpy.executors import ExternalShutdownException
     from rclpy.node import Node
     from sensor_msgs.msg import CompressedImage, Image, JointState
     from std_msgs.msg import Empty, String
-    from robot_task_msgs.msg import RobotCommand, RobotStatus
+    from robot_task_msgs.msg import Detection3D, RobotCommand, RobotStatus
 except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2 env
     cv2 = None
     np = None
     rclpy = None
     CvBridge = None
+    PoseStamped = None
     Twist = None
     Node = object
     JointState = None
@@ -27,6 +28,7 @@ except ImportError as exc:  # pragma: no cover - useful when edited outside ROS2
     CompressedImage = None
     Empty = None
     String = None
+    Detection3D = None
     RobotCommand = None
     RobotStatus = None
     ExternalShutdownException = Exception
@@ -59,6 +61,7 @@ class RosGateway:
         self.teleop_twist_pub = None
         self.voice_text_pub = None
         self.voice_start_pub = None
+        self.detection_pub = None
         self._spin_thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._teleop_enabled = False
@@ -83,6 +86,7 @@ class RosGateway:
         self.teleop_twist_pub = self.node.create_publisher(Twist, self.settings.teleop_twist_topic, 10)
         self.voice_text_pub = self.node.create_publisher(String, self.settings.voice_text_topic, 10)
         self.voice_start_pub = self.node.create_publisher(Empty, self.settings.voice_start_topic, 10)
+        self.detection_pub = self.node.create_publisher(Detection3D, self.settings.detection_topic, 10)
         self.node.create_subscription(JointState, self.settings.state_topic, self._on_joint_state, 10)
         self.node.create_subscription(RobotStatus, "/robot_task/status", self._on_task_status, 10)
         self.node.create_subscription(String, self.settings.voice_status_topic, self._on_voice_status, 10)
@@ -257,6 +261,63 @@ class RosGateway:
             raise RuntimeError("ROS gateway is not started")
         self.voice_start_pub.publish(Empty())
 
+    def publish_detection(self, detection_data: dict) -> None:
+        if self.detection_pub is None or self.node is None:
+            raise RuntimeError("ROS gateway is not started")
+
+        pose_camera = detection_data.get("pose_camera")
+        pose_base = detection_data.get("pose_base")
+        if pose_camera is None and pose_base is None:
+            raise ValueError("pose_camera or pose_base is required")
+
+        detection = Detection3D()
+        detection.header.stamp = self.node.get_clock().now().to_msg()
+        detection.header.frame_id = self._detection_header_frame(pose_base, pose_camera)
+        detection.class_name = str(detection_data["class_name"]).strip()
+        detection.color = str(detection_data.get("color", "")).strip()
+        detection.confidence = float(detection_data["confidence"])
+        detection.bbox_x = int(detection_data.get("bbox_x", 0))
+        detection.bbox_y = int(detection_data.get("bbox_y", 0))
+        detection.bbox_width = int(detection_data.get("bbox_width", 0))
+        detection.bbox_height = int(detection_data.get("bbox_height", 0))
+        detection.has_valid_depth = bool(detection_data.get("has_valid_depth", True))
+
+        if pose_camera is not None:
+            detection.pose_camera = self._pose_from_data(pose_camera)
+        if pose_base is not None:
+            detection.pose_base = self._pose_from_data(pose_base)
+
+        self.detection_pub.publish(detection)
+
+    def publish_robot_command(self, command_data: dict) -> None:
+        if self.task_command_pub is None or self.node is None:
+            raise RuntimeError("ROS gateway is not started")
+
+        command = self._base_robot_command()
+        command.source = str(command_data.get("source", "remote_ai")).strip() or "remote_ai"
+        command.command_type = str(command_data["command_type"]).strip()
+        command.object_class = str(command_data.get("object_class", "")).strip()
+        command.object_color = str(command_data.get("object_color", "")).strip()
+        command.place_target = str(command_data.get("place_target", "")).strip()
+        command.joint_id = int(command_data.get("joint_id", 0))
+        command.joint_delta_deg = float(command_data.get("joint_delta_deg", 0.0))
+        command.joint_target_deg = float(command_data.get("joint_target_deg", 0.0))
+        command.relative = bool(command_data.get("relative", False))
+        command.sequence_id = str(command_data.get("sequence_id", "")).strip()
+        command.joint_values = [float(value) for value in command_data.get("joint_values", [])]
+        command.priority = float(command_data.get("priority", 90.0))
+
+        twist = Twist()
+        twist.linear.x = float(command_data.get("linear_x", 0.0))
+        twist.linear.y = float(command_data.get("linear_y", 0.0))
+        twist.linear.z = float(command_data.get("linear_z", 0.0))
+        twist.angular.x = float(command_data.get("angular_x", 0.0))
+        twist.angular.y = float(command_data.get("angular_y", 0.0))
+        twist.angular.z = float(command_data.get("angular_z", 0.0))
+        command.teleop_twist = twist
+
+        self.task_command_pub.publish(command)
+
     def publish_task_command(self, command_type: str) -> None:
         if self.task_command_pub is None or self.node is None:
             raise RuntimeError("ROS gateway is not started")
@@ -297,6 +358,26 @@ class RosGateway:
         command.header.frame_id = "yumi_web_gateway"
         command.source = "web"
         return command
+
+    def _pose_from_data(self, pose_data: dict) -> PoseStamped:
+        pose = PoseStamped()
+        pose.header.stamp = self.node.get_clock().now().to_msg()
+        pose.header.frame_id = str(pose_data.get("frame_id", "base_link")).strip() or "base_link"
+        pose.pose.position.x = float(pose_data["x"])
+        pose.pose.position.y = float(pose_data["y"])
+        pose.pose.position.z = float(pose_data["z"])
+        pose.pose.orientation.x = float(pose_data.get("qx", 0.0))
+        pose.pose.orientation.y = float(pose_data.get("qy", 0.0))
+        pose.pose.orientation.z = float(pose_data.get("qz", 0.0))
+        pose.pose.orientation.w = float(pose_data.get("qw", 1.0))
+        return pose
+
+    @staticmethod
+    def _detection_header_frame(pose_base: dict | None, pose_camera: dict | None) -> str:
+        pose = pose_base if pose_base is not None else pose_camera
+        if pose is None:
+            return "base_link"
+        return str(pose.get("frame_id", "base_link")).strip() or "base_link"
 
     def _on_joint_state(self, msg: JointState) -> None:
         positions_by_name = {

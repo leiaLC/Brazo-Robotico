@@ -8,7 +8,7 @@ robot_task_tree:
     default_snapshot_period: 0.5
     default_snapshot_blackboard_data: false
     default_snapshot_blackboard_activity: false
-    robot_ready_default: true
+    robot_ready_default: false
     velocity_scale: 0.12
     planning_time: 4.0
     action_server_timeout_s: 20.0
