@@ -67,8 +67,10 @@ EXPECTED_JOINTS = [
 POSITION_TOLERANCE_RAD = math.radians(3.0)
 
 # Timeout para que el robot termine de converger al último
-# waypoint después de haber publicado el último setpoint.
-SETTLE_TIMEOUT_S = 8.0
+# waypoint después de haber publicado el último setpoint. El EGM
+# bridge puede quedar unos segundos atrás si MoveIt pide un giro
+# largo de muñeca; esperamos un poco más antes de abortar.
+SETTLE_TIMEOUT_S = 16.0
 
 # Tasa de cadencia interna. Cada tick comprueba si toca publicar
 # el siguiente waypoint y si toca enviar feedback al cliente.
@@ -123,10 +125,14 @@ class EgmMoveitExecutor(Node):
     def _on_joint_states(self, msg: JointState):
         """Guarda la última pose en un dict para acceso rápido."""
         with self._latest_q_lock:
-            self._latest_q = {
-                name: pos
-                for name, pos in zip(msg.name, msg.position)
-            }
+            if self._latest_q is None:
+                self._latest_q = {}
+            self._latest_q.update(
+                {
+                    name: pos
+                    for name, pos in zip(msg.name, msg.position)
+                }
+            )
 
     def _read_current_q(self):
         """Devuelve la pose actual ordenada según EXPECTED_JOINTS."""
@@ -273,6 +279,7 @@ class EgmMoveitExecutor(Node):
         """Espera a que la pose real esté dentro de tolerancia."""
         deadline = time.monotonic() + SETTLE_TIMEOUT_S
         tick_dt = 1.0 / TICK_HZ
+        last_err = None
 
         while time.monotonic() < deadline:
             if goal_handle.is_cancel_requested:
@@ -280,15 +287,26 @@ class EgmMoveitExecutor(Node):
 
             current_q = self._read_current_q()
             if current_q is not None:
-                err = max(
+                joint_errors = [
                     abs(c - t)
                     for c, t in zip(current_q, target_q)
-                )
+                ]
+                last_err = joint_errors
+                err = max(joint_errors)
                 if err < POSITION_TOLERANCE_RAD:
                     return True
 
             time.sleep(tick_dt)
 
+        if last_err is not None:
+            errors_deg = [
+                f"{name}={math.degrees(err):.2f}deg"
+                for name, err in zip(EXPECTED_JOINTS, last_err)
+            ]
+            self.get_logger().warn(
+                "Trajectory settle timeout; final errors: "
+                + ", ".join(errors_deg)
+            )
         return False  # timeout
 
     @staticmethod

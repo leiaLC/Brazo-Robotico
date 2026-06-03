@@ -232,7 +232,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "egm_max_speed_deg_s",
-                default_value="5.0",
+                default_value="35.0",
                 description="Safety speed cap used by abb_irb14050_egm/egm_bridge.",
             ),
             robot_state_publisher,

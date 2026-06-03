@@ -82,8 +82,12 @@ JOINT_LIMITS_DEG = [
     (-290.0, 290.0),  # axis 4
     ( -88.0, 138.0),  # axis 5
     (-229.0, 229.0),  # axis 6  (wrist twist)
-    (-168.5, 168.5),  # axis 7  (elbow, external joint)
+    (-168.5, 168.5),  # axis 7  (physical joint_3 / elbow)
 ]
+
+# Accept tiny floating-point overshoots at a limit, but do not expand
+# the usable range. Values within this band are clamped to the hard limit.
+LIMIT_EPS_DEG = 0.05
 
 
 
@@ -241,6 +245,7 @@ class EGMBridgeNode(Node):
         ]
 
         try:
+            q_goal_deg = self._clamp_near_limits(q_goal_deg)
             self._check_limits(q_goal_deg)
         except ValueError as e:
             self.get_logger().warning(
@@ -381,6 +386,16 @@ class EGMBridgeNode(Node):
                 raise ValueError(
                     f"axis {i+1} target {qv:.2f} deg outside "
                     f"limits [{lo:.1f}, {hi:.1f}]")
+
+    def _clamp_near_limits(self, q_deg: List[float]) -> List[float]:
+        q_clamped = list(q_deg)
+        for i, (qv, (lo, hi)) in enumerate(
+                zip(q_clamped, JOINT_LIMITS_DEG)):
+            if qv < lo and (lo - qv) <= LIMIT_EPS_DEG:
+                q_clamped[i] = lo
+            elif qv > hi and (qv - hi) <= LIMIT_EPS_DEG:
+                q_clamped[i] = hi
+        return q_clamped
 
     def _warn_if_out_of_limits(self, q_deg: List[float]):
         for i, (qv, (lo, hi)) in enumerate(
