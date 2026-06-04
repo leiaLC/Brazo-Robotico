@@ -62,7 +62,7 @@ Esta rama mantiene el workspace principal en `irb14050_ws` y agrega el superviso
 irb14050_ws/src/
 ├── robot_task_msgs
 ├── robot_task_manager
-├── robot_voice_interface
+├── robot_speech
 ├── robot_web_interface
 ├── robot_xbox_teleop
 ├── robot_arm_control

@@ -19,6 +19,7 @@ class ActionType(str, Enum):
     OPEN_GRIPPER = "open_gripper"
     CLOSE_GRIPPER = "close_gripper"
     MOVE_HOME = "move_home"
+    RUN_SEQUENCE = "run_sequence"
     STOP = "stop"
     PICK = "pick"
     PLACE = "place"
@@ -62,6 +63,10 @@ class MoveHomeParams(SpeedMixin):
     pass
 
 
+class RunSequenceParams(SpeedMixin):
+    sequence_id: str = Field(..., min_length=1)
+
+
 class StopParams(BaseModel):
     pass
 
@@ -91,6 +96,7 @@ PARAMS_MAP: dict[ActionType, type[BaseModel]] = {
     ActionType.OPEN_GRIPPER: GripperParams,
     ActionType.CLOSE_GRIPPER: GripperParams,
     ActionType.MOVE_HOME: MoveHomeParams,
+    ActionType.RUN_SEQUENCE: RunSequenceParams,
     ActionType.STOP: StopParams,
     ActionType.PICK: PickParams,
     ActionType.PLACE: PlaceParams,

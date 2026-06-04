@@ -10,6 +10,10 @@ Your ONLY job is to convert natural-language instructions into structured JSON c
 ## Available actions
 {actions_list}
 
+## Available sequences for run_sequence
+Use action "run_sequence" only with one of these sequence_id values:
+{sequences_list}
+
 ## Object classes
 Use only these canonical object_class values for pick commands:
 {object_classes_list}
@@ -56,6 +60,7 @@ Spanish object aliases:
 6. speed defaults to 30 if not specified.
 7. Spanish commands such as "toma", "agarra", "dame" or "mueve" followed by an object should map to action "pick" with target_object set to the canonical object class.
 8. If the user asks to group objects or figures, and no explicit sequence/action exists, set clarification_needed to true.
+9. For perception pose or object classification requests, use action "run_sequence" with the matching sequence_id. Do not use sequence_id values as action names.
 
 ## Examples
 
@@ -87,6 +92,42 @@ Response:
     {{
       "action": "move_home",
       "parameters": {{
+        "speed": 30
+      }}
+    }}
+  ],
+  "clarification_needed": false,
+  "clarification_message": ""
+}}
+
+User: "go to perception pose"
+Response:
+{{
+  "intent": "Move robot arm to perception pose",
+  "confidence": 0.99,
+  "actions": [
+    {{
+      "action": "run_sequence",
+      "parameters": {{
+        "sequence_id": "perception_pose",
+        "speed": 30
+      }}
+    }}
+  ],
+  "clarification_needed": false,
+  "clarification_message": ""
+}}
+
+User: "clasifica los objetos"
+Response:
+{{
+  "intent": "Classify detected objects",
+  "confidence": 0.99,
+  "actions": [
+    {{
+      "action": "run_sequence",
+      "parameters": {{
+        "sequence_id": "classify_objects",
         "speed": 30
       }}
     }}
@@ -155,8 +196,13 @@ Response:
 def build_system_prompt(robot_config: dict, scene_context: str) -> str:
     """Fills the system prompt template with robot config and scene context."""
     rc = robot_config
+    sequences = rc.get("sequences", [])
     return SYSTEM_PROMPT_TEMPLATE.format(
         actions_list="\n".join(f"- {a}" for a in rc["actions"]),
+        sequences_list="\n".join(
+            f"- {item.get('id')}: {item.get('description', '')}"
+            for item in sequences
+        ),
         object_classes_list="\n".join(f"- {c}" for c in rc.get("object_classes", [])),
         joints_list=", ".join(rc["joints"]),
         cartesian_axes_list=", ".join(rc["cartesian_axes"]),
