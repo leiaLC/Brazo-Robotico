@@ -2,3 +2,6 @@ build/
 install/
 log/
 web_control_hub/backend/venv/
+.venv/
+web_control_hub/backend/.env
+web_control_hub/.env.local
