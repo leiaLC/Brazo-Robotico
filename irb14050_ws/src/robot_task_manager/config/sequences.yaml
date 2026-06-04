@@ -18,12 +18,6 @@ dropzone_caja:
     - type: move_joints
       joint_values_deg: [95.51, -105.79, 85.52, -6.56, 99.37, 96.13, -173.11]
 
-perception1:
-  description: "Move to diagonal perception pose"
-  steps:
-    - type: move_joints
-      joint_values_deg: [-160, -46, -7, 57, -201, -46, 101]
-
 perception2:
   description: "Move to upward perception pose"
   steps:
@@ -43,12 +37,36 @@ close_gripper:
       command: close
 
 demo_pick_blue_cube:
-  description: "Pick blue cube demo"
+  description: "Pick & place del cubo azul con pose hardcodeada (sin vision)"
+  # Valores en orden del arbol [joint_1..joint_7] = FlexPendant [J1,J2,J7,J3,J4,J5,J6].
   steps:
-    - type: pick_object
-      object_class: cube
-      object_color: blue
-      place_target: box
+    # 1) Pose de vision (overview, por arriba)
+    - type: move_joints
+      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+    # 2) Abrir gripper antes de aproximar
+    - type: gripper
+      command: open
+    # 3) Aproximacion: arriba del cubo (pre-grasp). FlexPendant:
+    #    J1=3.47 J2=-66.62 J3=-24 J4=26.09 J5=57.52 J6=163.61 J7=159.75
+    - type: move_joints
+      joint_values_deg: [3.47, -66.62, 159.75, -24, 26.09, 57.52, 163.61]
+    # 4) Bajar al cubo (agarre = pre-grasp 6cm hacia abajo, joints por IK)
+    - type: move_joints
+      joint_values_deg: [2.03, -76.8, 161.21, -29.89, 27.68, 52.97, 163.32]
+    # 5) Cerrar gripper (recoger)
+    - type: gripper
+      command: close
+    # 6) Lift: subir de nuevo arriba del cubo (mismo pre-grasp del paso 3)
+    - type: move_joints
+      joint_values_deg: [3.47, -66.62, 159.75, -24, 26.09, 57.52, 163.61]
+    - type: move_joints
+      joint_values_deg: [51.48, -47.18, 5.95, 48.46, 59.95, 72.15, 130.93]
+    # 7) Ir a la caja (dropzone_caja predefinida)
+    - type: move_joints
+      joint_values_deg: [95.51, -105.79, 85.52, -6.56, 99.37, 96.13, -173.11]
+    # 8) Abrir gripper (soltar en la caja)
+    - type: gripper
+      command: open
 # estaban en orden de cable EGM [J1,J2,J3,J4,J5,J6,J7]; aqui se remapearon
 # al orden del arbol de comportamiento [joint_1..joint_7] = EGM [J1,J2,J7,J3,J4,J5,J6].
 pick_place_completo:

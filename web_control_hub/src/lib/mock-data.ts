@@ -194,14 +194,6 @@ export const sequences: Sequence[] = [
     icon: SquareStack,
   },
   {
-    id: "perception1",
-    title: "Diagonal Perception Pose",
-    description: "Moves the arm to the configured camera/perception pose.",
-    estimate: "00:50",
-    status: "idle",
-    icon: ScanLine,
-  },
-  {
     id: "perception2",
     title: "Upward Perception Pose",
     description: "Moves the arm to the configured camera/perception pose.",
