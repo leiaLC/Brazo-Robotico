@@ -44,3 +44,56 @@ class RobotState(BaseModel):
     joint_names: list[str]
     positions_rad: list[float] | None
     positions_deg: list[float] | None
+
+
+class JetsonMemoryMetrics(BaseModel):
+    total_mb: float
+    used_mb: float
+    available_mb: float
+    used_percent: float
+
+
+class JetsonDiskMetrics(BaseModel):
+    mount: str
+    total_gb: float
+    used_gb: float
+    available_gb: float
+    used_percent: float
+
+
+class JetsonCpuCoreMetric(BaseModel):
+    index: int
+    usage_percent: float
+    frequency_mhz: float | None = None
+
+
+class JetsonTemperatureMetric(BaseModel):
+    name: str
+    value_c: float
+
+
+class JetsonPowerRailMetric(BaseModel):
+    name: str
+    current_mw: int
+    average_mw: int | None = None
+
+
+class JetsonMetrics(BaseModel):
+    checked_at: str
+    source: str = "ros2"
+    model: str | None
+    power_mode: str | None
+    uptime_seconds: float
+    load_average: list[float]
+    cpu: list[JetsonCpuCoreMetric]
+    cpu_usage_percent: float | None
+    gpu_usage_percent: float | None
+    memory: JetsonMemoryMetrics
+    swap: JetsonMemoryMetrics
+    disk: JetsonDiskMetrics
+    temperatures: list[JetsonTemperatureMetric]
+    max_temperature_c: float | None
+    power_rails: list[JetsonPowerRailMetric]
+    total_power_mw: int | None
+    tegrastats_raw: str | None
+    warnings: list[str]

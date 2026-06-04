@@ -8,14 +8,20 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { energyTrend } from "@/lib/mock-data";
 
-export function EnergyUsageChart() {
+export type PowerTrendPoint = {
+  time: string;
+  watts: number;
+};
+
+export function PowerUsageChart({ data }: { data: PowerTrendPoint[] }) {
+  const maxWatts = Math.max(10, ...data.map((item) => item.watts));
+
   return (
     <div className="industrial-scrollbar w-full overflow-x-auto">
       <BarChart
         className="max-w-full"
-        data={energyTrend}
+        data={data}
         height={420}
         margin={{ top: 20, right: 18, left: 0, bottom: 10 }}
         width={1040}
@@ -29,9 +35,10 @@ export function EnergyUsageChart() {
           />
           <YAxis
             axisLine={false}
-            domain={[0, 5]}
+            domain={[0, Math.ceil(maxWatts + 2)]}
             tick={{ fill: "#828A95", fontSize: 13 }}
             tickLine={false}
+            unit=" W"
           />
           <Tooltip
             contentStyle={{
@@ -41,7 +48,7 @@ export function EnergyUsageChart() {
             }}
             cursor={{ fill: "#EDF3FA" }}
           />
-          <Bar dataKey="energy" fill="#5D89A5" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="watts" fill="#5D89A5" name="Power" radius={[3, 3, 0, 0]} unit=" W" />
         </BarChart>
     </div>
   );

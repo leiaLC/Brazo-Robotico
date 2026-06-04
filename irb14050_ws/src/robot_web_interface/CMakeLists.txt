@@ -12,6 +12,12 @@ install(PROGRAMS
   RENAME web_command_bridge
 )
 
+install(PROGRAMS
+  robot_web_interface/jetson_metrics_publisher.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME jetson_metrics_publisher
+)
+
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )

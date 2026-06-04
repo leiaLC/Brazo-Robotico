@@ -358,6 +358,13 @@ def generate_launch_description():
                 condition=IfCondition(launch_web_bridge),
             ),
             Node(
+                package="robot_web_interface",
+                executable="jetson_metrics_publisher",
+                name="jetson_metrics_publisher",
+                output="screen",
+                condition=IfCondition(launch_web_bridge),
+            ),
+            Node(
                 package="joy",
                 executable="joy_node",
                 name="joy_node",
