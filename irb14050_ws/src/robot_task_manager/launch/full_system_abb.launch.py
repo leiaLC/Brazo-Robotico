@@ -7,7 +7,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
@@ -22,6 +22,7 @@ def generate_launch_description():
     launch_gripper_joint_states = LaunchConfiguration("launch_gripper_joint_states")
     launch_rviz = LaunchConfiguration("launch_rviz")
     launch_gamepad_joy = LaunchConfiguration("launch_gamepad_joy")
+    enable_octomap = LaunchConfiguration("enable_octomap")
     controller_ip = LaunchConfiguration("controller_ip")
     gripper_host = LaunchConfiguration("gripper_host")
     gripper_publish_rate_hz = LaunchConfiguration("gripper_publish_rate_hz")
@@ -52,6 +53,21 @@ def generate_launch_description():
                 "abb_irb14050.urdf",
             )
         )
+        .to_moveit_configs()
+    )
+    moveit_config_octomap = (
+        MoveItConfigsBuilder(
+            "abb_irb14050",
+            package_name="abb_irb14050_moveit_config",
+        )
+        .robot_description(
+            file_path=os.path.join(
+                get_package_share_directory("abb_irb14050_description"),
+                "urdf",
+                "abb_irb14050.urdf",
+            )
+        )
+        .sensors_3d(file_path="config/sensors_3d_octomap.yaml")
         .to_moveit_configs()
     )
     rviz_config = os.path.join(
@@ -92,7 +108,27 @@ def generate_launch_description():
             moveit_config.to_dict(),
             {"use_sim_time": False},
         ],
-        condition=IfCondition(launch_abb_stack),
+        condition=IfCondition(
+            PythonExpression(
+                ["'", launch_abb_stack, "' == 'true' and '", enable_octomap, "' != 'true'"]
+            )
+        ),
+    )
+
+    move_group_octomap = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        name="move_group",
+        output="screen",
+        parameters=[
+            moveit_config_octomap.to_dict(),
+            {"use_sim_time": False},
+        ],
+        condition=IfCondition(
+            PythonExpression(
+                ["'", launch_abb_stack, "' == 'true' and '", enable_octomap, "' == 'true'"]
+            )
+        ),
     )
 
     rviz = Node(
@@ -196,6 +232,11 @@ def generate_launch_description():
                 description="Launch joy/joy_node for a connected controller.",
             ),
             DeclareLaunchArgument(
+                "enable_octomap",
+                default_value="false",
+                description="Enable MoveIt OctoMap updates from the RealSense point cloud.",
+            ),
+            DeclareLaunchArgument(
                 "joy_dev",
                 default_value="/dev/input/js0",
                 description="Linux joystick device used by joy_node.",
@@ -237,6 +278,7 @@ def generate_launch_description():
             ),
             robot_state_publisher,
             move_group,
+            move_group_octomap,
             rviz,
             egm_bridge,
             egm_moveit_executor,
