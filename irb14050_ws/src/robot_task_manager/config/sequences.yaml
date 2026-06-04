@@ -24,6 +24,20 @@ perception2:
     - type: move_joints
       joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
 
+perception_pose:
+  description: "Move to default perception pose"
+  steps:
+    - type: move_joints
+      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+
+classify_objects:
+  description: "Move to perception pose and wait for classified object detections"
+  steps:
+    - type: move_joints
+      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+    - type: detect_objects
+      timeout_s: 3.0
+
 open_gripper:
   description: "Open gripper"
   steps:

@@ -161,7 +161,7 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("workspace_max_x", 0.85)
         self.declare_parameter("workspace_min_y", -0.45)
         self.declare_parameter("workspace_max_y", 0.45)
-        self.declare_parameter("workspace_min_z", 0.02)
+        self.declare_parameter("workspace_min_z", 0.14)
         self.declare_parameter("workspace_max_z", 0.75)
         self.declare_parameter("pregrasp_offset_z", 0.18)
         self.declare_parameter("grasp_offset_z", 0.14)
