@@ -32,6 +32,7 @@ setup(
             'depth_node = robot_perception.depth_estimator:main',
             'pointcloud_node = robot_perception.pointcloud:main',
             'mock_yolo_detector = robot_perception.mock_yolo_detector:main',
+            'dataset_capture_node = robot_perception.dataset_capture_node:main',
         ],
     },
 )

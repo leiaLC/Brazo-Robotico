@@ -79,6 +79,11 @@ Thumbs.db
 *.h5
 
 
+# Local perception datasets
+
+robot_yolo_dataset/
+
+
 
 # Colcon metadata
 
