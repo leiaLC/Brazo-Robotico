@@ -13,6 +13,7 @@ type TaskStatus = {
   message: string;
   progress: number;
   error_code: string;
+  estop_active?: boolean;
 };
 
 function getDefaultBackendUrl() {
@@ -64,10 +65,17 @@ export default function SequencesPage() {
   );
   const ActiveIcon = active?.icon;
   const connected = connectionState === "connected" && requestState !== "error";
+  const estopActive = useMemo(
+    () => Boolean(taskStatus?.estop_active) || taskStatus?.mode === "ESTOP",
+    [taskStatus],
+  );
   const isPaused = useMemo(() => {
-  const msg = taskStatus?.message?.toLowerCase() ?? "";
-  return msg.startsWith("paused") || msg.startsWith("resuming");
-}, [taskStatus]);
+    if (estopActive) {
+      return false;
+    }
+    const msg = taskStatus?.message?.toLowerCase() ?? "";
+    return msg.startsWith("paused") || msg.startsWith("resuming");
+  }, [taskStatus, estopActive]);
 
   useEffect(() => {
     activeSequenceRef.current = activeSequenceId;
@@ -273,6 +281,7 @@ export default function SequencesPage() {
               <IndustrialButton
                 className="min-w-40"
                 onClick={() => void resumeTask()}
+                disabled={estopActive}
                 tone="primary"
               >
                 <Play className="h-5 w-5" /> Resume
@@ -281,13 +290,13 @@ export default function SequencesPage() {
               <IndustrialButton
                 className="min-w-40"
                 onClick={() => void pauseTask()}
-                disabled={!activeSequenceId}
+                disabled={!activeSequenceId || estopActive}
                 tone="secondary"
               >
                 <Pause className="h-5 w-5" /> Pause
               </IndustrialButton>
             )}
-            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} disabled={!activeSequenceId && !isPaused} tone="danger">
+            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} disabled={!activeSequenceId && !isPaused && !estopActive} tone="danger">
               <Square className="h-5 w-5" /> Abort
             </IndustrialButton>
           </div>

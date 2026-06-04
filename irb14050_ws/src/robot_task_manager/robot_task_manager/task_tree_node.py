@@ -169,6 +169,20 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("default_place_x", 0.35)
         self.declare_parameter("default_place_y", -0.30)
         self.declare_parameter("default_place_z", 0.20)
+        # Selector de dropzone:
+        #   "auto"  -> elige por clase del objeto agarrado (ver *_classes abajo)
+        #   "hueco"/"caja"/"default" -> fuerza esa zona (util para pruebas)
+        self.declare_parameter("place_zone", "auto")
+        self.declare_parameter("dropzone_hueco_x", -0.24)
+        self.declare_parameter("dropzone_hueco_y", 0.19)
+        self.declare_parameter("dropzone_hueco_z", 0.17)
+        self.declare_parameter("dropzone_caja_x", -0.29)
+        self.declare_parameter("dropzone_caja_y", -0.38)
+        self.declare_parameter("dropzone_caja_z", 0.20)
+        # Clases (class_name de YOLO) que van a cada dropzone en modo "auto".
+        # Cualquier clase no listada cae en default_place_*.
+        self.declare_parameter("dropzone_hueco_classes", ["apple"])
+        self.declare_parameter("dropzone_caja_classes", ["cube"])
         self.declare_parameter("use_top_down_grasp_orientation", True)
         self.declare_parameter("top_down_qx", 1.0)
         self.declare_parameter("top_down_qy", 0.0)
@@ -234,6 +248,35 @@ class RobotTaskTreeNode(Node):
         self.default_place_x = float(self.get_parameter("default_place_x").value)
         self.default_place_y = float(self.get_parameter("default_place_y").value)
         self.default_place_z = float(self.get_parameter("default_place_z").value)
+        # Coordenadas de cada dropzone (respecto a base_link).
+        self.dropzone_positions = {
+            "default": (self.default_place_x, self.default_place_y, self.default_place_z),
+            "hueco": (
+                float(self.get_parameter("dropzone_hueco_x").value),
+                float(self.get_parameter("dropzone_hueco_y").value),
+                float(self.get_parameter("dropzone_hueco_z").value),
+            ),
+            "caja": (
+                float(self.get_parameter("dropzone_caja_x").value),
+                float(self.get_parameter("dropzone_caja_y").value),
+                float(self.get_parameter("dropzone_caja_z").value),
+            ),
+        }
+        # Modo de seleccion y mapeo clase -> zona para el modo "auto".
+        self.place_zone = str(self.get_parameter("place_zone").value).strip().lower() or "auto"
+        if self.place_zone not in ("auto", "default", "hueco", "caja"):
+            self.get_logger().warn(
+                f"place_zone '{self.place_zone}' desconocido; usando 'auto'"
+            )
+            self.place_zone = "auto"
+        self.class_to_zone = {}
+        for cls in self.get_parameter("dropzone_hueco_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "hueco"
+        for cls in self.get_parameter("dropzone_caja_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "caja"
+        self.get_logger().info(
+            f"Dropzone mode: '{self.place_zone}'; mapeo clase->zona: {self.class_to_zone}"
+        )
         self.use_top_down_grasp_orientation = bool(
             self.get_parameter("use_top_down_grasp_orientation").value
         )
@@ -253,6 +296,19 @@ class RobotTaskTreeNode(Node):
             self.sequences_file = self._default_config_path("sequences.yaml")
         if not self.srdf_file:
             self.srdf_file = self._default_moveit_config_path("abb_irb14050.srdf")
+
+    def resolve_place_zone(self, object_class: str = "") -> tuple:
+        """Devuelve (nombre_zona, (x, y, z)) para soltar el objeto.
+
+        Si place_zone es "auto", elige por la clase del objeto agarrado
+        (dropzone_*_classes); cualquier clase no mapeada cae en "default".
+        Si place_zone fuerza una zona ("hueco"/"caja"/"default"), la usa
+        sin importar la clase (util para pruebas)."""
+        if self.place_zone == "auto":
+            zone = self.class_to_zone.get(str(object_class).strip().lower(), "default")
+        else:
+            zone = self.place_zone
+        return zone, self.dropzone_positions[zone]
 
     def _default_config_path(self, filename: str) -> str:
         try:

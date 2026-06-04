@@ -286,11 +286,16 @@ class PlanPreGraspPose(BlackboardBehavior):
         retreat = copy.deepcopy(grasp)
         retreat.pose.position.z += float(self.node.retreat_offset_z)
 
-        place = _pose(
-            "base_link",
-            float(self.node.default_place_x),
-            float(self.node.default_place_y),
-            float(self.node.default_place_z),
+        # La dropzone se elige por la clase del objeto agarrado:
+        # manzana -> hueco, cubo -> caja, lo demas -> default (configurable
+        # via dropzone_*_classes / place_zone en abb_real_params.yaml).
+        selected = self.bb_get(bb_keys.SELECTED_OBJECT)
+        object_class = getattr(selected, "class_name", "") if selected is not None else ""
+        zone, (place_x, place_y, place_z) = self.node.resolve_place_zone(object_class)
+        place = _pose("base_link", place_x, place_y, place_z)
+        self.node.get_logger().info(
+            f"Place de '{object_class or 'desconocido'}' -> dropzone '{zone}' "
+            f"({place_x:.2f}, {place_y:.2f}, {place_z:.2f})"
         )
         if command is not None and command.place_target:
             # A real system would look this target up in a scene database.

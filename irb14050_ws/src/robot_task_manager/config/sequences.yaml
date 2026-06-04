@@ -4,6 +4,20 @@ home:
     - type: move_joints
       joint_values_deg: [0, 0, 0, 0, 0, 0, 0]
 
+# Pruebas de dropzone: va directo a la pose jogueada en el FlexPendant.
+# FlexPendant [J1..J7] -> orden arbol [J1, J2, J7, J3, J4, J5, J6].
+dropzone_hueco:
+  description: "Ir directo a la dropzone hueco (pose del FlexPendant)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [-19.78, -49.42, 159.92, 31.98, 50.35, 25.67, 102.06]
+
+dropzone_caja:
+  description: "Ir directo a la dropzone caja (pose del FlexPendant)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [95.51, -105.79, 85.52, -6.56, 99.37, 96.13, -173.11]
+
 perception1:
   description: "Move to diagonal perception pose"
   steps:
