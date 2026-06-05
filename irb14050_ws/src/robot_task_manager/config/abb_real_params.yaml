@@ -55,7 +55,7 @@ robot_task_tree:
     place_zone: "auto"
     # En modo "auto": manzana -> hueco, cubo -> caja, lo demas -> default.
     dropzone_hueco_classes: ["apple"]
-    dropzone_caja_classes: ["cube"]
+    dropzone_caja_classes: ["blue cube"]
 
     # Dropzones derivadas por cinematica directa desde poses del FlexPendant,
     # expresadas respecto a base_link (posicion de tool0).
