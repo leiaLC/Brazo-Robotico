@@ -213,11 +213,12 @@ export function JetsonDashboard() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void refresh(controller.signal);
+    const initialRefresh = window.setTimeout(() => void refresh(controller.signal), 0);
     const interval = window.setInterval(() => void refresh(controller.signal), 4000);
 
     return () => {
       controller.abort();
+      window.clearTimeout(initialRefresh);
       window.clearInterval(interval);
     };
   }, [refresh]);

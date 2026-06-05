@@ -65,6 +65,18 @@ export function TeleopControlPanel({
   }, [backendUrl, onBackendUrlChange]);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return;
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      setBackendUrl((current) => current || getDefaultBackendUrl());
+    }, 0);
+
+    return () => window.clearTimeout(fallbackTimer);
+  }, []);
+
+  useEffect(() => {
     onTeleopEnabledChange?.(enabled && connectionState === "connected");
   }, [connectionState, enabled, onTeleopEnabledChange]);
 
