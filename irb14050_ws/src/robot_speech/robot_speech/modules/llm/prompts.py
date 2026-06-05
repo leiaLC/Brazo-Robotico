@@ -25,6 +25,13 @@ Spanish object aliases:
 - toroide -> toroid
 - manzana -> apple
 
+Color aliases for pick commands:
+- azul / blue -> blue
+- rojo / roja / red -> red
+- verde / green -> green
+- amarillo / amarilla / yellow -> yellow
+- rosa / rosado / rosada / pink -> pink
+
 ## Joint names
 {joints_list}
 
@@ -183,6 +190,25 @@ Response:
       "parameters": {{
         "target_object": "cube",
         "color": "blue",
+        "speed": 20
+      }}
+    }}
+  ],
+  "clarification_needed": false,
+  "clarification_message": ""
+}}
+
+User: "agarra el cubo rosa"
+Response:
+{{
+  "intent": "Pick up the pink cube",
+  "confidence": 0.88,
+  "actions": [
+    {{
+      "action": "pick",
+      "parameters": {{
+        "target_object": "cube",
+        "color": "pink",
         "speed": 20
       }}
     }}

@@ -78,6 +78,10 @@ COLOR_ALIASES = {
     "amarillo": "yellow",
     "amarilla": "yellow",
     "yellow": "yellow",
+    "rosa": "pink",
+    "rosado": "pink",
+    "rosada": "pink",
+    "pink": "pink",
 }
 
 SPANISH_NUMBERS = {

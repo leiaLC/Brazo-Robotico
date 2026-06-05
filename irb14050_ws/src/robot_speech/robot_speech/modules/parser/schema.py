@@ -73,6 +73,7 @@ class StopParams(BaseModel):
 
 class PickParams(SpeedMixin):
     target_object: str
+    color: Optional[str] = None
     approach_height: float = Field(default=0.1, ge=0.0)
 
 
