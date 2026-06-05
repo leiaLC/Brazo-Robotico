@@ -28,7 +28,7 @@ robot_task_tree:
     pose_orientation_tolerance_rad: 0.1
     cartesian_max_step: 0.005
     cartesian_min_fraction: 0.9
-    action_server_timeout_s: 15.0
+    action_server_timeout_s: 25.0
 
     gripper_command_topic: "/gripper/command"
     gripper_motion_duration_s: 1.0
@@ -43,7 +43,7 @@ robot_task_tree:
     workspace_max_z: 0.80
 
     pregrasp_offset_z: 0.18
-    grasp_offset_z: 0.14
+    grasp_offset_z: 0.13
     retreat_offset_z: 0.14
     default_place_x: -0.30
     default_place_y: 0.20

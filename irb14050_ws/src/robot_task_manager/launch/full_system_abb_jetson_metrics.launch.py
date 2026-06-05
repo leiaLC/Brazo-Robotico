@@ -20,6 +20,7 @@ def generate_launch_description():
     launch_gripper_joint_states = LaunchConfiguration("launch_gripper_joint_states")
     launch_rviz = LaunchConfiguration("launch_rviz")
     launch_gamepad_joy = LaunchConfiguration("launch_gamepad_joy")
+    enable_octomap = LaunchConfiguration("enable_octomap")
     joy_dev = LaunchConfiguration("joy_dev")
     controller_ip = LaunchConfiguration("controller_ip")
     gripper_host = LaunchConfiguration("gripper_host")
@@ -75,6 +76,11 @@ def generate_launch_description():
                 "launch_gamepad_joy",
                 default_value="false",
                 description="Launch joy/joy_node for a connected controller.",
+            ),
+            DeclareLaunchArgument(
+                "enable_octomap",
+                default_value="false",
+                description="Enable MoveIt OctoMap updates from the RealSense point cloud.",
             ),
             DeclareLaunchArgument(
                 "joy_dev",
@@ -142,6 +148,7 @@ def generate_launch_description():
                     "launch_gripper_joint_states": launch_gripper_joint_states,
                     "launch_rviz": launch_rviz,
                     "launch_gamepad_joy": launch_gamepad_joy,
+                    "enable_octomap": enable_octomap,
                     "joy_dev": joy_dev,
                     "controller_ip": controller_ip,
                     "gripper_host": gripper_host,

@@ -16,11 +16,22 @@ type VoiceStatus =
   | "transcribing"
   | "interpreting"
   | "processing"
+  | "publishing"
   | "published"
+  | "no_audio"
   | "done"
   | "error";
 type VoiceEvent = {
-  type: "cycle_started" | "heard" | "published" | "rejected" | "clarification" | "message";
+  type:
+    | "cycle_started"
+    | "cycle_finished"
+    | "heard"
+    | "heard_text"
+    | "published"
+    | "rejected"
+    | "clarification"
+    | "no_audio"
+    | "message";
   text: string;
   confidence?: number | null;
   stamp?: number;
@@ -57,6 +68,7 @@ function isVoiceActive(status: VoiceStatus) {
     "transcribing",
     "interpreting",
     "processing",
+    "publishing",
     "published",
   ].includes(status);
 }
@@ -72,7 +84,9 @@ function messageForVoiceStatus(status: VoiceStatus) {
     transcribing: "Transcribing what you said...",
     interpreting: "Interpreting command. CPU mode can take a few seconds...",
     processing: "Preparing command for ROS...",
+    publishing: "Sending command to the robot task system...",
     published: "Command sent.",
+    no_audio: "No speech detected. Try again.",
     done: "Voice cycle complete.",
     error: "Voice cycle ended with an error.",
   };
@@ -100,10 +114,13 @@ function formatVoiceConfidence(confidence?: number | null) {
 function labelForVoiceEvent(event: VoiceEvent) {
   const labels: Record<VoiceEvent["type"], string> = {
     cycle_started: "Cycle",
+    cycle_finished: "Done",
     heard: "Heard",
+    heard_text: "Text",
     published: "Published",
     rejected: "Rejected",
     clarification: "Clarify",
+    no_audio: "No audio",
     message: "Message",
   };
   return labels[event.type] ?? "Message";

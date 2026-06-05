@@ -191,10 +191,64 @@ ros2 run robot_speech voice_pipeline_node --ros-args -p require_password:=false
 
 Por defecto `require_password` queda en `true`, asi que la contrasena sigue activada si no se pasa el parametro.
 
-La retroalimentacion por voz es opcional y esta apagada por defecto. En Linux usa `spd-say` si esta instalado:
+La retroalimentacion por voz es opcional y esta apagada por defecto.
+
+La voz recomendada es **Piper TTS**, porque suena mucho mas natural que `spd-say`.
+`spd-say` queda solo como respaldo basico para pruebas si Piper no esta instalado o
+si falta el modelo de voz.
 
 ```bash
 ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=true
+```
+
+En TTS, el "motor" es el programa que convierte texto en audio. Aqui se usa:
+
+```text
+piper    voz recomendada, mas bonita y natural
+spd-say  respaldo simple del sistema, robotico pero util para pruebas
+```
+
+Parametros de feedback:
+
+```text
+enable_tts              activa/desactiva TTS; default: false
+tts_engine              piper o spd-say; default: piper
+tts_piper_model         ruta al modelo .onnx de Piper
+tts_piper_config        ruta opcional al .onnx.json de Piper
+tts_language            idioma para spd-say; default: es
+tts_rate                velocidad para spd-say; default: 0 usa default del sistema
+tts_listen_guard_sec    espera corta despues del prompt antes de abrir microfono; default: 0.25
+verbose_feedback        usa frases mas explicativas; default: false
+speak_examples_on_start dice un ejemplo al iniciar el nodo; default: false
+```
+
+Estos parametros tambien existen en `config/settings.yaml`, seccion `feedback`.
+Si `enable_tts` esta en `false`, el sistema solo usa logs y topics. Si `piper`
+no esta listo, el nodo avisa y usa `spd-say` como respaldo si esta disponible.
+El prompt de escucha se reproduce antes de abrir el microfono para evitar que el
+sistema capture su propia voz. Los estados intermedios como `processing`,
+`accepted`, `publishing` y `done` se publican en `/voice/status`, pero no se
+hablan para no saturar el ciclo.
+
+Ejemplo de configuracion con Piper:
+
+```yaml
+feedback:
+  enable_tts: true
+  tts_engine: "piper"
+  tts_piper_model: "/ruta/a/voz-espanol.onnx"
+  tts_piper_config: "/ruta/a/voz-espanol.onnx.json"
+  tts_listen_guard_sec: 0.25
+```
+
+Ejemplos:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=false
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=true -p tts_engine:=piper -p tts_piper_model:=/ruta/a/voz-espanol.onnx
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=true -p tts_engine:=spd-say
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=true -p verbose_feedback:=true
+ros2 run robot_speech voice_pipeline_node --ros-args -p require_password:=false -p enable_tts:=true
 ```
 
 Ver comandos publicados en otra terminal:
@@ -212,12 +266,46 @@ Publica:
 
 ```text
 /robot_task/command   robot_task_msgs/msg/RobotCommand
+/voice/status         std_msgs/msg/String
+/voice/events         std_msgs/msg/String JSON
 ```
 
 Opcional/debug:
 
 ```text
 /voice/text           std_msgs/msg/String
+```
+
+Estados principales publicados en `/voice/status`:
+
+```text
+idle
+listening_password
+password_rejected
+listening_command
+transcribing
+interpreting
+processing
+accepted
+publishing
+published
+no_audio
+clarification_needed
+done
+error
+```
+
+Eventos principales publicados en `/voice/events`:
+
+```text
+cycle_started
+heard
+heard_text
+published
+rejected
+clarification
+no_audio
+cycle_finished
 ```
 
 Para activar la salida de texto:
@@ -234,6 +322,50 @@ Para probar entrada de texto por `/voice/text` usando solo `robot_speech`:
 ros2 run robot_speech voice_pipeline_node --ros-args -p triggered_mode:=true -p require_password:=false
 ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 've a la pose de percepcion'}"
 ros2 topic pub --once /voice/text std_msgs/msg/String "{data: 'clasifica los objetos'}"
+```
+
+## Pruebas Recomendadas
+
+Compilar paquetes relacionados:
+
+```bash
+cd ~/Brazo-Robotico/irb14050_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --packages-select robot_speech robot_voice_interface robot_task_msgs robot_task_manager --symlink-install
+source install/setup.bash
+```
+
+Ver topics de voz:
+
+```bash
+ros2 topic list | grep voice
+ros2 topic echo /voice/status
+ros2 topic echo /voice/events
+ros2 topic echo /robot_task/command robot_task_msgs/msg/RobotCommand
+```
+
+Ejecutar con TTS activado:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=true -p tts_engine:=piper -p tts_piper_model:=/ruta/a/voz-espanol.onnx
+```
+
+Ejecutar con TTS desactivado:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p enable_tts:=false
+```
+
+Ejecutar con contrasena activada:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p require_password:=true -p enable_tts:=true
+```
+
+Ejecutar sin contrasena para pruebas:
+
+```bash
+ros2 run robot_speech voice_pipeline_node --ros-args -p require_password:=false -p enable_tts:=true
 ```
 
 ## Comandos De Voz De Ejemplo

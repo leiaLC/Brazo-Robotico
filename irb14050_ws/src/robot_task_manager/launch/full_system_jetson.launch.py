@@ -7,7 +7,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
@@ -23,6 +23,7 @@ def generate_launch_description():
     tick_hz = LaunchConfiguration("tick_hz")
     use_introspection = LaunchConfiguration("use_introspection")
     launch_moveit = LaunchConfiguration("launch_moveit")
+    enable_octomap = LaunchConfiguration("enable_octomap")
     launch_robot_state_publisher = LaunchConfiguration("launch_robot_state_publisher")
     launch_egm_bridge = LaunchConfiguration("launch_egm_bridge")
     launch_egm_moveit_executor = LaunchConfiguration("launch_egm_moveit_executor")
@@ -65,6 +66,21 @@ def generate_launch_description():
                 "abb_irb14050.urdf",
             )
         )
+        .to_moveit_configs()
+    )
+    moveit_config_octomap = (
+        MoveItConfigsBuilder(
+            "abb_irb14050",
+            package_name="abb_irb14050_moveit_config",
+        )
+        .robot_description(
+            file_path=os.path.join(
+                str(description_share),
+                "urdf",
+                "abb_irb14050.urdf",
+            )
+        )
+        .sensors_3d(file_path="config/sensors_3d_octomap.yaml")
         .to_moveit_configs()
     )
 
@@ -129,6 +145,11 @@ def generate_launch_description():
                 "launch_moveit",
                 default_value="true",
                 description="Launch headless MoveIt move_group on the Jetson.",
+            ),
+            DeclareLaunchArgument(
+                "enable_octomap",
+                default_value="false",
+                description="Enable MoveIt OctoMap updates from the RealSense point cloud.",
             ),
             DeclareLaunchArgument(
                 "launch_robot_state_publisher",
@@ -228,7 +249,23 @@ def generate_launch_description():
                 name="move_group",
                 output="screen",
                 parameters=[moveit_config.to_dict(), {"use_sim_time": False}],
-                condition=IfCondition(launch_moveit),
+                condition=IfCondition(
+                    PythonExpression(
+                        ["'", launch_moveit, "' == 'true' and '", enable_octomap, "' != 'true'"]
+                    )
+                ),
+            ),
+            Node(
+                package="moveit_ros_move_group",
+                executable="move_group",
+                name="move_group",
+                output="screen",
+                parameters=[moveit_config_octomap.to_dict(), {"use_sim_time": False}],
+                condition=IfCondition(
+                    PythonExpression(
+                        ["'", launch_moveit, "' == 'true' and '", enable_octomap, "' == 'true'"]
+                    )
+                ),
             ),
             Node(
                 package="abb_irb14050_egm",
