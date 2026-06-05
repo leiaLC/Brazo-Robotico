@@ -28,7 +28,7 @@ robot_task_tree:
     pose_orientation_tolerance_rad: 0.1
     cartesian_max_step: 0.005
     cartesian_min_fraction: 0.9
-    action_server_timeout_s: 20.0
+    action_server_timeout_s: 25.0
 
     gripper_command_topic: "/gripper/command"
     gripper_motion_duration_s: 1.0
@@ -48,25 +48,6 @@ robot_task_tree:
     default_place_x: -0.30
     default_place_y: 0.20
     default_place_z: 0.20
-
-    # Modo de seleccion de dropzone:
-    #   "auto"    -> elige por la clase del objeto agarrado (ver *_classes)
-    #   "hueco" | "caja" | "default" -> fuerza esa zona (para pruebas)
-    place_zone: "auto"
-    # En modo "auto": manzana -> hueco, cubo -> caja, lo demas -> default.
-    dropzone_hueco_classes: ["apple"]
-    dropzone_caja_classes: ["blue cube"]
-
-    # Dropzones derivadas por cinematica directa desde poses del FlexPendant,
-    # expresadas respecto a base_link (posicion de tool0).
-    # Dropzone "hueco": J(FlexPendant) = -19.78, -49.42, 31.98, 50.35, 25.67, 102.06, 159.92
-    dropzone_hueco_x: -0.24
-    dropzone_hueco_y: 0.19
-    dropzone_hueco_z: 0.17
-    # Dropzone "caja": J(FlexPendant) = 95.51, -105.79, -6.56, 99.37, 96.13, -173.11, 85.52
-    dropzone_caja_x: -0.29
-    dropzone_caja_y: -0.38
-    dropzone_caja_z: 0.20
 
     use_top_down_grasp_orientation: true
     top_down_qx: 1.0

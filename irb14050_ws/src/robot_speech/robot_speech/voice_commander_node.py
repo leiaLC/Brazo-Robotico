@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 import json
 import re
-import shutil
-import subprocess
 import time
 import unicodedata
 from pathlib import Path
@@ -22,6 +20,7 @@ from robot_task_msgs.msg import RobotCommand
 
 from .modules.audio import AudioCapture, Transcriber
 from .modules.context import ContextBuilder
+from .modules.feedback import FeedbackConfig, VoiceFeedbackManager
 from .modules.hardware import get_hardware_config
 from .modules.llm import LlamaCppClient
 from .modules.parser import ActionParser
@@ -53,16 +52,6 @@ SEQUENCE_PHRASES = {
         "detecta objetos",
         "detect objects",
     ],
-}
-
-STATUS_SPEECH = {
-    "listening_command": "Escuchando",
-    "processing": "Interpretando comando",
-    "accepted": "Comando aceptado",
-    "published": "Comando enviado",
-    "password_rejected": "Contrasena incorrecta",
-    "error": "Comando rechazado",
-    "clarification_needed": "Comando rechazado",
 }
 
 OBJECT_CLASS_ALIASES = {
@@ -117,50 +106,65 @@ class UnsupportedVoiceCommand(ValueError):
     """Raised when a parsed LLM action cannot be represented in RobotCommand."""
 
 
-class SpeechFeedback:
-    """Optional text-to-speech feedback that never blocks node startup."""
-
-    def __init__(self, node: Node, enabled: bool) -> None:
-        self.node = node
-        self.enabled = enabled
-        self.spd_say = shutil.which("spd-say")
-        if self.enabled and self.spd_say is None:
-            self.node.get_logger().warn(
-                "[robot_speech] TTS enabled but spd-say was not found; voice feedback disabled."
-            )
-            self.enabled = False
-
-    def say(self, text: str) -> None:
-        if not self.enabled or not text:
-            return
-        try:
-            subprocess.Popen(
-                [self.spd_say, text],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as exc:  # noqa: BLE001 - TTS must never break command handling.
-            self.node.get_logger().warn(f"[robot_speech] TTS feedback failed: {exc}")
-
-
 class VoiceCommanderNode(Node):
     """Run STT -> LLM -> parser and publish robot_task_msgs/RobotCommand."""
 
     def __init__(self) -> None:
         super().__init__("voice_pipeline_node")
 
+        raw_config = self._load_config()
+        feedback_defaults = raw_config.get("feedback", {})
+
         self.declare_parameter("publish_voice_text", False)
         self.declare_parameter("triggered_mode", False)
         self.declare_parameter("password_attempts", 2)
         self.declare_parameter("require_password", True)
-        self.declare_parameter("enable_tts", False)
+        self.declare_parameter("enable_tts", bool(feedback_defaults.get("enable_tts", False)))
+        self.declare_parameter("tts_engine", str(feedback_defaults.get("tts_engine", "piper")))
+        self.declare_parameter("tts_language", str(feedback_defaults.get("tts_language", "es")))
+        self.declare_parameter("tts_rate", int(feedback_defaults.get("tts_rate", 0)))
+        self.declare_parameter(
+            "tts_piper_model",
+            str(feedback_defaults.get("tts_piper_model", "")),
+        )
+        self.declare_parameter(
+            "tts_piper_config",
+            str(feedback_defaults.get("tts_piper_config", "")),
+        )
+        self.declare_parameter(
+            "verbose_feedback",
+            bool(feedback_defaults.get("verbose_feedback", False)),
+        )
+        self.declare_parameter(
+            "speak_examples_on_start",
+            bool(feedback_defaults.get("speak_examples_on_start", False)),
+        )
+        self.declare_parameter(
+            "tts_listen_guard_sec",
+            float(feedback_defaults.get("tts_listen_guard_sec", 0.25)),
+        )
         self.declare_parameter("subscribe_voice_text", True)
         self.publish_voice_text = bool(self.get_parameter("publish_voice_text").value)
         self.triggered_mode = bool(self.get_parameter("triggered_mode").value)
         self.password_attempts = int(self.get_parameter("password_attempts").value)
         self.require_password = bool(self.get_parameter("require_password").value)
-        enable_tts = bool(self.get_parameter("enable_tts").value)
+        feedback_config = FeedbackConfig(
+            enable_tts=bool(self.get_parameter("enable_tts").value),
+            tts_engine=str(self.get_parameter("tts_engine").value),
+            tts_language=str(self.get_parameter("tts_language").value),
+            tts_rate=int(self.get_parameter("tts_rate").value),
+            tts_piper_model=str(self.get_parameter("tts_piper_model").value),
+            tts_piper_config=str(self.get_parameter("tts_piper_config").value),
+            verbose_feedback=bool(self.get_parameter("verbose_feedback").value),
+            speak_examples_on_start=bool(
+                self.get_parameter("speak_examples_on_start").value
+            ),
+        )
         self.subscribe_voice_text = bool(self.get_parameter("subscribe_voice_text").value)
+        self.tts_listen_guard_sec = max(
+            0.0,
+            float(self.get_parameter("tts_listen_guard_sec").value),
+        )
         self.cycle_active = False
         self.command_pub = self.create_publisher(RobotCommand, COMMAND_TOPIC, 10)
         self.status_pub = self.create_publisher(String, STATUS_TOPIC, 10)
@@ -190,12 +194,12 @@ class VoiceCommanderNode(Node):
                 10,
             )
 
-        cfg = get_hardware_config(self._load_config())
+        cfg = get_hardware_config(raw_config)
         cuda = cfg["hardware"]["cuda"]
         device = "CUDA" if cuda else "CPU"
         self.get_logger().info(f"Voice pipeline starting on {device}")
         self.password_verifier = PasswordVerifier(cfg["speaker_verification"])
-        self.speech_feedback = SpeechFeedback(self, enable_tts)
+        self.feedback = VoiceFeedbackManager(self.get_logger(), feedback_config)
         self.auth_session_timeout_sec = float(
             cfg["speaker_verification"].get("session_timeout_sec", 60.0)
         )
@@ -226,6 +230,7 @@ class VoiceCommanderNode(Node):
                 f"Triggered mode enabled: waiting for {START_TOPIC}"
             )
         self._publish_status("idle")
+        self.feedback.say_start_example()
 
     def _load_config(self) -> dict[str, Any]:
         cfg_path = os.environ.get("ROBOT_SPEECH_CONFIG") or os.environ.get("RVC_CONFIG")
@@ -253,7 +258,8 @@ class VoiceCommanderNode(Node):
                 self._finish_cycle("error")
                 return
 
-        self._publish_status("listening_command")
+        self._publish_status("listening_command", wait=True)
+        self._guard_microphone_after_feedback()
         self.get_logger().info("[robot_speech] Listening for command...")
 
         ctx = self.pipeline.run_cycle()
@@ -265,7 +271,8 @@ class VoiceCommanderNode(Node):
             self._publish_event("heard", ctx.transcription, ctx.transcription_confidence)
         else:
             self.get_logger().warn("No voice detected")
-            self._finish_cycle("error")
+            self._publish_event("no_audio", "No speech detected")
+            self._finish_cycle("no_audio")
             return
 
         if ctx.parse_error:
@@ -288,6 +295,7 @@ class VoiceCommanderNode(Node):
 
             self._publish_status("processing")
             self._publish_status("accepted")
+            self._publish_status("publishing")
             self.command_pub.publish(fallback)
             self._publish_status("published")
             self._publish_event(
@@ -316,6 +324,7 @@ class VoiceCommanderNode(Node):
             return
 
         self._publish_status("accepted")
+        self._publish_status("publishing")
         self.command_pub.publish(command)
         self._publish_status("published")
         self._publish_event(
@@ -370,6 +379,7 @@ class VoiceCommanderNode(Node):
 
         self._publish_status("processing")
         self._publish_status("accepted")
+        self._publish_status("publishing")
         self.command_pub.publish(command)
         self._publish_status("published")
         self._publish_event("published", self._describe_robot_command(command))
@@ -379,9 +389,11 @@ class VoiceCommanderNode(Node):
 
     def _finish_cycle(self, status: str = "done") -> None:
         self._publish_status(status)
+        self._publish_event("cycle_finished", status)
         self.cycle_active = False
         if self.timer is not None:
             self.timer.reset()
+        self._publish_status("idle", speak=False)
         self.get_logger().info("[robot_speech] Voice cycle finished. Returning to idle.")
 
     def _log_pipeline_timings(self, ctx) -> None:
@@ -399,12 +411,25 @@ class VoiceCommanderNode(Node):
             f"total={timings.get('total', 0.0):.2f}s"
         )
 
-    def _publish_status(self, status: str) -> None:
+    def _guard_microphone_after_feedback(self) -> None:
+        if self.feedback.enabled and self.tts_listen_guard_sec > 0.0:
+            time.sleep(self.tts_listen_guard_sec)
+
+    def _publish_status(
+        self,
+        status: str,
+        *,
+        speak: bool = True,
+        wait: bool = False,
+    ) -> None:
         msg = String()
         msg.data = status
         self.status_pub.publish(msg)
-        self.speech_feedback.say(STATUS_SPEECH.get(status, ""))
-        self.get_logger().info(f"[robot_speech] status={status}")
+        if speak:
+            self.feedback.say_status(status, wait=wait)
+        self.get_logger().info(
+            f"[robot_speech] status={status} ({self.feedback.log_message(status)})"
+        )
 
     def _publish_event(self, event_type: str, text: str, confidence: float | None = None) -> None:
         msg = String()
@@ -429,13 +454,16 @@ class VoiceCommanderNode(Node):
         attempts = max(1, int(self.password_attempts))
 
         for attempt in range(1, attempts + 1):
-            self._publish_status("listening_password")
+            self._publish_status("listening_password", wait=True)
+            self._guard_microphone_after_feedback()
             self.get_logger().info(
                 f"[robot_speech] Listening for password... attempt {attempt}/{attempts}"
             )
             ctx = self.pipeline.listen_and_transcribe()
             if not ctx.transcription:
                 self.get_logger().warn("No password transcription received")
+                self._publish_event("no_audio", "No password speech detected")
+                self._publish_status("no_audio", wait=True)
                 self._publish_status("password_rejected")
                 continue
 
