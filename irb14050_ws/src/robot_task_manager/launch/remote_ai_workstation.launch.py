@@ -68,7 +68,7 @@ def generate_launch_description():
             Node(
                 package="robot_speech",
                 executable="voice_pipeline_node",
-                name="voice_pipeline_node",
+                name="voice_commander_node",
                 output="screen",
                 condition=IfCondition(launch_robot_speech),
             ),

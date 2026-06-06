@@ -26,6 +26,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
+            "voice_commander_node = robot_speech.voice_commander_node:main",
             "voice_pipeline_node = robot_speech.voice_commander_node:main",
             "voice_command_node = robot_speech.voice_commander_node:main",
             "verify_password = robot_speech.modules.speaker.verify:main",

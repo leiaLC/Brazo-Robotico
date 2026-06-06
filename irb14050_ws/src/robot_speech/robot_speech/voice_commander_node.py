@@ -114,7 +114,7 @@ class VoiceCommanderNode(Node):
     """Run STT -> LLM -> parser and publish robot_task_msgs/RobotCommand."""
 
     def __init__(self) -> None:
-        super().__init__("voice_pipeline_node")
+        super().__init__("voice_commander_node")
 
         raw_config = self._load_config()
         feedback_defaults = raw_config.get("feedback", {})
@@ -223,7 +223,7 @@ class VoiceCommanderNode(Node):
             self.timer = self.create_timer(0.1, self.run_cycle)
 
         self.get_logger().info(
-            f"voice_pipeline_node ready: publishing RobotCommand on {COMMAND_TOPIC}"
+            f"voice_commander_node ready: publishing RobotCommand on {COMMAND_TOPIC}"
         )
         if self.subscribe_voice_text:
             self.get_logger().info(
@@ -510,7 +510,7 @@ class VoiceCommanderNode(Node):
     def _base_command(self) -> RobotCommand:
         command = RobotCommand()
         command.header.stamp = self.get_clock().now().to_msg()
-        command.header.frame_id = "voice_pipeline_node"
+        command.header.frame_id = "voice_commander_node"
         command.source = "voice"
         return command
 

@@ -2,7 +2,7 @@ import asyncio
 import json
 import math
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TypeVar
 
 import cv2
@@ -15,8 +15,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from app.config import get_settings
+from app.jetson_metrics import collect_jetson_metrics
 from app.models import (
     GripperRequest,
+    JetsonMetrics,
     JointTargetRequest,
     RobotState,
     SequenceRequest,
@@ -162,6 +164,8 @@ def health():
         "voice_start_topic": settings.voice_start_topic,
         "voice_status_topic": settings.voice_status_topic,
         "voice_events_topic": settings.voice_events_topic,
+        "jetson_metrics_topic": settings.jetson_metrics_topic,
+        "jetson_metrics_max_age_sec": settings.jetson_metrics_max_age_sec,
         "voice_status": gateway.get_latest_voice_status(),
         "image_topic": settings.image_topic,
         "teleop_enabled": gateway.is_teleop_enabled(),
@@ -187,12 +191,33 @@ def robot_nodes():
     nodes = gateway.get_required_node_statuses()
     active_count = sum(node["active"] for node in nodes)
     return {
-        "checked_at": datetime.now(UTC).isoformat(),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
         "all_required_active": bool(nodes) and active_count == len(nodes),
         "active_count": active_count,
         "required_count": len(nodes),
         "nodes": nodes,
     }
+
+
+@app.get("/system/jetson", response_model=JetsonMetrics)
+def system_jetson():
+    remote_metrics = gateway.get_latest_jetson_metrics(settings.jetson_metrics_max_age_sec)
+    if remote_metrics is not None:
+        return remote_metrics
+
+    if settings.jetson_metrics_allow_local_fallback:
+        local_metrics = collect_jetson_metrics(source="local")
+        local_metrics.warnings.insert(
+            0,
+            f"No fresh ROS2 metrics received on {settings.jetson_metrics_topic}; "
+            "returning local backend host metrics.",
+        )
+        return local_metrics
+
+    raise HTTPException(
+        status_code=503,
+        detail=f"No fresh Jetson metrics received on {settings.jetson_metrics_topic}",
+    )
 
 
 @app.post("/teleop/enable", response_model=TeleopState)
