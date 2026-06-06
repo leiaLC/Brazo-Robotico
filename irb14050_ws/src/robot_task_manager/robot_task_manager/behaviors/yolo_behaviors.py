@@ -25,6 +25,47 @@ def _pose(frame_id: str, x: float, y: float, z: float) -> PoseStamped:
     return pose
 
 
+def base_pose_for_detection(node, detection: Detection3D) -> PoseStamped | None:
+    """Return a detection pose in the robot base frame, using TF if needed."""
+    pose_base = copy.deepcopy(detection.pose_base)
+    if pose_base.header.frame_id:
+        pose_base.header.frame_id = node.base_frame
+        return pose_base
+
+    pose_camera = copy.deepcopy(detection.pose_camera)
+    if not pose_camera.header.frame_id:
+        return None
+
+    if node.simulation_mode:
+        pose_base = copy.deepcopy(pose_camera)
+        pose_base.header.frame_id = node.base_frame
+        return pose_base
+
+    if getattr(node, "tf_buffer", None) is None:
+        return None
+
+    try:
+        stamp = Time()
+        if pose_camera.header.stamp.sec != 0 or pose_camera.header.stamp.nanosec != 0:
+            stamp = Time.from_msg(pose_camera.header.stamp)
+        transform = node.tf_buffer.lookup_transform(
+            node.base_frame,
+            pose_camera.header.frame_id,
+            stamp,
+            timeout=Duration(seconds=float(node.tf_timeout_s)),
+        )
+        from tf2_geometry_msgs import do_transform_pose
+
+        pose_base = PoseStamped()
+        pose_base.header.frame_id = node.base_frame
+        pose_base.header.stamp = pose_camera.header.stamp
+        pose_base.pose = do_transform_pose(pose_camera.pose, transform)
+        return pose_base
+    except Exception as exc:  # noqa: BLE001 - TF failures are surfaced as status.
+        node.get_logger().warn(f"TF transform failed: {exc}", throttle_duration_sec=2.0)
+        return None
+
+
 class DetectObjectsYOLO(BlackboardBehavior):
     """Collect recent YOLO/depth detections or create simulation detections."""
 
@@ -197,47 +238,7 @@ class TransformPoseToRobotBase(BlackboardBehavior):
         return py_trees.common.Status.SUCCESS
 
     def _base_pose_for_detection(self, detection: Detection3D) -> PoseStamped | None:
-        pose_base = copy.deepcopy(detection.pose_base)
-        if pose_base.header.frame_id:
-            pose_base.header.frame_id = self.node.base_frame
-            return pose_base
-
-        pose_camera = copy.deepcopy(detection.pose_camera)
-        if not pose_camera.header.frame_id:
-            return None
-
-        if self.node.simulation_mode:
-            pose_base = copy.deepcopy(pose_camera)
-            pose_base.header.frame_id = self.node.base_frame
-            return pose_base
-
-        return self._tf_to_base(pose_camera)
-
-    def _tf_to_base(self, pose_camera: PoseStamped | None) -> PoseStamped | None:
-        if pose_camera is None or not pose_camera.header.frame_id:
-            return None
-        if getattr(self.node, "tf_buffer", None) is None:
-            return None
-        try:
-            stamp = Time()
-            if pose_camera.header.stamp.sec != 0 or pose_camera.header.stamp.nanosec != 0:
-                stamp = Time.from_msg(pose_camera.header.stamp)
-            transform = self.node.tf_buffer.lookup_transform(
-                self.node.base_frame,
-                pose_camera.header.frame_id,
-                stamp,
-                timeout=Duration(seconds=float(self.node.tf_timeout_s)),
-            )
-            from tf2_geometry_msgs import do_transform_pose
-
-            pose_base = PoseStamped()
-            pose_base.header.frame_id = self.node.base_frame
-            pose_base.header.stamp = pose_camera.header.stamp
-            pose_base.pose = do_transform_pose(pose_camera.pose, transform)
-            return pose_base
-        except Exception as exc:  # noqa: BLE001 - TF failures are surfaced as status.
-            self.node.get_logger().warn(f"TF transform failed: {exc}", throttle_duration_sec=2.0)
-            return None
+        return base_pose_for_detection(self.node, detection)
 
 
 class ValidateObjectWorkspace(BlackboardBehavior):

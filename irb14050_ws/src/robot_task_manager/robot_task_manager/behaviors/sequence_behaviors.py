@@ -16,11 +16,13 @@ from robot_task_manager.behaviors.motion_behaviors import (
     MOVEIT_AVAILABLE,
     Constraints,
     JointConstraint,
+    MoveToPerceptionPose,
     MotionPlanRequest,
     MoveGroup,
     MoveItErrorCodes,
 )
 from robot_task_manager.behaviors.pick_place_subtree import build_grasp_place_subtree
+from robot_task_manager.behaviors.yolo_behaviors import base_pose_for_detection
 from robot_task_msgs.action import MoveJoint
 
 
@@ -67,7 +69,14 @@ class LoadSequence(BlackboardBehavior):
 class ValidateSequence(BlackboardBehavior):
     """Validate step types and joint values before execution."""
 
-    VALID_STEP_TYPES = {"move_joints", "gripper", "pick_object", "detect_objects", "classify"}
+    VALID_STEP_TYPES = {
+        "move_joints",
+        "gripper",
+        "pick_object",
+        "detect_objects",
+        "classify",
+        "perception_pose",
+    }
 
     def update(self) -> py_trees.common.Status:
         steps = list(self.bb_get(bb_keys.SEQUENCE_STEPS, []))
@@ -130,6 +139,7 @@ class ExecuteSequence(BlackboardBehavior):
         self._classify_index = 0
         self._classify_current = -1
         self._classify_started = False
+        self._perception_pose_behavior = MoveToPerceptionPose("SequenceMoveToPerceptionPose", node)
         if not self.node.simulation_mode and self.node.motion_backend == "abb_moveit" and MOVEIT_AVAILABLE:
             self._move_group_client = ActionClient(self.node, MoveGroup, self.node.move_group_action_name)
         elif not self.node.simulation_mode:
@@ -181,6 +191,8 @@ class ExecuteSequence(BlackboardBehavior):
             return self._update_action_move_joints(step, len(steps))
         if step.get("type") == "detect_objects":
             return self._update_detect_objects(step, len(steps))
+        if step.get("type") == "perception_pose":
+            return self._update_perception_pose(len(steps))
         if step.get("type") == "classify":
             return self._update_classify(step, len(steps))
 
@@ -396,6 +408,37 @@ class ExecuteSequence(BlackboardBehavior):
         )
         return py_trees.common.Status.FAILURE
 
+    def _update_perception_pose(self, total_steps: int) -> py_trees.common.Status:
+        for _ in self._perception_pose_behavior.tick():
+            pass
+        status = self._perception_pose_behavior.status
+
+        if status == py_trees.common.Status.RUNNING:
+            progress = (self._index + 0.5) / max(1, total_steps)
+            self.set_status(
+                mode="WEB_SEQUENCE",
+                message=f"Moving to perception pose '{self.node.perception_group_state_name}'",
+                progress=progress,
+                error_code="",
+            )
+            return py_trees.common.Status.RUNNING
+
+        self._perception_pose_behavior.stop(py_trees.common.Status.INVALID)
+        if status == py_trees.common.Status.FAILURE:
+            self.bb_set(bb_keys.ARM_BUSY, False)
+            return py_trees.common.Status.FAILURE
+
+        self._index += 1
+        self._step_start = self.now()
+        self._reset_motion_state()
+        self.set_status(
+            mode="WEB_SEQUENCE",
+            message=f"Reached perception pose '{self.node.perception_group_state_name}'",
+            progress=self._index / max(1, total_steps),
+            error_code="",
+        )
+        return py_trees.common.Status.RUNNING
+
     def _snapshot_classifiable(self) -> list:
         """Congela las detecciones clasificables (poses fijas) una sola vez.
 
@@ -406,13 +449,27 @@ class ExecuteSequence(BlackboardBehavior):
         classifiable = set(getattr(self.node, "class_to_zone", {}).keys())
         threshold = float(self.node.confidence_threshold)
         raw = list(self.bb_get(bb_keys.YOLO_DETECTIONS, []))
-        cand = [
-            d for d in raw
-            if d.class_name.lower().strip() in classifiable
-            and d.confidence >= threshold
-            and getattr(d, "has_valid_depth", True)
-            and getattr(d.pose_base, "header", None) is not None
-        ]
+        cand = []
+        for detection in raw:
+            if detection.class_name.lower().strip() not in classifiable:
+                continue
+            if detection.confidence < threshold:
+                continue
+            if not getattr(detection, "has_valid_depth", True):
+                continue
+
+            pose_base = base_pose_for_detection(self.node, detection)
+            if pose_base is None:
+                self.node.get_logger().warn(
+                    "Classify: descartando deteccion sin pose en base_link "
+                    f"({detection.color} {detection.class_name})",
+                    throttle_duration_sec=2.0,
+                )
+                continue
+
+            normalized = copy.deepcopy(detection)
+            normalized.pose_base = pose_base
+            cand.append(normalized)
         distinct: list = []
         for d in sorted(cand, key=lambda x: -x.confidence):
             p = d.pose_base.pose.position
@@ -536,6 +593,10 @@ class ExecuteSequence(BlackboardBehavior):
             self.node.get_logger().info(
                 "Sequence detect_objects: waiting for classified detections"
             )
+        elif step_type == "perception_pose":
+            self.node.get_logger().info(
+                f"Sequence perception_pose: moving to '{self.node.perception_group_state_name}'"
+            )
         elif step_type == "classify":
             self.node.get_logger().info(
                 "Sequence classify: agarrando todos los objetos a su dropzone"
@@ -602,4 +663,5 @@ class ExecuteSequence(BlackboardBehavior):
             # behaviours cancelen sus goals de MoveIt ante un ESTOP/cancel.
             if self._classify_subtree is not None:
                 self._classify_subtree.stop(py_trees.common.Status.INVALID)
+            self._perception_pose_behavior.stop(py_trees.common.Status.INVALID)
             self.bb_set(bb_keys.ARM_BUSY, False)
