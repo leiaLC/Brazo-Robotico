@@ -92,6 +92,10 @@ COLOR_ALIASES = {
     "amarillo": "yellow",
     "amarilla": "yellow",
     "yellow": "yellow",
+    "rosa": "pink",
+    "rosado": "pink",
+    "rosada": "pink",
+    "pink": "pink",
 }
 
 SPANISH_NUMBERS = {
@@ -124,7 +128,7 @@ class VoiceCommanderNode(Node):
     """Run STT -> LLM -> parser and publish robot_task_msgs/RobotCommand."""
 
     def __init__(self) -> None:
-        super().__init__("voice_pipeline_node")
+        super().__init__("voice_commander_node")
 
         raw_config = self._load_config()
         feedback_defaults = raw_config.get("feedback", {})
@@ -233,7 +237,7 @@ class VoiceCommanderNode(Node):
             self.timer = self.create_timer(0.1, self.run_cycle)
 
         self.get_logger().info(
-            f"voice_pipeline_node ready: publishing RobotCommand on {COMMAND_TOPIC}"
+            f"voice_commander_node ready: publishing RobotCommand on {COMMAND_TOPIC}"
         )
         if self.subscribe_voice_text:
             self.get_logger().info(
@@ -272,8 +276,7 @@ class VoiceCommanderNode(Node):
                 self._finish_cycle("error")
                 return
 
-        self._publish_status("listening_command", wait=True)
-        self._guard_microphone_after_feedback()
+        self._prompt_then_listen("prompting_command", "listening_command")
         self.get_logger().info("[robot_speech] Listening for command...")
 
         ctx = self.pipeline.run_cycle()
@@ -311,12 +314,12 @@ class VoiceCommanderNode(Node):
             self._publish_status("accepted")
             self._publish_status("publishing")
             self.command_pub.publish(fallback)
-            self._publish_status("published")
             self._publish_event(
                 "published",
                 self._describe_robot_command(fallback),
                 ctx.transcription_confidence,
             )
+            self._publish_status("published", wait=True)
             self.get_logger().info("[robot_speech] Published fallback command to /robot_task/command.")
             self._finish_cycle("done")
             return
@@ -340,12 +343,12 @@ class VoiceCommanderNode(Node):
         self._publish_status("accepted")
         self._publish_status("publishing")
         self.command_pub.publish(command)
-        self._publish_status("published")
         self._publish_event(
             "published",
             self._describe_robot_command(command),
             getattr(ctx.parsed_command, "confidence", None),
         )
+        self._publish_status("published", wait=True)
         self.get_logger().info(
             f"Published {command.command_type} command on {COMMAND_TOPIC}"
         )
@@ -395,14 +398,20 @@ class VoiceCommanderNode(Node):
         self._publish_status("accepted")
         self._publish_status("publishing")
         self.command_pub.publish(command)
-        self._publish_status("published")
         self._publish_event("published", self._describe_robot_command(command))
+        self._publish_status("published", wait=True)
         self.get_logger().info(
             "[robot_speech] Published text command to /robot_task/command."
         )
 
     def _finish_cycle(self, status: str = "done") -> None:
-        self._publish_status(status)
+        final_spoken_statuses = {
+            "no_audio",
+            "password_rejected",
+            "clarification_needed",
+            "error",
+        }
+        self._publish_status(status, wait=status in final_spoken_statuses)
         self._publish_event("cycle_finished", status)
         self.cycle_active = False
         if self.timer is not None:
@@ -424,6 +433,11 @@ class VoiceCommanderNode(Node):
             f"parse={timings.get('parse', 0.0):.2f}s "
             f"total={timings.get('total', 0.0):.2f}s"
         )
+
+    def _prompt_then_listen(self, prompt_status: str, listening_status: str) -> None:
+        self._publish_status(prompt_status, wait=True)
+        self._guard_microphone_after_feedback()
+        self._publish_status(listening_status, speak=False)
 
     def _guard_microphone_after_feedback(self) -> None:
         if self.feedback.enabled and self.tts_listen_guard_sec > 0.0:
@@ -468,8 +482,7 @@ class VoiceCommanderNode(Node):
         attempts = max(1, int(self.password_attempts))
 
         for attempt in range(1, attempts + 1):
-            self._publish_status("listening_password", wait=True)
-            self._guard_microphone_after_feedback()
+            self._prompt_then_listen("prompting_password", "listening_password")
             self.get_logger().info(
                 f"[robot_speech] Listening for password... attempt {attempt}/{attempts}"
             )
@@ -494,7 +507,7 @@ class VoiceCommanderNode(Node):
                 self.get_logger().info("[robot_speech] Password accepted.")
                 return True
 
-            self._publish_status("password_rejected")
+            self._publish_status("password_rejected", wait=True)
             self.get_logger().warn(message)
             self.get_logger().warn("[robot_speech] Password rejected.")
 
@@ -511,7 +524,7 @@ class VoiceCommanderNode(Node):
     def _base_command(self) -> RobotCommand:
         command = RobotCommand()
         command.header.stamp = self.get_clock().now().to_msg()
-        command.header.frame_id = "voice_pipeline_node"
+        command.header.frame_id = "voice_commander_node"
         command.source = "voice"
         return command
 

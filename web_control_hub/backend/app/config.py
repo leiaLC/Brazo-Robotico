@@ -16,7 +16,7 @@ DEFAULT_REQUIRED_ROS_NODES = ",".join(
         "gripper_node",
         "gripper_joint_state_publisher",
         "robot_task_tree",
-        "voice_pipeline_node",
+        "voice_commander_node",
         "web_command_bridge",
         "gamepad_command_bridge",
     ]
@@ -33,6 +33,11 @@ class Settings(BaseModel):
     voice_start_topic: str = getenv("ROS_VOICE_START_TOPIC", "/voice/start_listening")
     voice_status_topic: str = getenv("ROS_VOICE_STATUS_TOPIC", "/voice/status")
     voice_events_topic: str = getenv("ROS_VOICE_EVENTS_TOPIC", "/voice/events")
+    jetson_metrics_topic: str = getenv("ROS_JETSON_METRICS_TOPIC", "/system/jetson_metrics")
+    jetson_metrics_max_age_sec: float = float(getenv("JETSON_METRICS_MAX_AGE_SEC", "15.0"))
+    jetson_metrics_allow_local_fallback: bool = (
+        getenv("JETSON_METRICS_ALLOW_LOCAL_FALLBACK", "false").lower() == "true"
+    )
     image_topic: str = getenv("ROS_IMAGE_TOPIC", "/perception/yolo/debug_image")
     image_is_compressed: bool = getenv("ROS_IMAGE_IS_COMPRESSED", "false").lower() == "true"
     backend_host: str = getenv("BACKEND_HOST", "0.0.0.0")

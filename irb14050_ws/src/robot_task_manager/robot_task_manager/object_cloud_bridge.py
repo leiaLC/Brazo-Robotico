@@ -28,6 +28,10 @@ COLOR_WORDS = {
     "yellow": "yellow",
     "amarillo": "yellow",
     "amarilla": "yellow",
+    "pink": "pink",
+    "rosa": "pink",
+    "rosado": "pink",
+    "rosada": "pink",
 }
 
 CLASS_ALIASES = {

@@ -70,12 +70,9 @@ export default function SequencesPage() {
     [taskStatus],
   );
   const isPaused = useMemo(() => {
-    if (estopActive) {
-      return false;
-    }
     const msg = taskStatus?.message?.toLowerCase() ?? "";
     return msg.startsWith("paused") || msg.startsWith("resuming");
-  }, [taskStatus, estopActive]);
+  }, [taskStatus]);
 
   useEffect(() => {
     activeSequenceRef.current = activeSequenceId;
@@ -85,9 +82,15 @@ export default function SequencesPage() {
   // window.location. Esto ocurre despues de la hidratacion, por lo que no
   // provoca mismatch entre servidor y cliente.
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
-      setBackendUrl((current) => current || getDefaultBackendUrl());
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return;
     }
+
+    const fallbackTimer = window.setTimeout(() => {
+      setBackendUrl((current) => current || getDefaultBackendUrl());
+    }, 0);
+
+    return () => window.clearTimeout(fallbackTimer);
   }, []);
 
   useEffect(() => {
@@ -176,7 +179,7 @@ export default function SequencesPage() {
       const response = await fetch(`${backendUrl}/task/pause`, { method: "POST" });
       setRequestState(response.ok ? "ok" : "error");
       setMessage(response.ok ? "Pause sent" : "Pause failed");
-    } catch (error) {
+    } catch {
       setRequestState("error");
       setMessage("Pause request failed");
     }
@@ -188,7 +191,7 @@ export default function SequencesPage() {
       const response = await fetch(`${backendUrl}/task/resume`, { method: "POST" });
       setRequestState(response.ok ? "ok" : "error");
       setMessage(response.ok ? "Resume sent" : "Resume failed");
-    } catch (error) {
+    } catch {
       setRequestState("error");
       setMessage("Resume request failed");
     }
