@@ -53,7 +53,7 @@ JETSON_METRICS_MAX_AGE_SEC=15.0
 JETSON_METRICS_ALLOW_LOCAL_FALLBACK=false
 ROS_IMAGE_TOPIC=/camera/color/image_raw
 ROS_IMAGE_IS_COMPRESSED=false
-ROS_REQUIRED_NODES=robot_state_publisher,move_group,egm_bridge,egm_moveit_executor,gripper_node,gripper_joint_state_publisher,robot_task_tree,voice_pipeline_node,web_command_bridge,gamepad_command_bridge
+ROS_REQUIRED_NODES=robot_state_publisher,move_group,egm_bridge,egm_moveit_executor,gripper_node,gripper_joint_state_publisher,robot_task_tree,voice_commander_node,web_command_bridge,gamepad_command_bridge
 BACKEND_HOST=0.0.0.0
 BACKEND_PORT=8000
 ```
