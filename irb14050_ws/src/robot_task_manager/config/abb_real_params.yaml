@@ -44,7 +44,7 @@ robot_task_tree:
 
     pregrasp_offset_z: 0.18
     grasp_offset_z: 0.13
-    retreat_offset_z: 0.14
+    retreat_offset_z: 0.20
     default_place_x: -0.30
     default_place_y: 0.20
     default_place_z: 0.20
