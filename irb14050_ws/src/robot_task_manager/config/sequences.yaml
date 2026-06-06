@@ -41,6 +41,14 @@ classify_objects:
     # 3) Snapshot unico + loop grasp&place de cada objeto a su dropzone
     - type: classify
 
+give_object_to_hand:
+  description: "Agarra el objeto indicado y lo entrega en el centroide de la mano detectada"
+  steps:
+    - type: perception_pose
+    - type: detect_objects
+      timeout_s: 3.0
+    - type: give_to_hand
+
 open_gripper:
   description: "Open gripper"
   steps:

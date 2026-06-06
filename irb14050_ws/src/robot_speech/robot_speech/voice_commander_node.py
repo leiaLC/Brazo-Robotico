@@ -48,9 +48,23 @@ SEQUENCE_PHRASES = {
         "clasifica los objetos",
         "clasificar objetos",
         "classify objects",
+        "sequence classify",
+        "secuencia classify",
+        "ejecuta classify",
+        "ejecuta clasificacion",
+        "ejecuta clasificación",
         "detecta y clasifica los objetos",
         "detecta objetos",
         "detect objects",
+    ],
+    "give_object_to_hand": [
+        "dame el objeto en la mano",
+        "dame un objeto en la mano",
+        "dame en la mano",
+        "entrega en la mano",
+        "ponlo en la mano",
+        "give object to hand",
+        "give me the object",
     ],
 }
 
@@ -579,9 +593,14 @@ class VoiceCommanderNode(Node):
                 raise UnsupportedVoiceCommand("RUN_SEQUENCE requires sequence_id")
             command.command_type = "RUN_SEQUENCE"
             command.sequence_id = sequence_id
+            command.object_class = self._canonical_object_class(
+                params.get("target_object", params.get("object_class", ""))
+            )
+            command.object_color = self._canonical_color(params.get("color", ""))
             command.priority = 95.0
             self.get_logger().info(
-                f"[robot_speech] Parsed command: sequence_id={sequence_id}"
+                f"[robot_speech] Parsed command: sequence_id={sequence_id} "
+                f"object_class={command.object_class} color={command.object_color}"
             )
             return command
 
@@ -635,11 +654,20 @@ class VoiceCommanderNode(Node):
         if control is not None:
             return control
 
+        hand_delivery = self._fallback_give_to_hand(normalized)
+        if hand_delivery is not None:
+            return hand_delivery
+
         sequence = self._fallback_sequence(normalized)
         if sequence:
             command = self._base_command()
             command.command_type = "RUN_SEQUENCE"
             command.sequence_id = sequence
+            if sequence == "give_object_to_hand":
+                command.object_class = self._find_object_class(normalized)
+                command.object_color = self._find_color(normalized)
+                if not command.object_class:
+                    return None
             command.priority = 95.0
             self.get_logger().info(f"[robot_speech] Fallback command: sequence_id={sequence}")
             return command
@@ -670,6 +698,28 @@ class VoiceCommanderNode(Node):
             )
 
         return None
+
+    def _fallback_give_to_hand(self, normalized: str) -> RobotCommand | None:
+        if not re.search(r"\b(?:mano|hand)\b", normalized):
+            return None
+        if not re.search(r"\b(?:dame|entrega|entregame|pon|ponlo|give)\b", normalized):
+            return None
+        object_class = self._find_object_class(normalized)
+        if not object_class:
+            return None
+
+        command = self._base_command()
+        command.command_type = "RUN_SEQUENCE"
+        command.sequence_id = "give_object_to_hand"
+        command.object_class = object_class
+        command.object_color = self._find_color(normalized)
+        command.priority = 95.0
+        self.get_logger().info(
+            "[robot_speech] Fallback command: "
+            f"sequence_id=give_object_to_hand object_class={command.object_class} "
+            f"color={command.object_color}"
+        )
+        return command
 
     def _fallback_control_command(self, normalized: str) -> RobotCommand | None:
         command = self._base_command()
@@ -719,7 +769,10 @@ class VoiceCommanderNode(Node):
         if not normalized:
             return "I did not hear a command. Please try again."
 
-        if self._fallback_sequence(normalized):
+        sequence = self._fallback_sequence(normalized)
+        if sequence == "give_object_to_hand" and not self._find_object_class(normalized):
+            return "Please include the object, for example: give me the cube in my hand."
+        if sequence:
             return ""
 
         if ("joint" in normalized or "articulacion" in normalized) and "grado" not in normalized:

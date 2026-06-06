@@ -42,6 +42,10 @@ CLASS_ALIASES = {
     "toroid": "toroid",
     "manzana": "apple",
     "apple": "apple",
+    "mano": "hand",
+    "hand": "hand",
+    "left": "hand",
+    "right": "hand",
 }
 
 

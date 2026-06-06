@@ -183,6 +183,8 @@ class RobotTaskTreeNode(Node):
         # Cualquier clase no listada cae en default_place_*.
         self.declare_parameter("dropzone_hueco_classes", ["apple"])
         self.declare_parameter("dropzone_caja_classes", ["cube"])
+        self.declare_parameter("hand_class_names", ["hand", "mano"])
+        self.declare_parameter("hand_place_offset_z", 0.08)
         self.declare_parameter("use_top_down_grasp_orientation", True)
         self.declare_parameter("top_down_qx", 1.0)
         self.declare_parameter("top_down_qy", 0.0)
@@ -277,6 +279,12 @@ class RobotTaskTreeNode(Node):
         self.get_logger().info(
             f"Dropzone mode: '{self.place_zone}'; mapeo clase->zona: {self.class_to_zone}"
         )
+        self.hand_class_names = {
+            str(cls).strip().lower()
+            for cls in self.get_parameter("hand_class_names").value or []
+            if str(cls).strip()
+        }
+        self.hand_place_offset_z = float(self.get_parameter("hand_place_offset_z").value)
         self.use_top_down_grasp_orientation = bool(
             self.get_parameter("use_top_down_grasp_orientation").value
         )
@@ -338,6 +346,7 @@ class RobotTaskTreeNode(Node):
         self.blackboard.set(bb_keys.TELEOP_ACTIVE, False)
         self.blackboard.set(bb_keys.YOLO_DETECTIONS, [])
         self.blackboard.set(bb_keys.CANDIDATE_OBJECTS, [])
+        self.blackboard.set(bb_keys.PLACE_POSE_OVERRIDE, None)
         self.blackboard.set(bb_keys.JOINT_STATE_DEG, [0.0] * int(self.joint_count))
         self.blackboard.set(bb_keys.STATUS_TEXT, "Idle")
         self.blackboard.set(bb_keys.ERROR_CODE, "")

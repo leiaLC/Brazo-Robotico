@@ -50,6 +50,8 @@ robot_task_tree:
     default_place_x: 0.35
     default_place_y: -0.30
     default_place_z: 0.20
+    hand_class_names: ["hand", "mano"]
+    hand_place_offset_z: 0.08
     use_top_down_grasp_orientation: true
     top_down_qx: 1.0
     top_down_qy: 0.0

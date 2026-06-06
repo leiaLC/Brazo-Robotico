@@ -287,17 +287,26 @@ class PlanPreGraspPose(BlackboardBehavior):
         retreat = copy.deepcopy(grasp)
         retreat.pose.position.z += float(self.node.retreat_offset_z)
 
-        # La dropzone se elige por la clase del objeto agarrado:
-        # manzana -> hueco, cubo -> caja, lo demas -> default (configurable
-        # via dropzone_*_classes / place_zone en abb_real_params.yaml).
         selected = self.bb_get(bb_keys.SELECTED_OBJECT)
         object_class = getattr(selected, "class_name", "") if selected is not None else ""
-        zone, (place_x, place_y, place_z) = self.node.resolve_place_zone(object_class)
-        place = _pose("base_link", place_x, place_y, place_z)
-        self.node.get_logger().info(
-            f"Place de '{object_class or 'desconocido'}' -> dropzone '{zone}' "
-            f"({place_x:.2f}, {place_y:.2f}, {place_z:.2f})"
-        )
+        place_override = self.bb_get(bb_keys.PLACE_POSE_OVERRIDE)
+        if place_override is not None:
+            place = copy.deepcopy(place_override)
+            place.header.frame_id = self.node.base_frame
+            p = place.pose.position
+            self.node.get_logger().info(
+                f"Place de '{object_class or 'desconocido'}' -> override "
+                f"({p.x:.2f}, {p.y:.2f}, {p.z:.2f})"
+            )
+        else:
+            # La dropzone se elige por la clase del objeto agarrado:
+            # manzana -> hueco, cubo -> caja, lo demas -> default.
+            zone, (place_x, place_y, place_z) = self.node.resolve_place_zone(object_class)
+            place = _pose("base_link", place_x, place_y, place_z)
+            self.node.get_logger().info(
+                f"Place de '{object_class or 'desconocido'}' -> dropzone '{zone}' "
+                f"({place_x:.2f}, {place_y:.2f}, {place_z:.2f})"
+            )
         if command is not None and command.place_target:
             # A real system would look this target up in a scene database.
             self.node.get_logger().info(f"Using configured mock place target: {command.place_target}")

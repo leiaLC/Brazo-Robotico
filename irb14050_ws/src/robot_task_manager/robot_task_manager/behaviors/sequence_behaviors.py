@@ -8,6 +8,7 @@ import math
 
 import py_trees
 import yaml
+from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionClient
 
 from robot_task_manager import blackboard_keys as bb_keys
@@ -76,6 +77,7 @@ class ValidateSequence(BlackboardBehavior):
         "detect_objects",
         "classify",
         "perception_pose",
+        "give_to_hand",
     }
 
     def update(self) -> py_trees.common.Status:
@@ -140,6 +142,9 @@ class ExecuteSequence(BlackboardBehavior):
         self._classify_current = -1
         self._classify_started = False
         self._perception_pose_behavior = MoveToPerceptionPose("SequenceMoveToPerceptionPose", node)
+        self._give_to_hand_subtree = None
+        self._give_to_hand_started = False
+        self._give_to_hand_target = ""
         if not self.node.simulation_mode and self.node.motion_backend == "abb_moveit" and MOVEIT_AVAILABLE:
             self._move_group_client = ActionClient(self.node, MoveGroup, self.node.move_group_action_name)
         elif not self.node.simulation_mode:
@@ -163,6 +168,9 @@ class ExecuteSequence(BlackboardBehavior):
         self._classify_queue = None
         self._classify_index = 0
         self._classify_current = -1
+        self._give_to_hand_started = False
+        self._give_to_hand_target = ""
+        self.bb_set(bb_keys.PLACE_POSE_OVERRIDE, None)
         self.bb_set(bb_keys.ARM_BUSY, True)
         self.set_status(mode="WEB_SEQUENCE", message="Executing sequence", progress=0.10)
 
@@ -195,6 +203,8 @@ class ExecuteSequence(BlackboardBehavior):
             return self._update_perception_pose(len(steps))
         if step.get("type") == "classify":
             return self._update_classify(step, len(steps))
+        if step.get("type") == "give_to_hand":
+            return self._update_give_to_hand(step, len(steps))
 
         duration = self._step_duration(step)
         elapsed = self.now() - (self._step_start or self.now())
@@ -487,6 +497,117 @@ class ExecuteSequence(BlackboardBehavior):
             d.pose_base.pose.position.x, d.pose_base.pose.position.y))
         return distinct
 
+    def _normalise_detection_pose(self, detection):
+        pose_base = base_pose_for_detection(self.node, detection)
+        if pose_base is None:
+            return None
+        normalized = copy.deepcopy(detection)
+        normalized.pose_base = pose_base
+        return normalized
+
+    def _find_give_to_hand_targets(self, step: dict) -> tuple[object | None, PoseStamped | None, str]:
+        command = self.bb_get(bb_keys.CURRENT_COMMAND)
+        target_class = str(step.get("object_class", "")).strip().lower()
+        target_color = str(step.get("object_color", "")).strip().lower()
+        if command is not None:
+            target_class = str(command.object_class or target_class).strip().lower()
+            target_color = str(command.object_color or target_color).strip().lower()
+
+        if not target_class:
+            return None, None, "GIVE_TO_HAND requires object_class"
+
+        threshold = float(self.node.confidence_threshold)
+        hand_classes = set(getattr(self.node, "hand_class_names", {"hand", "mano"}))
+        objects = []
+        hands = []
+        for detection in list(self.bb_get(bb_keys.YOLO_DETECTIONS, [])):
+            class_name = detection.class_name.lower().strip()
+            if detection.confidence < threshold or not getattr(detection, "has_valid_depth", True):
+                continue
+            normalized = self._normalise_detection_pose(detection)
+            if normalized is None:
+                continue
+            if class_name in hand_classes:
+                hands.append(normalized)
+                continue
+            color_ok = not target_color or detection.color.lower().strip() == target_color
+            if class_name == target_class and color_ok:
+                objects.append(normalized)
+
+        if not objects:
+            label = f"{target_color} {target_class}".strip()
+            return None, None, f"No object found for give_to_hand: {label}"
+        if not hands:
+            return None, None, "No hand detection found for give_to_hand"
+
+        selected_object = min(
+            objects,
+            key=lambda d: math.hypot(d.pose_base.pose.position.x, d.pose_base.pose.position.y),
+        )
+        selected_hand = max(hands, key=lambda d: d.confidence)
+        place = copy.deepcopy(selected_hand.pose_base)
+        place.header.frame_id = self.node.base_frame
+        place.pose.position.z += float(getattr(self.node, "hand_place_offset_z", 0.08))
+        return selected_object, place, ""
+
+    def _update_give_to_hand(self, step: dict, total_steps: int) -> py_trees.common.Status:
+        if not self._give_to_hand_started:
+            self._give_to_hand_started = True
+            selected_object, place_pose, error = self._find_give_to_hand_targets(step)
+            if error:
+                self.bb_set(bb_keys.ARM_BUSY, False)
+                self.set_status(mode="ERROR", message=error, error_code="GIVE_TO_HAND_TARGET_MISSING")
+                return py_trees.common.Status.FAILURE
+
+            self.bb_set(bb_keys.SELECTED_OBJECT, selected_object)
+            self.bb_set(bb_keys.SELECTED_OBJECT_POSE_BASE, copy.deepcopy(selected_object.pose_base))
+            self.bb_set(bb_keys.PLACE_POSE_OVERRIDE, place_pose)
+            self._give_to_hand_target = selected_object.class_name
+            if self._give_to_hand_subtree is None:
+                self._give_to_hand_subtree = build_grasp_place_subtree(self.node, "GiveToHandGraspPlace")
+                self._give_to_hand_subtree.setup_with_descendants()
+            p = place_pose.pose.position
+            self.node.get_logger().info(
+                f"GiveToHand: {selected_object.color} {selected_object.class_name} "
+                f"-> hand centroid ({p.x:.3f}, {p.y:.3f}, {p.z:.3f})"
+            )
+
+        for _ in self._give_to_hand_subtree.tick():
+            pass
+        status = self._give_to_hand_subtree.status
+
+        if status == py_trees.common.Status.RUNNING:
+            progress = (self._index + 0.5) / max(1, total_steps)
+            self.set_status(
+                mode="WEB_SEQUENCE",
+                message=f"Entregando {self._give_to_hand_target} a la mano",
+                progress=min(0.99, progress),
+            )
+            return py_trees.common.Status.RUNNING
+
+        self._give_to_hand_subtree.stop(py_trees.common.Status.INVALID)
+        self.bb_set(bb_keys.PLACE_POSE_OVERRIDE, None)
+        self._give_to_hand_started = False
+        if status == py_trees.common.Status.FAILURE:
+            self.bb_set(bb_keys.ARM_BUSY, False)
+            self.set_status(
+                mode="ERROR",
+                message=f"Give to hand fallo para {self._give_to_hand_target}",
+                error_code="GIVE_TO_HAND_FAILED",
+            )
+            return py_trees.common.Status.FAILURE
+
+        self._index += 1
+        self._step_start = self.now()
+        self._reset_motion_state()
+        self.set_status(
+            mode="WEB_SEQUENCE",
+            message=f"Objeto entregado a la mano: {self._give_to_hand_target}",
+            progress=self._index / max(1, total_steps),
+            error_code="",
+        )
+        return py_trees.common.Status.RUNNING
+
     def _update_classify(self, step: dict, total_steps: int) -> py_trees.common.Status:
         """Clasifica todos los objetos detectados (poses fijas, sin re-detectar).
 
@@ -601,6 +722,8 @@ class ExecuteSequence(BlackboardBehavior):
             self.node.get_logger().info(
                 "Sequence classify: agarrando todos los objetos a su dropzone"
             )
+        elif step_type == "give_to_hand":
+            self.node.get_logger().info("Sequence give_to_hand: entregando objeto a mano")
 
     def _finish_step(self, step: dict) -> None:
         if step.get("type") == "move_joints":
@@ -664,4 +787,7 @@ class ExecuteSequence(BlackboardBehavior):
             if self._classify_subtree is not None:
                 self._classify_subtree.stop(py_trees.common.Status.INVALID)
             self._perception_pose_behavior.stop(py_trees.common.Status.INVALID)
+            if self._give_to_hand_subtree is not None:
+                self._give_to_hand_subtree.stop(py_trees.common.Status.INVALID)
+            self.bb_set(bb_keys.PLACE_POSE_OVERRIDE, None)
             self.bb_set(bb_keys.ARM_BUSY, False)

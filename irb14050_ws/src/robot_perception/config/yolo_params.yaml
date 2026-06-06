@@ -1,6 +1,6 @@
 depth_estimator_node:
   ros__parameters:
-    model_path: "/home/leialc/repos/Brazo-Robotico/irb14050_ws/best.pt"
+    model_path: "best.pt"
     confidence: 0.5
     device: "cuda:0"
     depth_scale: 0.001

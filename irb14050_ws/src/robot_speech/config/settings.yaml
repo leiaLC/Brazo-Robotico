@@ -59,6 +59,8 @@ robot:
       description: "Move to perception pose"
     - id: classify_objects
       description: "Move to perception pose and wait for classified detections"
+    - id: give_object_to_hand
+      description: "Pick a requested object and place it at the detected hand centroid"
   object_classes: ["cube", "cylinder", "hexagon", "toroid", "apple"]
   joints: ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
   cartesian_axes: ["x", "y", "z", "roll", "pitch", "yaw"]
