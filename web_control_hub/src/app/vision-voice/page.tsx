@@ -9,8 +9,10 @@ type VoiceRequestState = "idle" | "sending" | "sent" | "error";
 type VoiceStatus =
   | "unknown"
   | "idle"
+  | "prompting_password"
   | "listening_password"
   | "password_rejected"
+  | "prompting_command"
   | "listening_command"
   | "clarification_needed"
   | "transcribing"
@@ -63,7 +65,9 @@ function getVoiceEventsWebSocketUrl(backendUrl: string) {
 
 function isVoiceActive(status: VoiceStatus) {
   return [
+    "prompting_password",
     "listening_password",
+    "prompting_command",
     "listening_command",
     "transcribing",
     "interpreting",
@@ -73,16 +77,22 @@ function isVoiceActive(status: VoiceStatus) {
   ].includes(status);
 }
 
+function isVoiceListening(status: VoiceStatus) {
+  return ["listening_password", "listening_command"].includes(status);
+}
+
 function messageForVoiceStatus(status: VoiceStatus) {
   const messages: Record<VoiceStatus, string> = {
     unknown: "Waiting for voice status...",
     idle: "System is not listening.",
-    listening_password: "Listening for password...",
+    prompting_password: "Robot is asking for the password. Wait for the cue to finish.",
+    listening_password: "Speak now: say the password.",
     password_rejected: "Password rejected.",
-    listening_command: "Listening for command...",
+    prompting_command: "Robot is asking for the command. Wait for the cue to finish.",
+    listening_command: "Speak now: say the robot command.",
     clarification_needed: "I need one more detail. Try one of the suggested commands.",
     transcribing: "Transcribing what you said...",
-    interpreting: "Interpreting command. CPU mode can take a few seconds...",
+    interpreting: "Interpreting command...",
     processing: "Preparing command for ROS...",
     publishing: "Sending command to the robot task system...",
     published: "Command sent.",
@@ -145,12 +155,12 @@ export default function VisionVoicePage() {
   const [suggestedCommands, setSuggestedCommands] = useState<string[]>([]);
   const [sessionStarted, setSessionStarted] = useState("--:--:--");
   const voiceRequested = isVoiceActive(voiceStatus);
+  const voiceListening = isVoiceListening(voiceStatus);
   const voiceBusy = voiceRequestState === "sending";
   const voiceError = voiceRequestState === "error" || voiceStatus === "error";
   const VoiceIcon = voiceRequested ? Mic : MicOff;
   const visibleVoiceEvents = voiceEvents
-    .filter((event) => event.type === "published")
-    .slice(-6)
+    .slice(-8)
     .reverse();
 
   useEffect(() => {
@@ -311,14 +321,20 @@ export default function VisionVoicePage() {
               <VoiceIcon className="h-12 w-12 text-[#29303A]" />
             </span>
             <h3 className="mt-8 text-2xl font-black">
-              {voiceRequested ? "Voice Active" : voiceError ? "Voice Request Failed" : "Voice Ready"}
+              {voiceListening
+                ? "Speak Now"
+                : voiceRequested
+                  ? "Voice Active"
+                  : voiceError
+                    ? "Voice Request Failed"
+                    : "Voice Ready"}
             </h3>
             <p className="mt-3 text-lg text-[#29303A]">{voiceMessage}</p>
             <IndustrialButton
               className="mt-9 w-full"
               disabled={voiceBusy}
               onClick={startVoiceListening}
-              tone={voiceRequested ? "success" : "secondary"}
+              tone={voiceListening ? "success" : "secondary"}
             >
               <Mic className="h-5 w-5" /> {voiceBusy ? "Requesting..." : "Start Voice Command"}
             </IndustrialButton>

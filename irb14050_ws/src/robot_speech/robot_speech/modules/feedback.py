@@ -24,10 +24,12 @@ class LoggerLike(Protocol):
 
 STATUS_MESSAGES: dict[str, str] = {
     "idle": "",
-    "listening_password": " Di la contraseña.",
-    "listening_command": "Dime la instrucción que quieres que realice.",
+    "prompting_password": "Di la contraseña.",
+    "listening_password": "",
+    "prompting_command": "Dime la instrucción que quieres que realice.",
+    "listening_command": "",
     "transcribing": "",
-    "interpreting": "Un momento, estoy interpretando.",
+    "interpreting": "",
     "processing": "",
     "accepted": "",
     "publishing": "",
@@ -43,8 +45,10 @@ STATUS_MESSAGES: dict[str, str] = {
 
 STATUS_LOG_MESSAGES: dict[str, str] = {
     "idle": "Voice system ready",
-    "listening_password": "Listening for password",
-    "listening_command": "Listening for command",
+    "prompting_password": "Prompting for password",
+    "listening_password": "Listening for password now",
+    "prompting_command": "Prompting for command",
+    "listening_command": "Listening for command now",
     "transcribing": "Transcribing audio",
     "interpreting": "Interpreting command",
     "processing": "Processing command",
@@ -60,7 +64,7 @@ STATUS_LOG_MESSAGES: dict[str, str] = {
 
 VERBOSE_STATUS_MESSAGES: dict[str, str] = {
     "idle": "Sistema de voz listo.",
-    "listening_command": (
+    "prompting_command": (
         "Te escucho. Puedes decir: mueve la articulación 1 a 50 grados."
     ),
     "clarification_needed": (
