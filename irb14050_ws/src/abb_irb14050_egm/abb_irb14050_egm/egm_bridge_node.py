@@ -87,7 +87,7 @@ JOINT_LIMITS_DEG = [
 
 # Accept tiny floating-point overshoots at a limit, but do not expand
 # the usable range. Values within this band are clamped to the hard limit.
-LIMIT_EPS_DEG = 0.1
+LIMIT_EPS_DEG = 0.05
 
 
 

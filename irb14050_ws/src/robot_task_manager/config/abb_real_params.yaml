@@ -58,7 +58,7 @@ robot_task_tree:
     dropzone_morada_classes: ["cube"]
     dropzone_verde_classes: ["hexagon"]
     hand_class_names: ["hand", "mano"]
-    hand_place_offset_z: 0.08
+    hand_place_offset_z: 0.18
 
     # Dropzones derivadas por cinematica directa desde poses del FlexPendant,
     # expresadas respecto a base_link (posicion de tool0).
