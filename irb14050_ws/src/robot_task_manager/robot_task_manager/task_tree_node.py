@@ -182,7 +182,7 @@ class RobotTaskTreeNode(Node):
         # Clases (class_name de YOLO) que van a cada dropzone en modo "auto".
         # Cualquier clase no listada cae en default_place_*.
         self.declare_parameter("dropzone_hueco_classes", ["apple"])
-        self.declare_parameter("dropzone_caja_classes", ["blue cube"])
+        self.declare_parameter("dropzone_caja_classes", ["cube"])
         self.declare_parameter("use_top_down_grasp_orientation", True)
         self.declare_parameter("top_down_qx", 1.0)
         self.declare_parameter("top_down_qy", 0.0)

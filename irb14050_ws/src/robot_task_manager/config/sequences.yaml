@@ -31,12 +31,16 @@ perception_pose:
       joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
 
 classify_objects:
-  description: "Move to perception pose and wait for classified object detections"
+  description: "Clasifica: agarra manzanas->hueco y cubos->caja (poses fijas)"
   steps:
+    # 1) Ir a la pose de vision (overview)
     - type: move_joints
       joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+    # 2) Esperar a tener detecciones
     - type: detect_objects
       timeout_s: 3.0
+    # 3) Snapshot unico + loop grasp&place de cada objeto a su dropzone
+    - type: classify
 
 open_gripper:
   description: "Open gripper"

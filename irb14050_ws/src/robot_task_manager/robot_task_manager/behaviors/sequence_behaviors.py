@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 import math
 
@@ -19,6 +20,7 @@ from robot_task_manager.behaviors.motion_behaviors import (
     MoveGroup,
     MoveItErrorCodes,
 )
+from robot_task_manager.behaviors.pick_place_subtree import build_grasp_place_subtree
 from robot_task_msgs.action import MoveJoint
 
 
@@ -65,7 +67,7 @@ class LoadSequence(BlackboardBehavior):
 class ValidateSequence(BlackboardBehavior):
     """Validate step types and joint values before execution."""
 
-    VALID_STEP_TYPES = {"move_joints", "gripper", "pick_object", "detect_objects"}
+    VALID_STEP_TYPES = {"move_joints", "gripper", "pick_object", "detect_objects", "classify"}
 
     def update(self) -> py_trees.common.Status:
         steps = list(self.bb_get(bb_keys.SEQUENCE_STEPS, []))
@@ -122,6 +124,12 @@ class ExecuteSequence(BlackboardBehavior):
         self._result_future = None
         self._goal_handle = None
         self._wait_error: tuple[str, str] | None = None
+        # Estado del paso `classify` (loop de grasp&place con poses fijas).
+        self._classify_subtree = None
+        self._classify_queue: list | None = None
+        self._classify_index = 0
+        self._classify_current = -1
+        self._classify_started = False
         if not self.node.simulation_mode and self.node.motion_backend == "abb_moveit" and MOVEIT_AVAILABLE:
             self._move_group_client = ActionClient(self.node, MoveGroup, self.node.move_group_action_name)
         elif not self.node.simulation_mode:
@@ -140,6 +148,11 @@ class ExecuteSequence(BlackboardBehavior):
         self._step_start = self.now()
         self._published_step = -1
         self._reset_motion_state()
+        # Reset del estado de classify para una corrida fresca.
+        self._classify_started = False
+        self._classify_queue = None
+        self._classify_index = 0
+        self._classify_current = -1
         self.bb_set(bb_keys.ARM_BUSY, True)
         self.set_status(mode="WEB_SEQUENCE", message="Executing sequence", progress=0.10)
 
@@ -168,6 +181,8 @@ class ExecuteSequence(BlackboardBehavior):
             return self._update_action_move_joints(step, len(steps))
         if step.get("type") == "detect_objects":
             return self._update_detect_objects(step, len(steps))
+        if step.get("type") == "classify":
+            return self._update_classify(step, len(steps))
 
         duration = self._step_duration(step)
         elapsed = self.now() - (self._step_start or self.now())
@@ -381,6 +396,115 @@ class ExecuteSequence(BlackboardBehavior):
         )
         return py_trees.common.Status.FAILURE
 
+    def _snapshot_classifiable(self) -> list:
+        """Congela las detecciones clasificables (poses fijas) una sola vez.
+
+        Filtra por las clases con dropzone (node.class_to_zone), confianza y
+        profundidad valida; deduplica detecciones del mismo objeto (varios
+        frames) por cercania en XY; ordena por cercania para un pick eficiente.
+        """
+        classifiable = set(getattr(self.node, "class_to_zone", {}).keys())
+        threshold = float(self.node.confidence_threshold)
+        raw = list(self.bb_get(bb_keys.YOLO_DETECTIONS, []))
+        cand = [
+            d for d in raw
+            if d.class_name.lower().strip() in classifiable
+            and d.confidence >= threshold
+            and getattr(d, "has_valid_depth", True)
+            and getattr(d.pose_base, "header", None) is not None
+        ]
+        distinct: list = []
+        for d in sorted(cand, key=lambda x: -x.confidence):
+            p = d.pose_base.pose.position
+            dup = any(
+                e.class_name == d.class_name
+                and math.hypot(
+                    p.x - e.pose_base.pose.position.x,
+                    p.y - e.pose_base.pose.position.y,
+                ) < 0.04
+                for e in distinct
+            )
+            if not dup:
+                distinct.append(d)
+        distinct.sort(key=lambda d: math.hypot(
+            d.pose_base.pose.position.x, d.pose_base.pose.position.y))
+        return distinct
+
+    def _update_classify(self, step: dict, total_steps: int) -> py_trees.common.Status:
+        """Clasifica todos los objetos detectados (poses fijas, sin re-detectar).
+
+        Snapshot unico de apple/cube; por cada uno fija su pose/clase en el
+        blackboard y corre el subarbol grasp&place (routing por clase via
+        resolve_place_zone). Termina cuando se procesaron todos.
+        """
+        if not self._classify_started:
+            self._classify_started = True
+            self._classify_queue = self._snapshot_classifiable()
+            self._classify_index = 0
+            self._classify_current = -1
+            if self._classify_subtree is None:
+                self._classify_subtree = build_grasp_place_subtree(self.node, "ClassifyGraspPlace")
+                self._classify_subtree.setup_with_descendants()
+            self.node.get_logger().info(
+                f"Classify: {len(self._classify_queue)} objeto(s) clasificable(s)"
+            )
+
+        queue = self._classify_queue or []
+        if self._classify_index >= len(queue):
+            self._finish_step(step)
+            self._index += 1
+            self._step_start = self.now()
+            self._reset_motion_state()
+            self.set_status(
+                mode="WEB_SEQUENCE",
+                message=f"Classify completo: {len(queue)} objeto(s)",
+                progress=self._index / max(1, total_steps),
+                error_code="",
+            )
+            return py_trees.common.Status.RUNNING
+
+        obj = queue[self._classify_index]
+        if self._classify_current != self._classify_index:
+            self._classify_current = self._classify_index
+            pose_base = copy.deepcopy(obj.pose_base)
+            pose_base.header.frame_id = self.node.base_frame
+            self.bb_set(bb_keys.SELECTED_OBJECT, obj)
+            self.bb_set(bb_keys.SELECTED_OBJECT_POSE_BASE, pose_base)
+            self.node.get_logger().info(
+                f"Classify {self._classify_index + 1}/{len(queue)}: "
+                f"{obj.color} {obj.class_name}"
+            )
+
+        for _ in self._classify_subtree.tick():
+            pass
+        status = self._classify_subtree.status
+
+        if status == py_trees.common.Status.RUNNING:
+            prog = (self._index + (self._classify_index + 0.5) / max(1, len(queue))) / max(1, total_steps)
+            self.set_status(
+                mode="WEB_SEQUENCE",
+                message=f"Clasificando {self._classify_index + 1}/{len(queue)}: {obj.class_name}",
+                progress=min(0.99, prog),
+            )
+            return py_trees.common.Status.RUNNING
+
+        # Termino este objeto; reset del subarbol para el siguiente.
+        self._classify_subtree.stop(py_trees.common.Status.INVALID)
+        if status == py_trees.common.Status.FAILURE:
+            self.bb_set(bb_keys.ARM_BUSY, False)
+            self.set_status(
+                mode="ERROR",
+                message=(
+                    f"Classify fallo en {obj.class_name} "
+                    f"({self._classify_index + 1}/{len(queue)})"
+                ),
+                error_code="CLASSIFY_PICK_FAILED",
+            )
+            return py_trees.common.Status.FAILURE
+
+        self._classify_index += 1
+        return py_trees.common.Status.RUNNING
+
     def _step_duration(self, step: dict) -> float:
         step_type = step.get("type")
         if step_type == "detect_objects":
@@ -411,6 +535,10 @@ class ExecuteSequence(BlackboardBehavior):
         elif step_type == "detect_objects":
             self.node.get_logger().info(
                 "Sequence detect_objects: waiting for classified detections"
+            )
+        elif step_type == "classify":
+            self.node.get_logger().info(
+                "Sequence classify: agarrando todos los objetos a su dropzone"
             )
 
     def _finish_step(self, step: dict) -> None:
@@ -470,4 +598,8 @@ class ExecuteSequence(BlackboardBehavior):
         if new_status == py_trees.common.Status.INVALID:
             if self._goal_handle is not None:
                 self._goal_handle.cancel_goal_async()
+            # Propaga la invalidacion al subarbol de classify para que sus
+            # behaviours cancelen sus goals de MoveIt ante un ESTOP/cancel.
+            if self._classify_subtree is not None:
+                self._classify_subtree.stop(py_trees.common.Status.INVALID)
             self.bb_set(bb_keys.ARM_BUSY, False)
