@@ -53,9 +53,10 @@ robot_task_tree:
     #   "auto"    -> elige por la clase del objeto agarrado (ver *_classes)
     #   "hueco" | "caja" | "default" -> fuerza esa zona (para pruebas)
     place_zone: "auto"
-    # En modo "auto": manzana -> hueco, cubo -> caja, lo demas -> default.
+    # En modo "auto": manzana -> hueco, cubo -> morada, hexagono -> verde, lo demas -> default.
     dropzone_hueco_classes: ["apple"]
-    dropzone_caja_classes: ["cube"]
+    dropzone_morada_classes: ["cube"]
+    dropzone_verde_classes: ["hexagon"]
     hand_class_names: ["hand", "mano"]
     hand_place_offset_z: 0.08
 
@@ -65,10 +66,14 @@ robot_task_tree:
     dropzone_hueco_x: -0.24
     dropzone_hueco_y: 0.19
     dropzone_hueco_z: 0.17
-    # Dropzone "caja": J(FlexPendant) = 95.51, -105.79, -6.56, 99.37, 96.13, -173.11, 85.52
-    dropzone_caja_x: -0.29
-    dropzone_caja_y: -0.38
-    dropzone_caja_z: 0.20
+    # Dropzone "morada" (cubos): J(FlexPendant) = 159.03, -89.24, 41.04, 89.35, 87.48, 206.90, 94.86
+    dropzone_morada_x: 0.01
+    dropzone_morada_y: -0.31
+    dropzone_morada_z: 0.25
+    # Dropzone "verde" (hexagonos): J(FlexPendant) = -26.21, -103.44, 38.09, 96.01, 102.54, 209.46, 84.16
+    dropzone_verde_x: 0.01
+    dropzone_verde_y: 0.33
+    dropzone_verde_z: 0.27
 
     use_top_down_grasp_orientation: true
     top_down_qx: 1.0

@@ -176,13 +176,21 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("dropzone_hueco_x", -0.24)
         self.declare_parameter("dropzone_hueco_y", 0.19)
         self.declare_parameter("dropzone_hueco_z", 0.17)
-        self.declare_parameter("dropzone_caja_x", -0.29)
-        self.declare_parameter("dropzone_caja_y", -0.38)
-        self.declare_parameter("dropzone_caja_z", 0.20)
+        ## self.declare_parameter("dropzone_caja_x", -0.29)
+        ## self.declare_parameter("dropzone_caja_y", -0.38)
+        ## self.declare_parameter("dropzone_caja_z", 0.20)
+        self.declare_parameter("dropzone_morada_x", 0.01)
+        self.declare_parameter("dropzone_morada_y", -0.31)
+        self.declare_parameter("dropzone_morada_z", 0.25)
+        self.declare_parameter("dropzone_verde_x", 0.01)
+        self.declare_parameter("dropzone_verde_y", 0.33)
+        self.declare_parameter("dropzone_verde_z", 0.27)
         # Clases (class_name de YOLO) que van a cada dropzone en modo "auto".
         # Cualquier clase no listada cae en default_place_*.
         self.declare_parameter("dropzone_hueco_classes", ["apple"])
-        self.declare_parameter("dropzone_caja_classes", ["cube"])
+        ## self.declare_parameter("dropzone_caja_classes", ["cube"])
+        self.declare_parameter("dropzone_morada_classes", ["cube"])
+        self.declare_parameter("dropzone_verde_classes", ["hexagon"])
         self.declare_parameter("hand_class_names", ["hand", "mano"])
         self.declare_parameter("hand_place_offset_z", 0.08)
         self.declare_parameter("use_top_down_grasp_orientation", True)
@@ -258,15 +266,25 @@ class RobotTaskTreeNode(Node):
                 float(self.get_parameter("dropzone_hueco_y").value),
                 float(self.get_parameter("dropzone_hueco_z").value),
             ),
-            "caja": (
-                float(self.get_parameter("dropzone_caja_x").value),
-                float(self.get_parameter("dropzone_caja_y").value),
-                float(self.get_parameter("dropzone_caja_z").value),
+            #"caja": (
+            #    float(self.get_parameter("dropzone_caja_x").value),
+            #    float(self.get_parameter("dropzone_caja_y").value),
+            #    float(self.get_parameter("dropzone_caja_z").value),
+            #),
+            "morada": (
+                float(self.get_parameter("dropzone_morada_x").value),
+                float(self.get_parameter("dropzone_morada_y").value),
+                float(self.get_parameter("dropzone_morada_z").value),
+            ),
+            "verde": (
+                float(self.get_parameter("dropzone_verde_x").value),
+                float(self.get_parameter("dropzone_verde_y").value),
+                float(self.get_parameter("dropzone_verde_z").value),
             ),
         }
         # Modo de seleccion y mapeo clase -> zona para el modo "auto".
         self.place_zone = str(self.get_parameter("place_zone").value).strip().lower() or "auto"
-        if self.place_zone not in ("auto", "default", "hueco", "caja"):
+        if self.place_zone not in ("auto", "default", "hueco", "morada", "verde"):
             self.get_logger().warn(
                 f"place_zone '{self.place_zone}' desconocido; usando 'auto'"
             )
@@ -274,8 +292,12 @@ class RobotTaskTreeNode(Node):
         self.class_to_zone = {}
         for cls in self.get_parameter("dropzone_hueco_classes").value or []:
             self.class_to_zone[str(cls).strip().lower()] = "hueco"
-        for cls in self.get_parameter("dropzone_caja_classes").value or []:
-            self.class_to_zone[str(cls).strip().lower()] = "caja"
+        #for cls in self.get_parameter("dropzone_caja_classes").value or []:
+        #    self.class_to_zone[str(cls).strip().lower()] = "caja"
+        for cls in self.get_parameter("dropzone_morada_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "morada"
+        for cls in self.get_parameter("dropzone_verde_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "verde"
         self.get_logger().info(
             f"Dropzone mode: '{self.place_zone}'; mapeo clase->zona: {self.class_to_zone}"
         )

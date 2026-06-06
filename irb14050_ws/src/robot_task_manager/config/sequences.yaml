@@ -18,6 +18,20 @@ dropzone_caja:
     - type: move_joints
       joint_values_deg: [95.51, -105.79, 85.52, -6.56, 99.37, 96.13, -173.11]
 
+# FlexPendant morada = 159.03, -89.24, 41.04, 89.35, 87.48, 206.90, 94.86
+dropzone_morada:
+  description: "Ir directo a la dropzone morada (cubos)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [159.03, -89.24, 94.86, 41.04, 89.35, 87.48, 206.90]
+
+# FlexPendant verde = -26.21, -103.44, 38.09, 96.01, 102.54, 209.46, 84.16
+dropzone_verde:
+  description: "Ir directo a la dropzone verde (hexagonos)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [-26.21, -103.44, 84.16, 38.09, 96.01, 102.54, 209.46]
+
 perception2:
   description: "Move to upward perception pose"
   steps:
