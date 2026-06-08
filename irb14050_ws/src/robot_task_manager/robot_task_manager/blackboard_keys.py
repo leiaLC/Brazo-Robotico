@@ -19,6 +19,7 @@ GRASP_POSE = "grasp_pose"
 RETREAT_POSE = "retreat_pose"
 PLACE_POSE = "place_pose"
 PLACE_POSE_OVERRIDE = "place_pose_override"
+POST_PLACE_RETREAT_POSE = "post_place_retreat_pose"
 
 JOINT_GOAL = "joint_goal"
 SEQUENCE_STEPS = "sequence_steps"

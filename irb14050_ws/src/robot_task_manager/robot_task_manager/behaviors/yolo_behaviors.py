@@ -311,8 +311,11 @@ class PlanPreGraspPose(BlackboardBehavior):
             # A real system would look this target up in a scene database.
             self.node.get_logger().info(f"Using configured mock place target: {command.place_target}")
 
+        post_place_retreat = copy.deepcopy(place)
+        post_place_retreat.pose.position.z += float(self.node.post_place_retreat_offset_z)
+
         if self.node.use_top_down_grasp_orientation:
-            for pose in (pre_grasp, grasp, retreat, place):
+            for pose in (pre_grasp, grasp, retreat, place, post_place_retreat):
                 pose.pose.orientation.x = self.node.top_down_qx
                 pose.pose.orientation.y = self.node.top_down_qy
                 pose.pose.orientation.z = self.node.top_down_qz
@@ -322,5 +325,6 @@ class PlanPreGraspPose(BlackboardBehavior):
         self.bb_set(bb_keys.GRASP_POSE, grasp)
         self.bb_set(bb_keys.RETREAT_POSE, retreat)
         self.bb_set(bb_keys.PLACE_POSE, place)
+        self.bb_set(bb_keys.POST_PLACE_RETREAT_POSE, post_place_retreat)
         self.set_status(mode="VOICE_PICK", message="Planned grasp and place poses", progress=0.60)
         return py_trees.common.Status.SUCCESS

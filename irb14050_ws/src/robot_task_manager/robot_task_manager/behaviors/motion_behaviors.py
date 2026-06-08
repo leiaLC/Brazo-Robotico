@@ -742,3 +742,12 @@ class MoveToPlacePose(_MoveItPoseBehavior):
     status_message = "Moving to place pose"
     progress_start = 0.90
     progress_end = 0.97
+
+
+class MovePostPlaceRetreat(_MoveItPoseBehavior):
+    pose_key = bb_keys.POST_PLACE_RETREAT_POSE
+    mode = "cartesian"
+    fallback_to_ompl = True
+    status_message = "Retreating from place"
+    progress_start = 0.97
+    progress_end = 1.0

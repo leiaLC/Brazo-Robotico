@@ -16,10 +16,8 @@ speaker_verification:
 feedback:
   enable_tts: true
   tts_engine: "piper"
-  tts_piper_model: "/home/arizbeth/8_semestre/voice_to_abb_ws/piper_voices/es_ES_davefx_medium/es_ES-davefx-medium.onnx"
-  tts_piper_config: "/home/arizbeth/8_semestre/voice_to_abb_ws/piper_voices/es_ES_davefx_medium/es_ES-davefx-medium.onnx.json"
-  #tts_piper_model: "/home/zuriel_tov/Voice/voice_to_abb/models/es_ES-davefx-medium.onnx"
-  #tts_piper_config: "/home/zuriel_tov/Voice/voice_to_abb/models/es_ES-davefx-medium.onnx.json"
+  tts_piper_model: "/home/zuriel_tov/Voice/voice_to_abb/models/es_ES-davefx-medium.onnx"
+  tts_piper_config: "/home/zuriel_tov/Voice/voice_to_abb/models/es_ES-davefx-medium.onnx.json"
   tts_language: "es"
   tts_rate: 0
   tts_listen_guard_sec: 0.25
@@ -34,8 +32,7 @@ whisper:
   beam_size: 5
 
 llama_cpp:
-  model_path: "/home/arizbeth/8_semestre/voice_to_abb_ws/models/llama3.2-3b-q4.gguf"
-  #model_path: "/home/zuriel_tov/Voice/voice_to_abb/models/llama3.2-3b-q4.gguf"
+  model_path: "/home/zuriel_tov/Voice/voice_to_abb/models/llama3.2-3b-q4.gguf"
   temperature: 0.1
   max_tokens: 512
   n_ctx: 2048

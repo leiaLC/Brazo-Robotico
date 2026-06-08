@@ -166,6 +166,7 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("pregrasp_offset_z", 0.18)
         self.declare_parameter("grasp_offset_z", 0.14)
         self.declare_parameter("retreat_offset_z", 0.12)
+        self.declare_parameter("post_place_retreat_offset_z", 0.10)
         self.declare_parameter("default_place_x", 0.35)
         self.declare_parameter("default_place_y", -0.30)
         self.declare_parameter("default_place_z", 0.20)
@@ -255,6 +256,9 @@ class RobotTaskTreeNode(Node):
         self.pregrasp_offset_z = float(self.get_parameter("pregrasp_offset_z").value)
         self.grasp_offset_z = float(self.get_parameter("grasp_offset_z").value)
         self.retreat_offset_z = float(self.get_parameter("retreat_offset_z").value)
+        self.post_place_retreat_offset_z = float(
+            self.get_parameter("post_place_retreat_offset_z").value
+        )
         self.default_place_x = float(self.get_parameter("default_place_x").value)
         self.default_place_y = float(self.get_parameter("default_place_y").value)
         self.default_place_z = float(self.get_parameter("default_place_z").value)
