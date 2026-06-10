@@ -16,6 +16,9 @@ robot_task_tree:
     sequences_file: ""
     srdf_file: ""
     perception_group_state_name: "vision"
+    perception_pose_joint_tolerance_deg: 2.0
+    perception_pose_settle_time_s: 0.5
+    perception_pose_wait_timeout_s: 3.0
     web_heartbeat_timeout_s: 1.0
     xbox_deadman_timeout_s: 0.5
     detection_timeout_s: 2.0

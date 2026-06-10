@@ -15,6 +15,9 @@ robot_task_tree:
     joint_states_topic: "/joint_states"
     srdf_file: ""
     perception_group_state_name: "vision"
+    perception_pose_joint_tolerance_deg: 2.0
+    perception_pose_settle_time_s: 2.0
+    perception_pose_wait_timeout_s: 5.0
 
     planning_group: "irb14050_arm"
     base_frame: "base_link"
@@ -28,7 +31,7 @@ robot_task_tree:
     pose_orientation_tolerance_rad: 0.1
     cartesian_max_step: 0.005
     cartesian_min_fraction: 0.9
-    action_server_timeout_s: 25.0
+    action_server_timeout_s: 35.0
 
     gripper_command_topic: "/gripper/command"
     gripper_motion_duration_s: 1.0

@@ -4,3 +4,6 @@ object_cloud_bridge:
     output_topic: "/perception/detections_3d"
     base_frame: "base_link"
     input_is_base_frame: false
+    publish_centroid_tf: true
+    centroid_tf_prefix: "object_centroid"
+    centroid_tf_use_label: false

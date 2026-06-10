@@ -104,6 +104,7 @@ class RobotTaskTreeNode(Node):
 
         self._detections: list[Detection3D] = []
         self._last_detection_time = 0.0
+        self.current_joint_state_deg: list[float] | None = None
         self._last_tree_log_time = 0.0
 
         tick_period = 1.0 / max(1.0, float(self.tick_hz))
@@ -130,6 +131,9 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("sequences_file", "")
         self.declare_parameter("srdf_file", "")
         self.declare_parameter("perception_group_state_name", "vision")
+        self.declare_parameter("perception_pose_joint_tolerance_deg", 2.0)
+        self.declare_parameter("perception_pose_settle_time_s", 0.5)
+        self.declare_parameter("perception_pose_wait_timeout_s", 3.0)
         self.declare_parameter("web_heartbeat_timeout_s", 1.0)
         self.declare_parameter("xbox_deadman_timeout_s", 0.5)
         self.declare_parameter("detection_timeout_s", 2.0)
@@ -215,6 +219,15 @@ class RobotTaskTreeNode(Node):
         self.srdf_file = str(self.get_parameter("srdf_file").value)
         self.perception_group_state_name = str(
             self.get_parameter("perception_group_state_name").value
+        )
+        self.perception_pose_joint_tolerance_deg = float(
+            self.get_parameter("perception_pose_joint_tolerance_deg").value
+        )
+        self.perception_pose_settle_time_s = float(
+            self.get_parameter("perception_pose_settle_time_s").value
+        )
+        self.perception_pose_wait_timeout_s = float(
+            self.get_parameter("perception_pose_wait_timeout_s").value
         )
         self.web_heartbeat_timeout_s = float(self.get_parameter("web_heartbeat_timeout_s").value)
         self.xbox_deadman_timeout_s = float(self.get_parameter("xbox_deadman_timeout_s").value)
@@ -582,6 +595,7 @@ class RobotTaskTreeNode(Node):
         except KeyError:
             return
         values_deg = [float(value) * 180.0 / 3.141592653589793 for value in values_rad]
+        self.current_joint_state_deg = values_deg
         self.blackboard.set(bb_keys.JOINT_STATE_DEG, values_deg)
         if not self.simulation_mode:
             self.blackboard.set(bb_keys.ROBOT_READY, True)

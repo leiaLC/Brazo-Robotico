@@ -623,12 +623,19 @@ class MoveToPerceptionPose(ExecuteJointGoal):
     def __init__(self, name: str, node):
         super().__init__(name, node)
         self._goal_error: tuple[str, str] | None = None
+        self._perception_goal: list[float] | None = None
+        self._arrival_wait_start: float | None = None
+        self._settle_start: float | None = None
 
     def initialise(self) -> None:
         self._goal_error = None
+        self._perception_goal = None
+        self._arrival_wait_start = None
+        self._settle_start = None
         goal = self._load_perception_group_state()
         if goal is None:
             return
+        self._perception_goal = list(goal)
 
         valid, message = self.node.joint_limits.validate(goal)
         if not valid:
@@ -657,6 +664,43 @@ class MoveToPerceptionPose(ExecuteJointGoal):
                 progress=0.12,
             )
         elif result == py_trees.common.Status.SUCCESS:
+            if not self._joint_state_at_perception_goal():
+                if self._arrival_wait_start is None:
+                    self._arrival_wait_start = self.now()
+                elapsed = self.now() - self._arrival_wait_start
+                timeout = max(0.0, float(self.node.perception_pose_wait_timeout_s))
+                if timeout > 0.0 and elapsed > timeout:
+                    self.set_status(
+                        mode="ERROR",
+                        message=(
+                            f"Perception pose joint state did not settle within "
+                            f"{timeout:.1f}s"
+                        ),
+                        error_code="PERCEPTION_POSE_NOT_SETTLED",
+                    )
+                    return py_trees.common.Status.FAILURE
+                self.set_status(
+                    mode="VOICE_PICK",
+                    message=f"Waiting for joint state at perception pose '{self.node.perception_group_state_name}'",
+                    progress=0.14,
+                    error_code="",
+                )
+                return py_trees.common.Status.RUNNING
+
+            settle_time = max(0.0, float(self.node.perception_pose_settle_time_s))
+            if settle_time > 0.0:
+                if self._settle_start is None:
+                    self._settle_start = self.now()
+                elapsed = self.now() - self._settle_start
+                if elapsed < settle_time:
+                    self.set_status(
+                        mode="VOICE_PICK",
+                        message=f"Settling perception pose '{self.node.perception_group_state_name}'",
+                        progress=0.145,
+                        error_code="",
+                    )
+                    return py_trees.common.Status.RUNNING
+
             self.set_status(
                 mode="VOICE_PICK",
                 message=f"Reached perception pose '{self.node.perception_group_state_name}'",
@@ -664,6 +708,24 @@ class MoveToPerceptionPose(ExecuteJointGoal):
                 error_code="",
             )
         return result
+
+    def _joint_state_at_perception_goal(self) -> bool:
+        tolerance = max(0.0, float(self.node.perception_pose_joint_tolerance_deg))
+        if tolerance <= 0.0 or self._perception_goal is None:
+            return True
+
+        if self.node.simulation_mode:
+            current = list(self.bb_get(bb_keys.JOINT_STATE_DEG, []))
+        else:
+            current = list(getattr(self.node, "current_joint_state_deg", None) or [])
+        if len(current) != len(self._perception_goal):
+            return False
+
+        max_error = max(
+            abs(float(actual) - float(target))
+            for actual, target in zip(current, self._perception_goal)
+        )
+        return max_error <= tolerance
 
     def _load_perception_group_state(self) -> list[float] | None:
         srdf_path = Path(self.node.srdf_file)
