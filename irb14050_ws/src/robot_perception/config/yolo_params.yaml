@@ -1,12 +1,12 @@
 depth_estimator_node:
   ros__parameters:
-    model_path: "yolov8n.pt"
+    model_path: "best.pt"
     confidence: 0.5
     device: "cuda:0"
     depth_scale: 0.001
     depth_radius: 3
 
-    # Intrínsecos calibrados manualmente (de tu calibración)
+    # Intrínsecos calibrados manualmente
     fx: 699.67550943
     fy: 698.43830325
     cx: 353.68978922
@@ -18,7 +18,4 @@ depth_estimator_node:
 pointcloud_node:
   ros__parameters:
     min_points: 10
-    mask_erosion: 7   # baja a 3 si los objetos son pequeños
-
-
-
+    mask_erosion: 7

@@ -65,6 +65,9 @@ class MoveHomeParams(SpeedMixin):
 
 class RunSequenceParams(SpeedMixin):
     sequence_id: str = Field(..., min_length=1)
+    target_object: Optional[str] = None
+    object_class: Optional[str] = None
+    color: Optional[str] = None
 
 
 class StopParams(BaseModel):

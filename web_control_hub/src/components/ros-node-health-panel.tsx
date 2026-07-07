@@ -31,7 +31,7 @@ const defaultRequiredNodes = [
   "gripper_node",
   "gripper_joint_state_publisher",
   "robot_task_tree",
-  "voice_pipeline_node",
+  "voice_commander_node",
   "web_command_bridge",
   "gamepad_command_bridge",
 ];
@@ -65,9 +65,9 @@ const nodeDetails: Record<string, { label: string; detail: string }> = {
     label: "Behavior Trees",
     detail: "Supervisa tareas, seguridad y decisiones de movimiento.",
   },
-  voice_pipeline_node: {
-    label: "Voice Pipeline",
-    detail: "Convierte voz o texto en comandos del sistema.",
+  voice_commander_node: {
+    label: "Voice Commander",
+    detail: "Procesa audio y texto desde robot_speech para generar comandos.",
   },
   web_command_bridge: {
     label: "Web Command Bridge",

@@ -25,6 +25,47 @@ def _pose(frame_id: str, x: float, y: float, z: float) -> PoseStamped:
     return pose
 
 
+def base_pose_for_detection(node, detection: Detection3D) -> PoseStamped | None:
+    """Return a detection pose in the robot base frame, using TF if needed."""
+    pose_base = copy.deepcopy(detection.pose_base)
+    if pose_base.header.frame_id:
+        pose_base.header.frame_id = node.base_frame
+        return pose_base
+
+    pose_camera = copy.deepcopy(detection.pose_camera)
+    if not pose_camera.header.frame_id:
+        return None
+
+    if node.simulation_mode:
+        pose_base = copy.deepcopy(pose_camera)
+        pose_base.header.frame_id = node.base_frame
+        return pose_base
+
+    if getattr(node, "tf_buffer", None) is None:
+        return None
+
+    try:
+        stamp = Time()
+        if pose_camera.header.stamp.sec != 0 or pose_camera.header.stamp.nanosec != 0:
+            stamp = Time.from_msg(pose_camera.header.stamp)
+        transform = node.tf_buffer.lookup_transform(
+            node.base_frame,
+            pose_camera.header.frame_id,
+            stamp,
+            timeout=Duration(seconds=float(node.tf_timeout_s)),
+        )
+        from tf2_geometry_msgs import do_transform_pose
+
+        pose_base = PoseStamped()
+        pose_base.header.frame_id = node.base_frame
+        pose_base.header.stamp = pose_camera.header.stamp
+        pose_base.pose = do_transform_pose(pose_camera.pose, transform)
+        return pose_base
+    except Exception as exc:  # noqa: BLE001 - TF failures are surfaced as status.
+        node.get_logger().warn(f"TF transform failed: {exc}", throttle_duration_sec=2.0)
+        return None
+
+
 class DetectObjectsYOLO(BlackboardBehavior):
     """Collect recent YOLO/depth detections or create simulation detections."""
 
@@ -197,47 +238,7 @@ class TransformPoseToRobotBase(BlackboardBehavior):
         return py_trees.common.Status.SUCCESS
 
     def _base_pose_for_detection(self, detection: Detection3D) -> PoseStamped | None:
-        pose_base = copy.deepcopy(detection.pose_base)
-        if pose_base.header.frame_id:
-            pose_base.header.frame_id = self.node.base_frame
-            return pose_base
-
-        pose_camera = copy.deepcopy(detection.pose_camera)
-        if not pose_camera.header.frame_id:
-            return None
-
-        if self.node.simulation_mode:
-            pose_base = copy.deepcopy(pose_camera)
-            pose_base.header.frame_id = self.node.base_frame
-            return pose_base
-
-        return self._tf_to_base(pose_camera)
-
-    def _tf_to_base(self, pose_camera: PoseStamped | None) -> PoseStamped | None:
-        if pose_camera is None or not pose_camera.header.frame_id:
-            return None
-        if getattr(self.node, "tf_buffer", None) is None:
-            return None
-        try:
-            stamp = Time()
-            if pose_camera.header.stamp.sec != 0 or pose_camera.header.stamp.nanosec != 0:
-                stamp = Time.from_msg(pose_camera.header.stamp)
-            transform = self.node.tf_buffer.lookup_transform(
-                self.node.base_frame,
-                pose_camera.header.frame_id,
-                stamp,
-                timeout=Duration(seconds=float(self.node.tf_timeout_s)),
-            )
-            from tf2_geometry_msgs import do_transform_pose
-
-            pose_base = PoseStamped()
-            pose_base.header.frame_id = self.node.base_frame
-            pose_base.header.stamp = pose_camera.header.stamp
-            pose_base.pose = do_transform_pose(pose_camera.pose, transform)
-            return pose_base
-        except Exception as exc:  # noqa: BLE001 - TF failures are surfaced as status.
-            self.node.get_logger().warn(f"TF transform failed: {exc}", throttle_duration_sec=2.0)
-            return None
+        return base_pose_for_detection(self.node, detection)
 
 
 class ValidateObjectWorkspace(BlackboardBehavior):
@@ -286,18 +287,35 @@ class PlanPreGraspPose(BlackboardBehavior):
         retreat = copy.deepcopy(grasp)
         retreat.pose.position.z += float(self.node.retreat_offset_z)
 
-        place = _pose(
-            "base_link",
-            float(self.node.default_place_x),
-            float(self.node.default_place_y),
-            float(self.node.default_place_z),
-        )
+        selected = self.bb_get(bb_keys.SELECTED_OBJECT)
+        object_class = getattr(selected, "class_name", "") if selected is not None else ""
+        place_override = self.bb_get(bb_keys.PLACE_POSE_OVERRIDE)
+        if place_override is not None:
+            place = copy.deepcopy(place_override)
+            place.header.frame_id = self.node.base_frame
+            p = place.pose.position
+            self.node.get_logger().info(
+                f"Place de '{object_class or 'desconocido'}' -> override "
+                f"({p.x:.2f}, {p.y:.2f}, {p.z:.2f})"
+            )
+        else:
+            # La dropzone se elige por la clase del objeto agarrado:
+            # manzana -> hueco, cubo -> caja, lo demas -> default.
+            zone, (place_x, place_y, place_z) = self.node.resolve_place_zone(object_class)
+            place = _pose("base_link", place_x, place_y, place_z)
+            self.node.get_logger().info(
+                f"Place de '{object_class or 'desconocido'}' -> dropzone '{zone}' "
+                f"({place_x:.2f}, {place_y:.2f}, {place_z:.2f})"
+            )
         if command is not None and command.place_target:
             # A real system would look this target up in a scene database.
             self.node.get_logger().info(f"Using configured mock place target: {command.place_target}")
 
+        post_place_retreat = copy.deepcopy(place)
+        post_place_retreat.pose.position.z += float(self.node.post_place_retreat_offset_z)
+
         if self.node.use_top_down_grasp_orientation:
-            for pose in (pre_grasp, grasp, retreat, place):
+            for pose in (pre_grasp, grasp, retreat, place, post_place_retreat):
                 pose.pose.orientation.x = self.node.top_down_qx
                 pose.pose.orientation.y = self.node.top_down_qy
                 pose.pose.orientation.z = self.node.top_down_qz
@@ -307,5 +325,6 @@ class PlanPreGraspPose(BlackboardBehavior):
         self.bb_set(bb_keys.GRASP_POSE, grasp)
         self.bb_set(bb_keys.RETREAT_POSE, retreat)
         self.bb_set(bb_keys.PLACE_POSE, place)
+        self.bb_set(bb_keys.POST_PLACE_RETREAT_POSE, post_place_retreat)
         self.set_status(mode="VOICE_PICK", message="Planned grasp and place poses", progress=0.60)
         return py_trees.common.Status.SUCCESS

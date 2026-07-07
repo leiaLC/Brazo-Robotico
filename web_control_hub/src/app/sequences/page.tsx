@@ -13,6 +13,7 @@ type TaskStatus = {
   message: string;
   progress: number;
   error_code: string;
+  estop_active?: boolean;
 };
 
 function getDefaultBackendUrl() {
@@ -64,10 +65,14 @@ export default function SequencesPage() {
   );
   const ActiveIcon = active?.icon;
   const connected = connectionState === "connected" && requestState !== "error";
+  const estopActive = useMemo(
+    () => Boolean(taskStatus?.estop_active) || taskStatus?.mode === "ESTOP",
+    [taskStatus],
+  );
   const isPaused = useMemo(() => {
-  const msg = taskStatus?.message?.toLowerCase() ?? "";
-  return msg.startsWith("paused") || msg.startsWith("resuming");
-}, [taskStatus]);
+    const msg = taskStatus?.message?.toLowerCase() ?? "";
+    return msg.startsWith("paused") || msg.startsWith("resuming");
+  }, [taskStatus]);
 
   useEffect(() => {
     activeSequenceRef.current = activeSequenceId;
@@ -77,9 +82,15 @@ export default function SequencesPage() {
   // window.location. Esto ocurre despues de la hidratacion, por lo que no
   // provoca mismatch entre servidor y cliente.
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
-      setBackendUrl((current) => current || getDefaultBackendUrl());
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return;
     }
+
+    const fallbackTimer = window.setTimeout(() => {
+      setBackendUrl((current) => current || getDefaultBackendUrl());
+    }, 0);
+
+    return () => window.clearTimeout(fallbackTimer);
   }, []);
 
   useEffect(() => {
@@ -168,7 +179,7 @@ export default function SequencesPage() {
       const response = await fetch(`${backendUrl}/task/pause`, { method: "POST" });
       setRequestState(response.ok ? "ok" : "error");
       setMessage(response.ok ? "Pause sent" : "Pause failed");
-    } catch (error) {
+    } catch {
       setRequestState("error");
       setMessage("Pause request failed");
     }
@@ -180,7 +191,7 @@ export default function SequencesPage() {
       const response = await fetch(`${backendUrl}/task/resume`, { method: "POST" });
       setRequestState(response.ok ? "ok" : "error");
       setMessage(response.ok ? "Resume sent" : "Resume failed");
-    } catch (error) {
+    } catch {
       setRequestState("error");
       setMessage("Resume request failed");
     }
@@ -273,6 +284,7 @@ export default function SequencesPage() {
               <IndustrialButton
                 className="min-w-40"
                 onClick={() => void resumeTask()}
+                disabled={estopActive}
                 tone="primary"
               >
                 <Play className="h-5 w-5" /> Resume
@@ -281,13 +293,13 @@ export default function SequencesPage() {
               <IndustrialButton
                 className="min-w-40"
                 onClick={() => void pauseTask()}
-                disabled={!activeSequenceId}
+                disabled={!activeSequenceId || estopActive}
                 tone="secondary"
               >
                 <Pause className="h-5 w-5" /> Pause
               </IndustrialButton>
             )}
-            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} disabled={!activeSequenceId && !isPaused} tone="danger">
+            <IndustrialButton className="min-w-40" onClick={() => void cancelTask()} disabled={!activeSequenceId && !isPaused && !estopActive} tone="danger">
               <Square className="h-5 w-5" /> Abort
             </IndustrialButton>
           </div>

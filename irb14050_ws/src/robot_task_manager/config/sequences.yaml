@@ -4,11 +4,33 @@ home:
     - type: move_joints
       joint_values_deg: [0, 0, 0, 0, 0, 0, 0]
 
-perception1:
-  description: "Move to diagonal perception pose"
+# Pruebas de dropzone: va directo a la pose jogueada en el FlexPendant.
+# FlexPendant [J1..J7] -> orden arbol [J1, J2, J7, J3, J4, J5, J6].
+dropzone_hueco:
+  description: "Ir directo a la dropzone hueco (pose del FlexPendant)"
   steps:
     - type: move_joints
-      joint_values_deg: [-160, -46, -7, 57, -201, -46, 101]
+      joint_values_deg: [-19.78, -49.42, 159.92, 31.98, 50.35, 25.67, 102.06]
+
+dropzone_caja:
+  description: "Ir directo a la dropzone caja (pose del FlexPendant)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [95.51, -105.79, 85.52, -6.56, 99.37, 96.13, -173.11]
+
+# FlexPendant morada = 159.03, -89.24, 41.04, 89.35, 87.48, 206.90, 94.86
+dropzone_morada:
+  description: "Ir directo a la dropzone morada (cubos)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [159.03, -89.24, 94.86, 41.04, 89.35, 87.48, 206.90]
+
+# FlexPendant verde = -26.21, -103.44, 38.09, 96.01, 102.54, 209.46, 84.16
+dropzone_verde:
+  description: "Ir directo a la dropzone verde (hexagonos)"
+  steps:
+    - type: move_joints
+      joint_values_deg: [-26.21, -103.44, 84.16, 38.09, 96.01, 102.54, 209.46]
 
 perception2:
   description: "Move to upward perception pose"
@@ -23,12 +45,23 @@ perception_pose:
       joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
 
 classify_objects:
-  description: "Move to perception pose and wait for classified object detections"
+  description: "Clasifica: agarra manzanas->hueco y cubos->caja (poses fijas)"
   steps:
-    - type: move_joints
-      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+    # 1) Ir a la pose de vision configurada en el SRDF
+    - type: perception_pose
+    # 2) Esperar a tener detecciones
     - type: detect_objects
       timeout_s: 3.0
+    # 3) Snapshot unico + loop grasp&place de cada objeto a su dropzone
+    - type: classify
+
+give_object_to_hand:
+  description: "Agarra el objeto indicado y lo entrega en el centroide de la mano detectada"
+  steps:
+    - type: perception_pose
+    - type: detect_objects
+      timeout_s: 3.0
+    - type: give_to_hand
 
 open_gripper:
   description: "Open gripper"
@@ -43,12 +76,36 @@ close_gripper:
       command: close
 
 demo_pick_blue_cube:
-  description: "Pick blue cube demo"
+  description: "Pick & place del cubo azul con pose hardcodeada (sin vision)"
+  # Valores en orden del arbol [joint_1..joint_7] = FlexPendant [J1,J2,J7,J3,J4,J5,J6].
   steps:
-    - type: pick_object
-      object_class: cube
-      object_color: blue
-      place_target: box
+    # 1) Pose de vision (overview, por arriba)
+    - type: move_joints
+      joint_values_deg: [8.00, -4.00, 158.00, -24.00, 1, 116, 160]
+    # 2) Abrir gripper antes de aproximar
+    - type: gripper
+      command: open
+    # 3) Aproximacion: arriba del cubo (pre-grasp). FlexPendant:
+    #    J1=3.47 J2=-66.62 J3=-24 J4=26.09 J5=57.52 J6=163.61 J7=159.75
+    - type: move_joints
+      joint_values_deg: [3.47, -66.62, 159.75, -24, 26.09, 57.52, 163.61]
+    # 4) Bajar al cubo (agarre = pre-grasp 6cm hacia abajo, joints por IK)
+    - type: move_joints
+      joint_values_deg: [2.03, -76.8, 161.21, -29.89, 27.68, 52.97, 163.32]
+    # 5) Cerrar gripper (recoger)
+    - type: gripper
+      command: close
+    # 6) Lift: subir de nuevo arriba del cubo (mismo pre-grasp del paso 3)
+    - type: move_joints
+      joint_values_deg: [3.47, -66.62, 159.75, -24, 26.09, 57.52, 163.61]
+    - type: move_joints
+      joint_values_deg: [51.48, -47.18, 5.95, 48.46, 59.95, 72.15, 130.93]
+    # 7) Ir a la caja (dropzone_caja predefinida)
+    - type: move_joints
+      joint_values_deg: [95.51, -105.79, 85.52, -6.56, 99.37, 96.13, -173.11]
+    # 8) Abrir gripper (soltar en la caja)
+    - type: gripper
+      command: open
 # estaban en orden de cable EGM [J1,J2,J3,J4,J5,J6,J7]; aqui se remapearon
 # al orden del arbol de comportamiento [joint_1..joint_7] = EGM [J1,J2,J7,J3,J4,J5,J6].
 pick_place_completo:

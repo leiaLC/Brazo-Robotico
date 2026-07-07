@@ -16,6 +16,9 @@ robot_task_tree:
     sequences_file: ""
     srdf_file: ""
     perception_group_state_name: "vision"
+    perception_pose_joint_tolerance_deg: 2.0
+    perception_pose_settle_time_s: 0.5
+    perception_pose_wait_timeout_s: 3.0
     web_heartbeat_timeout_s: 1.0
     xbox_deadman_timeout_s: 0.5
     detection_timeout_s: 2.0
@@ -47,9 +50,12 @@ robot_task_tree:
     pregrasp_offset_z: 0.18
     grasp_offset_z: 0.14
     retreat_offset_z: 0.12
+    post_place_retreat_offset_z: 0.10
     default_place_x: 0.35
     default_place_y: -0.30
     default_place_z: 0.20
+    hand_class_names: ["hand", "mano"]
+    hand_place_offset_z: 0.08
     use_top_down_grasp_orientation: true
     top_down_qx: 1.0
     top_down_qy: 0.0

@@ -53,7 +53,7 @@
         <joint name="joint_6" value="0"/>
         <joint name="joint_7" value="0"/>
     </group_state>
-    <group_state name="vision" group="irb14050_arm">
+    <group_state name="diagonal" group="irb14050_arm">
         <joint name="joint_1" value="-2.7925"/>
         <joint name="joint_2" value="-0.8028"/>
         <joint name="joint_3" value="-0.1222"/>

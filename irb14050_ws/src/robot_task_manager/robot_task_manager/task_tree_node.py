@@ -104,6 +104,7 @@ class RobotTaskTreeNode(Node):
 
         self._detections: list[Detection3D] = []
         self._last_detection_time = 0.0
+        self.current_joint_state_deg: list[float] | None = None
         self._last_tree_log_time = 0.0
 
         tick_period = 1.0 / max(1.0, float(self.tick_hz))
@@ -130,6 +131,9 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("sequences_file", "")
         self.declare_parameter("srdf_file", "")
         self.declare_parameter("perception_group_state_name", "vision")
+        self.declare_parameter("perception_pose_joint_tolerance_deg", 2.0)
+        self.declare_parameter("perception_pose_settle_time_s", 0.5)
+        self.declare_parameter("perception_pose_wait_timeout_s", 3.0)
         self.declare_parameter("web_heartbeat_timeout_s", 1.0)
         self.declare_parameter("xbox_deadman_timeout_s", 0.5)
         self.declare_parameter("detection_timeout_s", 2.0)
@@ -166,9 +170,34 @@ class RobotTaskTreeNode(Node):
         self.declare_parameter("pregrasp_offset_z", 0.18)
         self.declare_parameter("grasp_offset_z", 0.14)
         self.declare_parameter("retreat_offset_z", 0.12)
+        self.declare_parameter("post_place_retreat_offset_z", 0.10)
         self.declare_parameter("default_place_x", 0.35)
         self.declare_parameter("default_place_y", -0.30)
         self.declare_parameter("default_place_z", 0.20)
+        # Selector de dropzone:
+        #   "auto"  -> elige por clase del objeto agarrado (ver *_classes abajo)
+        #   "hueco"/"caja"/"default" -> fuerza esa zona (util para pruebas)
+        self.declare_parameter("place_zone", "auto")
+        self.declare_parameter("dropzone_hueco_x", -0.24)
+        self.declare_parameter("dropzone_hueco_y", 0.19)
+        self.declare_parameter("dropzone_hueco_z", 0.17)
+        ## self.declare_parameter("dropzone_caja_x", -0.29)
+        ## self.declare_parameter("dropzone_caja_y", -0.38)
+        ## self.declare_parameter("dropzone_caja_z", 0.20)
+        self.declare_parameter("dropzone_morada_x", 0.01)
+        self.declare_parameter("dropzone_morada_y", -0.31)
+        self.declare_parameter("dropzone_morada_z", 0.25)
+        self.declare_parameter("dropzone_verde_x", 0.01)
+        self.declare_parameter("dropzone_verde_y", 0.33)
+        self.declare_parameter("dropzone_verde_z", 0.27)
+        # Clases (class_name de YOLO) que van a cada dropzone en modo "auto".
+        # Cualquier clase no listada cae en default_place_*.
+        self.declare_parameter("dropzone_hueco_classes", ["apple"])
+        ## self.declare_parameter("dropzone_caja_classes", ["cube"])
+        self.declare_parameter("dropzone_morada_classes", ["cube"])
+        self.declare_parameter("dropzone_verde_classes", ["hexagon"])
+        self.declare_parameter("hand_class_names", ["hand", "mano"])
+        self.declare_parameter("hand_place_offset_z", 0.08)
         self.declare_parameter("use_top_down_grasp_orientation", True)
         self.declare_parameter("top_down_qx", 1.0)
         self.declare_parameter("top_down_qy", 0.0)
@@ -190,6 +219,15 @@ class RobotTaskTreeNode(Node):
         self.srdf_file = str(self.get_parameter("srdf_file").value)
         self.perception_group_state_name = str(
             self.get_parameter("perception_group_state_name").value
+        )
+        self.perception_pose_joint_tolerance_deg = float(
+            self.get_parameter("perception_pose_joint_tolerance_deg").value
+        )
+        self.perception_pose_settle_time_s = float(
+            self.get_parameter("perception_pose_settle_time_s").value
+        )
+        self.perception_pose_wait_timeout_s = float(
+            self.get_parameter("perception_pose_wait_timeout_s").value
         )
         self.web_heartbeat_timeout_s = float(self.get_parameter("web_heartbeat_timeout_s").value)
         self.xbox_deadman_timeout_s = float(self.get_parameter("xbox_deadman_timeout_s").value)
@@ -231,9 +269,61 @@ class RobotTaskTreeNode(Node):
         self.pregrasp_offset_z = float(self.get_parameter("pregrasp_offset_z").value)
         self.grasp_offset_z = float(self.get_parameter("grasp_offset_z").value)
         self.retreat_offset_z = float(self.get_parameter("retreat_offset_z").value)
+        self.post_place_retreat_offset_z = float(
+            self.get_parameter("post_place_retreat_offset_z").value
+        )
         self.default_place_x = float(self.get_parameter("default_place_x").value)
         self.default_place_y = float(self.get_parameter("default_place_y").value)
         self.default_place_z = float(self.get_parameter("default_place_z").value)
+        # Coordenadas de cada dropzone (respecto a base_link).
+        self.dropzone_positions = {
+            "default": (self.default_place_x, self.default_place_y, self.default_place_z),
+            "hueco": (
+                float(self.get_parameter("dropzone_hueco_x").value),
+                float(self.get_parameter("dropzone_hueco_y").value),
+                float(self.get_parameter("dropzone_hueco_z").value),
+            ),
+            #"caja": (
+            #    float(self.get_parameter("dropzone_caja_x").value),
+            #    float(self.get_parameter("dropzone_caja_y").value),
+            #    float(self.get_parameter("dropzone_caja_z").value),
+            #),
+            "morada": (
+                float(self.get_parameter("dropzone_morada_x").value),
+                float(self.get_parameter("dropzone_morada_y").value),
+                float(self.get_parameter("dropzone_morada_z").value),
+            ),
+            "verde": (
+                float(self.get_parameter("dropzone_verde_x").value),
+                float(self.get_parameter("dropzone_verde_y").value),
+                float(self.get_parameter("dropzone_verde_z").value),
+            ),
+        }
+        # Modo de seleccion y mapeo clase -> zona para el modo "auto".
+        self.place_zone = str(self.get_parameter("place_zone").value).strip().lower() or "auto"
+        if self.place_zone not in ("auto", "default", "hueco", "morada", "verde"):
+            self.get_logger().warn(
+                f"place_zone '{self.place_zone}' desconocido; usando 'auto'"
+            )
+            self.place_zone = "auto"
+        self.class_to_zone = {}
+        for cls in self.get_parameter("dropzone_hueco_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "hueco"
+        #for cls in self.get_parameter("dropzone_caja_classes").value or []:
+        #    self.class_to_zone[str(cls).strip().lower()] = "caja"
+        for cls in self.get_parameter("dropzone_morada_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "morada"
+        for cls in self.get_parameter("dropzone_verde_classes").value or []:
+            self.class_to_zone[str(cls).strip().lower()] = "verde"
+        self.get_logger().info(
+            f"Dropzone mode: '{self.place_zone}'; mapeo clase->zona: {self.class_to_zone}"
+        )
+        self.hand_class_names = {
+            str(cls).strip().lower()
+            for cls in self.get_parameter("hand_class_names").value or []
+            if str(cls).strip()
+        }
+        self.hand_place_offset_z = float(self.get_parameter("hand_place_offset_z").value)
         self.use_top_down_grasp_orientation = bool(
             self.get_parameter("use_top_down_grasp_orientation").value
         )
@@ -253,6 +343,19 @@ class RobotTaskTreeNode(Node):
             self.sequences_file = self._default_config_path("sequences.yaml")
         if not self.srdf_file:
             self.srdf_file = self._default_moveit_config_path("abb_irb14050.srdf")
+
+    def resolve_place_zone(self, object_class: str = "") -> tuple:
+        """Devuelve (nombre_zona, (x, y, z)) para soltar el objeto.
+
+        Si place_zone es "auto", elige por la clase del objeto agarrado
+        (dropzone_*_classes); cualquier clase no mapeada cae en "default".
+        Si place_zone fuerza una zona ("hueco"/"caja"/"default"), la usa
+        sin importar la clase (util para pruebas)."""
+        if self.place_zone == "auto":
+            zone = self.class_to_zone.get(str(object_class).strip().lower(), "default")
+        else:
+            zone = self.place_zone
+        return zone, self.dropzone_positions[zone]
 
     def _default_config_path(self, filename: str) -> str:
         try:
@@ -282,6 +385,7 @@ class RobotTaskTreeNode(Node):
         self.blackboard.set(bb_keys.TELEOP_ACTIVE, False)
         self.blackboard.set(bb_keys.YOLO_DETECTIONS, [])
         self.blackboard.set(bb_keys.CANDIDATE_OBJECTS, [])
+        self.blackboard.set(bb_keys.PLACE_POSE_OVERRIDE, None)
         self.blackboard.set(bb_keys.JOINT_STATE_DEG, [0.0] * int(self.joint_count))
         self.blackboard.set(bb_keys.STATUS_TEXT, "Idle")
         self.blackboard.set(bb_keys.ERROR_CODE, "")
@@ -491,6 +595,7 @@ class RobotTaskTreeNode(Node):
         except KeyError:
             return
         values_deg = [float(value) * 180.0 / 3.141592653589793 for value in values_rad]
+        self.current_joint_state_deg = values_deg
         self.blackboard.set(bb_keys.JOINT_STATE_DEG, values_deg)
         if not self.simulation_mode:
             self.blackboard.set(bb_keys.ROBOT_READY, True)

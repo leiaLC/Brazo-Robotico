@@ -21,6 +21,7 @@ setup(
     entry_points={
         "console_scripts": [
             "web_command_bridge = robot_web_interface.web_command_bridge:main",
+            "jetson_metrics_publisher = robot_web_interface.jetson_metrics_publisher:main",
         ],
     },
 )

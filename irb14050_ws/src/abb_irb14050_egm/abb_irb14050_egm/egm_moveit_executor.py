@@ -70,7 +70,7 @@ POSITION_TOLERANCE_RAD = math.radians(3.0)
 # waypoint después de haber publicado el último setpoint. El EGM
 # bridge puede quedar unos segundos atrás si MoveIt pide un giro
 # largo de muñeca; esperamos un poco más antes de abortar.
-SETTLE_TIMEOUT_S = 25.0
+SETTLE_TIMEOUT_S = 35.0
 
 # Tasa de cadencia interna. Cada tick comprueba si toca publicar
 # el siguiente waypoint y si toca enviar feedback al cliente.

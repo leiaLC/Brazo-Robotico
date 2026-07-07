@@ -65,6 +65,18 @@ export function TeleopControlPanel({
   }, [backendUrl, onBackendUrlChange]);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return;
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      setBackendUrl((current) => current || getDefaultBackendUrl());
+    }, 0);
+
+    return () => window.clearTimeout(fallbackTimer);
+  }, []);
+
+  useEffect(() => {
     onTeleopEnabledChange?.(enabled && connectionState === "connected");
   }, [connectionState, enabled, onTeleopEnabledChange]);
 
@@ -265,23 +277,23 @@ export function TeleopControlPanel({
       <div className="industrial-scrollbar max-h-[calc(100vh-31rem)] space-y-4 overflow-y-auto pr-1">
         {joints.map((joint, index) => (
           <Card className={`p-5 ${canCommand ? "" : "opacity-75"}`} key={joint.name}>
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="font-mono text-lg font-black tracking-normal text-black">
+            <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+              <div className="min-w-0">
+                <h2 className="font-mono text-2xl font-black tracking-normal text-black">
                   {joint.name}
                 </h2>
-                <p className="text-xs uppercase tracking-[0.12em] text-[#6F7782]">
+                <p className="mt-1 text-base font-bold uppercase tracking-[0.06em] text-[#6F7782]">
                   {joint.rosName} | {joint.axis}
                 </p>
                 {feedbackPositions ? (
-                  <p className="mt-1 font-mono text-xs text-[#00751A]">
+                  <p className="mt-1 font-mono text-base font-bold text-[#00751A]">
                     actual {feedbackPositions[index].toFixed(1)} deg
                   </p>
                 ) : null}
               </div>
-              <div className="text-right">
-                <p className="text-sm text-[#6F7782]">{joint.range}</p>
-                <p className="mt-1 rounded border border-[#92C1FF] bg-[#E2F0FF] px-3 py-1 font-mono text-sm text-[#003C69]">
+              <div className="text-left sm:text-right">
+                <p className="text-lg text-[#6F7782]">{joint.range}</p>
+                <p className="mt-1 rounded border border-[#92C1FF] bg-[#E2F0FF] px-3 py-1 font-mono text-xl font-black text-[#003C69]">
                   {positions[index] > 0 ? "+" : ""}
                   {positions[index].toFixed(1)} deg
                 </p>
@@ -289,7 +301,7 @@ export function TeleopControlPanel({
             </div>
             <div className="grid grid-cols-[48px_1fr_48px] items-center gap-4">
               <button
-                className="grid h-12 w-12 place-items-center rounded border border-[#BFC7D2] bg-[#F5F6F7] disabled:cursor-not-allowed"
+                className="grid h-12 w-12 place-items-center rounded border border-[#BFC7D2] bg-[#F5F6F7] text-xl font-black disabled:cursor-not-allowed"
                 disabled={!canCommand}
                 onClick={() => nudgeJoint(index, -1)}
                 type="button"
@@ -298,7 +310,7 @@ export function TeleopControlPanel({
               </button>
               <input
                 aria-label={joint.name}
-                className="h-6 w-full disabled:cursor-not-allowed"
+                className="h-7 w-full disabled:cursor-not-allowed"
                 disabled={!canCommand}
                 max={joint.max}
                 min={joint.min}
@@ -309,7 +321,7 @@ export function TeleopControlPanel({
                 value={positions[index]}
               />
               <button
-                className="grid h-12 w-12 place-items-center rounded border border-[#BFC7D2] bg-[#F5F6F7] disabled:cursor-not-allowed"
+                className="grid h-12 w-12 place-items-center rounded border border-[#BFC7D2] bg-[#F5F6F7] text-xl font-black disabled:cursor-not-allowed"
                 disabled={!canCommand}
                 onClick={() => nudgeJoint(index, 1)}
                 type="button"
@@ -323,10 +335,10 @@ export function TeleopControlPanel({
         <Card className={`p-5 ${canCommand ? "" : "opacity-75"}`}>
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
-              <h2 className="font-mono text-lg font-black tracking-normal text-black">
+              <h2 className="font-mono text-2xl font-black tracking-normal text-black">
                 Gripper
               </h2>
-              <p className="text-xs uppercase tracking-[0.12em] text-[#6F7782]">
+              <p className="mt-1 text-base font-bold uppercase tracking-[0.06em] text-[#6F7782]">
                 open_gripper | close_gripper
               </p>
             </div>

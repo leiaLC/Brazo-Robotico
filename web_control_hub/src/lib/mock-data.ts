@@ -1,12 +1,9 @@
 import {
-  Activity,
   Boxes,
   Camera,
   Cpu,
-  Gauge,
   Layers3,
   Mic,
-  RefreshCw,
   Route,
   ScanLine,
   ShieldCheck,
@@ -59,51 +56,10 @@ export const navItems: NavItem[] = [
 export const systemStatus = {
   robot: "ABB IRB14050",
   connection: "ROS2 Active",
-  mode: "Auto Mode Running",
-  fence: "Safety Fence Active",
-  uptime: "142h 31m",
   ip: "192.168.1.100",
   firmware: "V1.4.2-RC3",
   maintenance: "2023-10-24",
 };
-
-export const overviewMetrics: Metric[] = [
-  {
-    label: "Total Cycles",
-    value: "142,850",
-    detail: "+2.4%",
-    tone: "green",
-    icon: RefreshCw,
-  },
-  {
-    label: "System Uptime",
-    value: "99.8%",
-    detail: "Last 30d",
-    tone: "gray",
-    icon: Activity,
-  },
-  {
-    label: "Energy Consumption",
-    value: "4.2 kWh",
-    detail: "Nominal",
-    tone: "blue",
-    icon: Zap,
-  },
-  {
-    label: "Cycle Time Avg",
-    value: "2.41 s",
-    detail: "Target 2.50s",
-    tone: "gray",
-    icon: Gauge,
-  },
-  {
-    label: "Error Rate",
-    value: "0.05%",
-    detail: "Healthy",
-    tone: "green",
-    icon: ShieldCheck,
-  },
-];
 
 export const controlCards: Metric[] = [
   {
@@ -134,28 +90,6 @@ export const controlCards: Metric[] = [
     tone: "green",
     icon: ShieldCheck,
   },
-];
-
-export const energyTrend = [
-  { time: "00:00", energy: 2.6 },
-  { time: "02:00", energy: 2.8 },
-  { time: "04:00", energy: 3.4 },
-  { time: "06:00", energy: 4.2 },
-  { time: "08:00", energy: 4.0 },
-  { time: "10:00", energy: 4.6 },
-  { time: "12:00", energy: 4.4 },
-  { time: "14:00", energy: 3.8 },
-  { time: "16:00", energy: 3.2 },
-  { time: "18:00", energy: 3.6 },
-  { time: "20:00", energy: 4.8 },
-  { time: "Now", energy: 3.0 },
-];
-
-export const cycleDistribution = [
-  { label: "Optimal (<2.4s)", value: 65, tone: "bg-[#8EF08C]" },
-  { label: "Nominal (2.4-2.6s)", value: 25, tone: "bg-[#C9DCF6]" },
-  { label: "Slow (>2.6s)", value: 8, tone: "bg-[#747B86]" },
-  { label: "Fault/Timeout", value: 2, tone: "bg-[#C7181D]" },
 ];
 
 export const jointControls: JointControl[] = [
@@ -192,14 +126,6 @@ export const sequences: Sequence[] = [
     estimate: "00:20",
     status: "idle",
     icon: SquareStack,
-  },
-  {
-    id: "perception1",
-    title: "Diagonal Perception Pose",
-    description: "Moves the arm to the configured camera/perception pose.",
-    estimate: "00:50",
-    status: "idle",
-    icon: ScanLine,
   },
   {
     id: "perception2",

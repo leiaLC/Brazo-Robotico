@@ -65,9 +65,9 @@ Color aliases for pick commands:
 4. If the command is ambiguous or references an object not detected in the scene, set clarification_needed to true.
 5. If the command is unsafe (e.g. extreme joint values), set confidence below 0.3 and explain in intent.
 6. speed defaults to 30 if not specified.
-7. Spanish commands such as "toma", "agarra", "dame" or "mueve" followed by an object should map to action "pick" with target_object set to the canonical object class.
+7. Spanish commands such as "toma", "agarra", "dame" or "mueve" followed by an object should map to action "pick" with target_object set to the canonical object class, unless the user asks to place it in their hand.
 8. If the user asks to group objects or figures, and no explicit sequence/action exists, set clarification_needed to true.
-9. For perception pose or object classification requests, use action "run_sequence" with the matching sequence_id. Do not use sequence_id values as action names.
+9. For perception pose, object classification, or hand-delivery requests, use action "run_sequence" with the matching sequence_id. Do not use sequence_id values as action names.
 
 ## Examples
 
@@ -135,6 +135,25 @@ Response:
       "action": "run_sequence",
       "parameters": {{
         "sequence_id": "classify_objects",
+        "speed": 30
+      }}
+    }}
+  ],
+  "clarification_needed": false,
+  "clarification_message": ""
+}}
+
+User: "dame el cubo en la mano"
+Response:
+{{
+  "intent": "Pick up the cube and place it at the detected hand",
+  "confidence": 0.99,
+  "actions": [
+    {{
+      "action": "run_sequence",
+      "parameters": {{
+        "sequence_id": "give_object_to_hand",
+        "target_object": "cube",
         "speed": 30
       }}
     }}

@@ -1,6 +1,7 @@
 import math
 import json
 import threading
+import time
 from dataclasses import dataclass
 from typing import Callable
 
@@ -65,6 +66,8 @@ class RosGateway:
         self._snapshot: JointSnapshot | None = None
         self._latest_jpeg: bytes | None = None
         self._latest_task_status: dict | None = None
+        self._latest_jetson_metrics: dict | None = None
+        self._latest_jetson_metrics_received_at: float | None = None
         self._latest_voice_status: dict = {"status": "unknown"}
         self._voice_events: list[dict] = []
         self._state_callbacks: list[Callable[[JointSnapshot], None]] = []
@@ -85,6 +88,7 @@ class RosGateway:
         self.voice_start_pub = self.node.create_publisher(Empty, self.settings.voice_start_topic, 10)
         self.node.create_subscription(JointState, self.settings.state_topic, self._on_joint_state, 10)
         self.node.create_subscription(RobotStatus, "/robot_task/status", self._on_task_status, 10)
+        self.node.create_subscription(String, self.settings.jetson_metrics_topic, self._on_jetson_metrics, 10)
         self.node.create_subscription(String, self.settings.voice_status_topic, self._on_voice_status, 10)
         self.node.create_subscription(String, self.settings.voice_events_topic, self._on_voice_event, 10)
 
@@ -133,6 +137,14 @@ class RosGateway:
     def get_latest_task_status(self) -> dict | None:
         with self._lock:
             return self._latest_task_status
+
+    def get_latest_jetson_metrics(self, max_age_sec: float) -> dict | None:
+        with self._lock:
+            if self._latest_jetson_metrics is None or self._latest_jetson_metrics_received_at is None:
+                return None
+            if time.monotonic() - self._latest_jetson_metrics_received_at > max_age_sec:
+                return None
+            return dict(self._latest_jetson_metrics)
 
     def get_latest_voice_status(self) -> dict:
         with self._lock:
@@ -338,6 +350,19 @@ class RosGateway:
 
         for callback in list(self._task_status_callbacks):
             callback(status)
+
+    def _on_jetson_metrics(self, msg: String) -> None:
+        try:
+            metrics = json.loads(msg.data)
+        except json.JSONDecodeError:
+            return
+        if not isinstance(metrics, dict):
+            return
+
+        metrics.setdefault("source", "ros2")
+        with self._lock:
+            self._latest_jetson_metrics = metrics
+            self._latest_jetson_metrics_received_at = time.monotonic()
 
     def _on_voice_status(self, msg: String) -> None:
         status = {"status": msg.data}
